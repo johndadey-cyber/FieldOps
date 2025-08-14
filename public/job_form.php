@@ -105,24 +105,22 @@ function s(?string $v): string
   let results = [];
   let activeIndex = -1;
 
-  searchInput.addEventListener('input', async function() {
-    const q = this.value.trim();
-    customerIdInput.value = '';
-    if (q.length < 2) { resultsDiv.innerHTML = ''; return; }
+  async function fetchCustomers(q) {
     try {
-      const resp = await fetch('api/customer_search.php?q=' + encodeURIComponent(q));
-      const contentType = resp.headers.get('content-type') || '';
-      if (resp.ok && contentType.includes('application/json')) {
-        results = await resp.json();
-      } else {
+      const resp = await fetch(`api/customer_search.php?q=${encodeURIComponent(q)}`);
+      const type = resp.headers.get('content-type') || '';
+      if (!resp.ok || !type.includes('application/json')) {
         console.error('Customer search request failed', resp.status, resp.statusText);
-        results = [];
+        return [];
       }
+      return await resp.json();
     } catch (err) {
       console.error('Failed to load customer search results', err);
-      results = [];
+      return [];
     }
+  }
 
+  function renderResults() {
     resultsDiv.innerHTML = '';
     activeIndex = -1;
     results.forEach((c, idx) => {
@@ -133,6 +131,14 @@ function s(?string $v): string
       item.addEventListener('click', () => selectCustomer(idx));
       resultsDiv.appendChild(item);
     });
+  }
+
+  searchInput.addEventListener('input', async function () {
+    const q = this.value.trim();
+    customerIdInput.value = '';
+    if (q.length < 2) { resultsDiv.innerHTML = ''; return; }
+    results = await fetchCustomers(q);
+    renderResults();
   });
 
   searchInput.addEventListener('keydown', function(e) {
