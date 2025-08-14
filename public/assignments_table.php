@@ -76,7 +76,7 @@ foreach ($rows as $r) {
   if ($empName !== $currentEmp) {
     $currentEmp = $empName;
     // Group header row for employee
-    echo '<tr class="table-active"><td colspan="7" class="fw-semibold">'
+    echo '<tr class="table-active"><td colspan="6" class="fw-semibold">'
        . htmlspecialchars($currentEmp, ENT_QUOTES, 'UTF-8')
        . '</td></tr>';
   }
@@ -112,5 +112,5 @@ foreach ($rows as $r) {
 
 // If no rows, render a friendly empty-state row
 if (!$rows) {
-  echo '<tr><td colspan="7" class="text-center text-muted py-4">No matching assignments.</td></tr>';
+  echo '<tr><td colspan="6" class="text-center text-muted py-4">No matching assignments.</td></tr>';
 }
