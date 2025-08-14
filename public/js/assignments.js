@@ -36,21 +36,33 @@
 
   // ---------- Modal lifecycle helpers ----------
   function closeModalsAndCleanup() {
-    try { document.activeElement && document.activeElement.blur(); } catch (_){}
+    try {
+      if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+      }
+    } catch (_) {}
 
     const $confirm = document.getElementById('assignConfirmModal');
     const $assign  = document.getElementById('assignmentsModal');
 
-    try { bootstrap?.Modal.getOrCreateInstance($confirm)?.hide(); } catch(_){}
-    try { bootstrap?.Modal.getOrCreateInstance($assign )?.hide(); } catch(_){}
+    // Use inert to prevent focus errors while Bootstrap hides the modals
+    if ($assign) $assign.setAttribute('inert', '');
 
-    // Clear any lingering artifacts from stacked modals
-    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-    document.body.classList.remove('modal-open');
-    document.body.style.removeProperty('padding-right');
+    setTimeout(() => {
+      try { bootstrap?.Modal.getOrCreateInstance($confirm)?.hide(); } catch(_){}
+      try { bootstrap?.Modal.getOrCreateInstance($assign )?.hide(); } catch(_){}
 
-    // Defensive: ensure aria-hidden isn't stuck
-    if ($assign) $assign.removeAttribute('aria-hidden');
+      // Clear any lingering artifacts from stacked modals
+      document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('padding-right');
+
+      // Defensive: ensure aria-hidden isn't stuck and remove inert
+      if ($assign) {
+        $assign.removeAttribute('aria-hidden');
+        $assign.removeAttribute('inert');
+      }
+    }, 0);
   }
 
   // Bind cleanup on hide (defensive)
@@ -386,9 +398,13 @@
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ jobId: JOB_ID, employeeIds: [...selected], force })
       });
-      const json = await res.json();
 
-      if (res.status === 409 && !force) {
+      // Parse response defensively in case backend emits HTML or other noise
+      const text = await res.text();
+      let json = null;
+      try { json = JSON.parse(text); } catch (_) {}
+
+      if (res.status === 409 && !force && json) {
         // Summarize issues and show confirm modal
         const counts = { time_conflict:0, partial_availability:0, unavailable_for_job_window:0, missing_required_skills:0, inactive_employee:0, wrong_role:0 };
         (json.details || []).forEach(d => (d.issues || []).forEach(i => { if (counts[i] !== undefined) counts[i]++; }));
@@ -410,7 +426,9 @@
         return; // stop; wait for "assign anyway"
       }
 
-      if (!res.ok || json.ok === false) throw new Error(json?.error || `HTTP ${res.status}`);
+      if (!res.ok || !json || json.ok === false) {
+        throw new Error(json?.error || json?.message || `HTTP ${res.status}`);
+      }
 
       // Success → close modal(s) & notify page to refresh jobs table
       closeModalsAndCleanup();
