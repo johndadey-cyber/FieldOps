@@ -29,7 +29,8 @@ function initializeAddressAutocomplete(inputId, fieldMap = {}) {
         });
 
         const assign = (id, value) => {
-            const field = document.getElementById(fieldMap[id]);
+            const targetId = fieldMap[id] || id;
+            const field = document.getElementById(targetId);
             if (field) field.value = value || '';
         };
 
