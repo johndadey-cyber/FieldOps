@@ -4,6 +4,29 @@ declare(strict_types=1);
 
 header('Content-Type: application/json');
 
+// Centralized logging so deploys can inspect failures.  The closure is cheap and
+// allows us to reference the log file without sprinkling error_log calls.
+$__assignLogFile = dirname(__DIR__, 3) . '/logs/assign_error.log';
+$logException = static function (Throwable $e) use ($__assignLogFile): void {
+    $msg = sprintf(
+        "[%s] %s in %s:%d\n%s\n",
+        date('c'),
+        $e->getMessage(),
+        $e->getFile(),
+        $e->getLine(),
+        $e->getTraceAsString()
+    );
+    error_log($msg, 3, $__assignLogFile);
+};
+
+// Capture fatal errors that bypass the try/catch below
+register_shutdown_function(function () use ($logException) {
+    $err = error_get_last();
+    if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+        $logException(new ErrorException($err['message'], 0, $err['type'], $err['file'], $err['line']));
+    }
+});
+
 try {
     // --- DB bootstrap (robust relative path) ---
     $DB_PATHS = [
@@ -173,16 +196,15 @@ try {
     }
 
     // Flip status to 'assigned' if any rows now exist
-    $pdo->exec("
-    UPDATE jobs j
-    SET j.status = 'assigned'
-    WHERE j.id = {$jobId}
-      AND EXISTS (
-        SELECT 1 FROM job_employee je WHERE je.job_id = j.id
-        UNION
-        SELECT 1 FROM job_employee_assignment jea WHERE jea.job_id = j.id
-      )
-  ");
+    $upd = $pdo->prepare("UPDATE jobs j
+        SET j.status = 'assigned'
+        WHERE j.id = :jobId
+          AND EXISTS (
+            SELECT 1 FROM job_employee je WHERE je.job_id = j.id
+            UNION
+            SELECT 1 FROM job_employee_assignment jea WHERE jea.job_id = j.id
+          )");
+    $upd->execute([':jobId' => $jobId]);
 
     $pdo->commit();
 
@@ -194,12 +216,15 @@ try {
     ]);
 } catch (Throwable $e) {
     if (isset($pdo) && $pdo->inTransaction()) { $pdo->rollBack(); }
+    $logException($e);
     http_response_code(500);
     echo json_encode([
         'ok'    => false,
         'code'  => 500,
         'error' => 'INTERNAL',
         'detail'=> $e->getMessage(),
+        'file'  => basename($e->getFile()),
+        'line'  => $e->getLine(),
     ]);
 }
 
