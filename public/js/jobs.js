@@ -75,13 +75,16 @@
         // Status
         const statusCell=document.createElement('td');
         const sc={
-          'Unassigned':'bg-secondary-subtle text-secondary border',
-          'Assigned':'bg-primary-subtle text-primary border',
-          'In Progress':'bg-warning-subtle text-warning border',
-          'Completed':'bg-success-subtle text-success border',
-          'Cancelled':'bg-secondary-subtle text-secondary border'
+          'draft':'bg-light text-dark border',
+          'scheduled':'bg-secondary-subtle text-secondary border',
+          'assigned':'bg-primary-subtle text-primary border',
+          'in_progress':'bg-warning-subtle text-warning border',
+          'completed':'bg-success-subtle text-success border',
+          'closed':'bg-secondary-subtle text-secondary border',
+          'cancelled':'bg-secondary-subtle text-secondary border'
         };
-        statusCell.innerHTML=`<span class="badge ${sc[job.status]||'bg-light text-dark border'} badge-status">${h(job.status)}</span>`;
+        const label=job.status.replace(/_/g,' ');
+        statusCell.innerHTML=`<span class="badge ${sc[job.status]||'bg-light text-dark border'} badge-status">${h(label)}</span>`;
         tr.appendChild(statusCell);
         // Actions
         const actCell=document.createElement('td');

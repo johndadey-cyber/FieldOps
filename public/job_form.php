@@ -4,10 +4,11 @@ require __DIR__ . '/_cli_guard.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/_csrf.php';
 require_once __DIR__ . '/../models/JobType.php';
+require_once __DIR__ . '/../models/Job.php';
 
 $pdo       = getPDO();
 $jobTypes  = JobType::all($pdo);
-$statuses  = ['Scheduled', 'In Progress', 'Completed', 'Cancelled'];
+$statuses  = Job::allowedStatuses();
 $__csrf    = csrf_token();
 $today     = date('Y-m-d');
 
@@ -88,7 +89,8 @@ function s(?string $v): string { return htmlspecialchars((string)$v, ENT_QUOTES,
       <div class="mb-3">
         <select name="status" class="form-select" required>
         <?php foreach ($statuses as $st): ?>
-          <option value="<?= s($st) ?>"<?= $st === 'Scheduled' ? ' selected' : '' ?>><?= s($st) ?></option>
+          <?php $label = ucwords(str_replace('_',' ', $st)); ?>
+          <option value="<?= s($st) ?>"<?= $st === 'scheduled' ? ' selected' : '' ?>><?= s($label) ?></option>
         <?php endforeach; ?>
         </select>
       </div>

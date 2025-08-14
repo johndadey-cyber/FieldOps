@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
  * JobsTest — exercises the server-rendered table partial (jobs_table.php)
  * Covers:
  *  - includes created job row
- *  - status filter = Unassigned
+ *  - status filter = scheduled
  *  - description search
  *  - customer-name search
  *  - days range window
@@ -44,7 +44,7 @@ final class JobsTest extends TestCase
     {
         $cid  = TestDataFactory::createCustomer($this->pdo, 'Table', 'Render');
         $date = (new DateTimeImmutable('tomorrow'))->format('Y-m-d');
-        $jobId = TestDataFactory::createJob($this->pdo, $cid, 'Render test row', $date, '09:00:00', 45, 'Unassigned');
+        $jobId = TestDataFactory::createJob($this->pdo, $cid, 'Render test row', $date, '09:00:00', 45, 'scheduled');
 
         $this->pdo->commit();
 
@@ -56,19 +56,19 @@ final class JobsTest extends TestCase
     }
 
     /** @group jobs */
-    public function testStatusFilterUnassigned(): void
+    public function testStatusFilterScheduled(): void
     {
-        $cid  = TestDataFactory::createCustomer($this->pdo, 'Filter', 'Unassigned');
+        $cid  = TestDataFactory::createCustomer($this->pdo, 'Filter', 'Scheduled');
         $date = (new DateTimeImmutable('tomorrow'))->format('Y-m-d');
-        $j1 = TestDataFactory::createJob($this->pdo, $cid, 'Unassigned row', $date, '13:00:00', 30, 'Unassigned');
+        $j1 = TestDataFactory::createJob($this->pdo, $cid, 'scheduled row', $date, '13:00:00', 30, 'scheduled');
         $j2 = TestDataFactory::createJob($this->pdo, $cid, 'Completed row',  $date, '14:00:00', 30, 'Completed');
 
         $this->pdo->commit();
 
-        $html = Http::get('jobs_table.php?status=Unassigned&days=365');
+        $html = Http::get('jobs_table.php?status=scheduled&days=365');
 
         $this->assertNotEmpty($html, 'jobs_table.php (filtered) should return HTML rows');
-        $this->assertStringContainsString((string)$j1, $html, 'Shows Unassigned job');
+        $this->assertStringContainsString((string)$j1, $html, 'Shows scheduled job');
         $this->assertStringNotContainsString((string)$j2, $html, 'Hides Completed job');
     }
 
@@ -81,8 +81,8 @@ final class JobsTest extends TestCase
         $token  = bin2hex(random_bytes(4));
         $needle = "Nebula-$token";
 
-        $matchId    = TestDataFactory::createJob($this->pdo, $cid, "Install $needle Panels", $date, '10:00:00', 45, 'Unassigned');
-        $nonMatchId = TestDataFactory::createJob($this->pdo, $cid, "Routine Maintenance",     $date, '11:00:00', 45, 'Unassigned');
+        $matchId    = TestDataFactory::createJob($this->pdo, $cid, "Install $needle Panels", $date, '10:00:00', 45, 'scheduled');
+        $nonMatchId = TestDataFactory::createJob($this->pdo, $cid, "Routine Maintenance",     $date, '11:00:00', 45, 'scheduled');
 
         $this->pdo->commit();
 
@@ -103,10 +103,10 @@ final class JobsTest extends TestCase
         $date  = (new DateTimeImmutable('tomorrow'))->format('Y-m-d');
 
         $cidMatch   = TestDataFactory::createCustomer($this->pdo, $first, $last);
-        $matchId    = TestDataFactory::createJob($this->pdo, $cidMatch, 'Any description', $date, '10:00:00', 45, 'Unassigned');
+        $matchId    = TestDataFactory::createJob($this->pdo, $cidMatch, 'Any description', $date, '10:00:00', 45, 'scheduled');
 
         $cidOther   = TestDataFactory::createCustomer($this->pdo, 'Comet', 'Customer');
-        $nonMatchId = TestDataFactory::createJob($this->pdo, $cidOther, 'Irrelevant job',  $date, '11:00:00', 45, 'Unassigned');
+        $nonMatchId = TestDataFactory::createJob($this->pdo, $cidOther, 'Irrelevant job',  $date, '11:00:00', 45, 'scheduled');
 
         $this->pdo->commit();
 
@@ -126,8 +126,8 @@ final class JobsTest extends TestCase
         $insideDate  = (new DateTimeImmutable('today +3 days'))->format('Y-m-d');
         $outsideDate = (new DateTimeImmutable('today +30 days'))->format('Y-m-d');
 
-        $insideId  = TestDataFactory::createJob($this->pdo, $cid, 'Inside 7-day window',  $insideDate,  '09:00:00', 60, 'Unassigned');
-        $outsideId = TestDataFactory::createJob($this->pdo, $cid, 'Outside 7-day window', $outsideDate, '09:30:00', 60, 'Unassigned');
+        $insideId  = TestDataFactory::createJob($this->pdo, $cid, 'Inside 7-day window',  $insideDate,  '09:00:00', 60, 'scheduled');
+        $outsideId = TestDataFactory::createJob($this->pdo, $cid, 'Outside 7-day window', $outsideDate, '09:30:00', 60, 'scheduled');
 
         $this->pdo->commit();
 

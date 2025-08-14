@@ -15,7 +15,7 @@ class JobTest extends TestCase
                 'description' => 'Mock Job',
                 'scheduled_date' => '2025-08-07',
                 'scheduled_time' => '09:00:00',
-                'status' => 'Unassigned',
+                'status' => 'scheduled',
                 'duration_minutes' => 60,
                 'customer_id' => 10,
                 'first_name' => 'Jane',
@@ -33,7 +33,7 @@ class JobTest extends TestCase
         $mockPdo->method('prepare')->willReturn($mockStmt);
 
         // Step 3: Run the test
-        $results = Job::getFiltered($mockPdo, 'Unassigned');
+        $results = Job::getFiltered($mockPdo, 'scheduled');
 
         // Step 4: Assert the mock data is returned correctly
         $this->assertCount(1, $results);

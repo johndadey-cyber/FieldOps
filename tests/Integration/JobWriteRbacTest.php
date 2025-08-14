@@ -35,7 +35,7 @@ final class JobWriteRbacTest extends TestCase
             'description'    => 'Test Job',
             'scheduled_date' => '2025-08-20',
             'scheduled_time' => '10:00',
-            'status'         => 'Unassigned',
+            'status'         => 'scheduled',
             'job_types'      => ['Window Washing'],
         ], [
             'role' => 'field_tech',
@@ -55,7 +55,7 @@ final class JobWriteRbacTest extends TestCase
             'description'    => 'Test Job',
             'scheduled_date' => '2025-08-20',
             'scheduled_time' => '10:00',
-            'status'         => 'Unassigned',
+            'status'         => 'scheduled',
             // no csrf_token on purpose
         ], [
             'role' => 'dispatcher',
@@ -75,7 +75,7 @@ final class JobWriteRbacTest extends TestCase
             'description'      => 'Initial Job',
             'scheduled_date'   => '2025-08-21',
             'scheduled_time'   => '09:30',
-            'status'           => 'Unassigned',
+            'status'           => 'scheduled',
             'duration_minutes' => 120,
             'job_types'        => ['Window Washing','Pressure Washing'],
         ], ['role' => 'dispatcher']);
@@ -95,7 +95,7 @@ final class JobWriteRbacTest extends TestCase
             'description'      => 'Updated Job Title',
             'scheduled_date'   => '2025-08-22',
             'scheduled_time'   => '14:15',
-            'status'           => 'Assigned',
+            'status'           => 'assigned',
             'duration_minutes' => 90,
             'job_types'        => ['Window Washing'],
         ], ['role' => 'dispatcher']);

@@ -41,8 +41,8 @@ final class Job
      */
     public static function allowedStatuses(): array
     {
-        // Keep in sync with assignment_process.php status flip rules.
-        return ['Unassigned', 'Assigned', 'Completed', 'Cancelled'];
+        // Keep in sync with assignment_process.php status flip rules and DB ENUM.
+        return ['draft','scheduled','assigned','in_progress','completed','closed','cancelled'];
     }
 
     /**

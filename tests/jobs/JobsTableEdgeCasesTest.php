@@ -55,7 +55,7 @@ final class JobsTableEdgeCasesTest extends TestCase
             $date,
             '09:00:00',
             30,
-            'Unassigned'
+            'scheduled'
         );
 
         $html = $this->renderJobsTable(['days' => 365]);
@@ -72,11 +72,11 @@ final class JobsTableEdgeCasesTest extends TestCase
 
         // Today
         $today = (new DateTimeImmutable('today'))->format('Y-m-d');
-        TestDataFactory::createJob($this->pdo, $cid, 'Today job', $today, '10:00:00', 30, 'Unassigned');
+        TestDataFactory::createJob($this->pdo, $cid, 'Today job', $today, '10:00:00', 30, 'scheduled');
 
         // Far future
         $future = (new DateTimeImmutable('+400 days'))->format('Y-m-d');
-        TestDataFactory::createJob($this->pdo, $cid, 'Far future job', $future, '10:00:00', 30, 'Unassigned');
+        TestDataFactory::createJob($this->pdo, $cid, 'Far future job', $future, '10:00:00', 30, 'scheduled');
 
         // days = 0 -> should not error
         $html0 = $this->renderJobsTable(['days' => 0]);
@@ -96,8 +96,8 @@ final class JobsTableEdgeCasesTest extends TestCase
         $cid = TestDataFactory::createCustomer($this->pdo, 'Alex', 'Percent');
 
         $date = (new DateTimeImmutable('+2 days'))->format('Y-m-d');
-        TestDataFactory::createJob($this->pdo, $cid, 'Wash 100% exterior', $date, '11:00:00', 60, 'Unassigned');
-        TestDataFactory::createJob($this->pdo, $cid, 'Underscore_name_job',  $date, '12:00:00', 60, 'Unassigned');
+        TestDataFactory::createJob($this->pdo, $cid, 'Wash 100% exterior', $date, '11:00:00', 60, 'scheduled');
+        TestDataFactory::createJob($this->pdo, $cid, 'Underscore_name_job',  $date, '12:00:00', 60, 'scheduled');
 
         // Search that includes % sign
         $html1 = $this->renderJobsTable(['search' => '100% exterior', 'days' => 30]);

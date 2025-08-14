@@ -34,7 +34,6 @@ $statusIn        = trim((string)($_POST['status'] ?? ''));
 
 // Normalize status to canonical ENUM values (lowercase)
 $map = [
-  'unassigned'=>'unassigned','Unassigned'=>'unassigned','UNASSIGNED'=>'unassigned',
   'draft'=>'draft','Draft'=>'draft',
   'scheduled'=>'scheduled','Scheduled'=>'scheduled',
   'assigned'=>'assigned','Assigned'=>'assigned',
@@ -43,7 +42,7 @@ $map = [
   'closed'=>'closed','Closed'=>'closed',
   'cancelled'=>'cancelled','Canceled'=>'cancelled','Cancelled'=>'cancelled',
 ];
-$canonical = $map[$statusIn] ?? $map[str_replace('_',' ', $statusIn)] ?? 'unassigned';
+$canonical = $map[$statusIn] ?? $map[str_replace('_',' ', $statusIn)] ?? 'draft';
 
 // Validate
 $errors=[];

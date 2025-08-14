@@ -37,7 +37,7 @@ final class AssignmentsDataTest extends TestCase
 
         $this->pdo->exec("
             INSERT INTO jobs (id, customer_id, description, scheduled_date, scheduled_time, duration_minutes, status)
-            VALUES (9101, 9001, 'Assign test job', '2030-01-01', '09:00:00', 60, 'Unassigned')
+            VALUES (9101, 9001, 'Assign test job', '2030-01-01', '09:00:00', 60, 'scheduled')
             ON DUPLICATE KEY UPDATE description='Assign test job';
         ");
 

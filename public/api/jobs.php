@@ -24,15 +24,16 @@ try {
     $statusList = array_filter(array_map('trim', explode(',', $statusParam)));
     $mappedStatuses = [];
     foreach ($statusList as $s) {
-        if (strcasecmp($s, 'Scheduled') === 0) {
-            $mappedStatuses[] = 'Assigned';
-            $mappedStatuses[] = 'Unassigned';
+        $key = str_replace(' ', '_', strtolower($s));
+        if ($key === 'scheduled') {
+            $mappedStatuses[] = 'scheduled';
+            $mappedStatuses[] = 'assigned';
         } else {
-            $mappedStatuses[] = $s;
+            $mappedStatuses[] = $key;
         }
     }
     if (!$mappedStatuses) {
-        $mappedStatuses = ['Unassigned', 'Assigned', 'In Progress'];
+        $mappedStatuses = ['scheduled', 'assigned', 'in_progress'];
     }
 
     $jobTypeParam = $_GET['job_type'] ?? '';

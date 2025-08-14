@@ -62,7 +62,7 @@ try {
     $stmt->execute([
         ':cid'   => $customerId,
         ':desc'  => 'No-conflict eligibility test job',
-        ':status'=> 'Unassigned',
+        ':status'=> 'scheduled',
         ':sd'    => $tomorrow,
         ':st'    => $jobTime,
         ':dur'   => $duration,

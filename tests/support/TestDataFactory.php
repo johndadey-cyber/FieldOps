@@ -34,7 +34,7 @@ final class TestDataFactory
         $stmt->execute([':e' => $employeeId, ':d' => $dayOfWeek, ':s' => $start, ':t' => $end]);
     }
 
-    public static function createJob(PDO $pdo, int $customerId, string $desc, string $date, string $time, int $duration = 60, string $status = 'Unassigned'): int
+    public static function createJob(PDO $pdo, int $customerId, string $desc, string $date, string $time, int $duration = 60, string $status = 'scheduled'): int
     {
         $stmt = $pdo->prepare("
             INSERT INTO jobs (customer_id, description, status, scheduled_date, scheduled_time, duration_minutes)

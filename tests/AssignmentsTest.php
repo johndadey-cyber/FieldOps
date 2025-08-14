@@ -46,7 +46,7 @@ final class AssignmentsTest extends TestCase
         $dow        = (int)date('w', strtotime($date));
 
         TestDataFactory::setAvailability($this->pdo, $employeeId, $dow, '09:00:00', '12:00:00');
-        $jobId = TestDataFactory::createJob($this->pdo, $customerId, 'Assign happy path', $date, '10:00:00', 60, 'Unassigned');
+        $jobId = TestDataFactory::createJob($this->pdo, $customerId, 'Assign happy path', $date, '10:00:00', 60, 'scheduled');
 
         // 🔴 Important: the HTTP endpoint runs in another connection; commit fixtures so it can see them.
         $this->pdo->commit();
@@ -90,7 +90,7 @@ final class AssignmentsTest extends TestCase
         TestDataFactory::setAvailability($this->pdo, $employeeId, $dow, '09:00:00', '12:00:00');
 
         // First job: 10:00–11:00 (should succeed)
-        $jobA  = TestDataFactory::createJob($this->pdo, $customerId, 'Job A', $date, '10:00:00', 60, 'Unassigned');
+        $jobA  = TestDataFactory::createJob($this->pdo, $customerId, 'Job A', $date, '10:00:00', 60, 'scheduled');
 
         // Make fixtures visible to the endpoint
         $this->pdo->commit();
@@ -109,7 +109,7 @@ final class AssignmentsTest extends TestCase
         // Second job: 10:30–11:30 (overlaps -> should NOT persist)
         // Start a new transaction for creating B, then commit before HTTP again.
         $this->pdo->beginTransaction();
-        $jobB = TestDataFactory::createJob($this->pdo, $customerId, 'Job B', $date, '10:30:00', 60, 'Unassigned');
+        $jobB = TestDataFactory::createJob($this->pdo, $customerId, 'Job B', $date, '10:30:00', 60, 'scheduled');
         $this->pdo->commit();
 
         $second = Http::postFormJson('assignment_process.php', [
