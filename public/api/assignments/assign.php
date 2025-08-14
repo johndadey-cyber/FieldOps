@@ -12,6 +12,7 @@ try {
     throw new RuntimeException("config/database.php not found (looked at: {$ROOT}/config/database.php)");
   }
   require $dbPath;
+  // Explicit semicolon to prevent parse errors when deploying
   $pdo = getPDO();
   $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
