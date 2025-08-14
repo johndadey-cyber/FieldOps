@@ -9,16 +9,23 @@ final class JobType
      */
     public static function all(PDO $pdo): array
     {
-        $st = $pdo->prepare("
-            SELECT id, name, description
-            FROM job_types
-            ORDER BY name, id
-        ");
-        if ($st === false) {
-            return [];
+        try {
+            $st = $pdo->prepare(
+                'SELECT id, name, description FROM job_types ORDER BY name, id'
+            );
+            if ($st === false) {
+                return [];
+            }
+            $st->execute();
+        } catch (Throwable $e) {
+            $st = $pdo->prepare(
+                'SELECT id, name FROM job_types ORDER BY name, id'
+            );
+            if ($st === false) {
+                return [];
+            }
+            $st->execute();
         }
-
-        $st->execute();
 
         /** @var list<array<string,mixed>> $rows */
         $rows = $st->fetchAll(PDO::FETCH_ASSOC);
