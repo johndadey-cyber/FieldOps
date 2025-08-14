@@ -45,6 +45,15 @@ class AssignmentEngine
                     WHERE e.is_active = 1 AND (e.role_id = 1 OR e.role_id IS NULL)";
         $cand = $this->pdo->query($candSql)->fetchAll(PDO::FETCH_ASSOC);
 
+        // Overrides for the specific job date
+        $ovrStmt = $this->pdo->prepare("SELECT employee_id, status, start_time, end_time FROM employee_availability_overrides WHERE date = :d");
+        $ovrStmt->execute([':d' => $date]);
+        $ovrRows = $ovrStmt->fetchAll(PDO::FETCH_ASSOC);
+        $overrides = [];
+        foreach ($ovrRows as $ov) {
+            $overrides[(int)$ov['employee_id']][] = $ov;
+        }
+
         $qualified = []; $notQualified = [];
 
         $dowNum  = (int)date('w', $startTs);      // 0..6
@@ -66,24 +75,44 @@ class AssignmentEngine
                 if ($cnt < count($reqTypes)) $reasons[] = 'missing_skills';
             }
 
-            // Availability: support either weekday NAME or NUMBER stored as text
-            $availQ = $this->pdo->prepare(
-                "SELECT 1
-                   FROM employee_availability
-                  WHERE employee_id = :eid
-                    AND (day_of_week = :dow_name OR day_of_week = :dow_num)
-                    AND start_time <= :t
-                    AND end_time   >= :t2
-                  LIMIT 1"
-            );
-            $availQ->execute([
-                ':eid'      => $eid,
-                ':dow_name' => $dowName,                // e.g., 'Friday'
-                ':dow_num'  => (string)$dowNum,         // e.g., '5'
-                ':t'        => $time,
-                ':t2'       => $endTimeStr
-            ]);
-            if (!$availQ->fetch()) $reasons[] = 'not_available';
+            // Availability: overrides take precedence over recurring availability
+            $hasOverride = false;
+            $ovList = $overrides[$eid] ?? [];
+            foreach ($ovList as $ov) {
+                $hasOverride = true;
+                $ovStatus = strtoupper((string)($ov['status'] ?? ''));
+                $oStart = (string)($ov['start_time'] ?? '00:00:00');
+                $oEnd   = (string)($ov['end_time'] ?? '23:59:59');
+                if ($ovStatus === 'UNAVAILABLE') {
+                    $reasons[] = 'not_available';
+                    break;
+                }
+                if ($ovStatus === 'AVAILABLE') {
+                    if (!($oStart <= $time && $oEnd >= $endTimeStr)) {
+                        $reasons[] = 'not_available';
+                    }
+                    break;
+                }
+            }
+            if (!$hasOverride) {
+                $availQ = $this->pdo->prepare(
+                    "SELECT 1
+                       FROM employee_availability
+                      WHERE employee_id = :eid
+                        AND (day_of_week = :dow_name OR day_of_week = :dow_num)
+                        AND start_time <= :t
+                        AND end_time   >= :t2
+                      LIMIT 1"
+                );
+                $availQ->execute([
+                    ':eid'      => $eid,
+                    ':dow_name' => $dowName,
+                    ':dow_num'  => (string)$dowNum,
+                    ':t'        => $time,
+                    ':t2'       => $endTimeStr
+                ]);
+                if (!$availQ->fetch()) $reasons[] = 'not_available';
+            }
 
             // Time conflicts with other jobs that day
             $confQ = $this->pdo->prepare(
