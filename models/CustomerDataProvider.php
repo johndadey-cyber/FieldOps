@@ -32,14 +32,24 @@ final class CustomerDataProvider
         $params = [];
 
         if ($search !== null && $search !== '') {
-            $sql .= " AND (
-                first_name LIKE :q
-                OR last_name LIKE :q
-                OR email LIKE :q
-                OR address_line1 LIKE :q
-                OR city LIKE :q
-            )";
-            $params[':q'] = "%{$search}%";
+            $sql .= ' AND (';
+            $searchFields = [
+                'first_name',
+                'last_name',
+                'email',
+                'address_line1',
+                'city',
+            ];
+            $like = "%{$search}%";
+            foreach ($searchFields as $i => $field) {
+                $param = ":q{$i}";
+                if ($i > 0) {
+                    $sql .= ' OR';
+                }
+                $sql .= " {$field} LIKE {$param}";
+                $params[$param] = $like;
+            }
+            $sql .= ')';
         }
         if ($city !== null && $city !== '') {
             $sql .= " AND city = :city";
