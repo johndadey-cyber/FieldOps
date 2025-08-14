@@ -3,22 +3,15 @@ declare(strict_types=1);
 require __DIR__ . '/_cli_guard.php';
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../models/JobType.php';
 require_once __DIR__ . '/_csrf.php';
 
 $pdo   = getPDO();
 $__csrf = csrf_token();
 
-// Fetch skills (id,name) if table exists
-$skills = [];
-try {
-    $stmt = $pdo->query('SELECT id, name FROM skills ORDER BY name');
-    if ($stmt !== false) {
-        /** @var list<array{id:int|string,name:string}> $skills */
-        $skills = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-} catch (Throwable $e) {
-    $skills = [];
-}
+// Fetch job types to use as skills (id,name)
+/** @var list<array{id:int|string,name:string}> $skills */
+$skills = JobType::all($pdo);
 ?>
 <!doctype html>
 <html lang="en">
