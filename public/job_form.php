@@ -11,7 +11,7 @@ require_once __DIR__ . '/../models/Customer.php';
 
 $pdo       = getPDO();
 $jobTypes  = JobType::all($pdo);
-$statuses  = Job::allowedStatuses();
+$statuses  = array_intersect(['scheduled','draft'], Job::allowedStatuses());
 $customers = (new Customer($pdo))->getAll();
 $__csrf    = csrf_token();
 $today     = date('Y-m-d');
@@ -73,6 +73,16 @@ function s(?string $v): string
         <?php endforeach; ?>
         </div>
         <div class="invalid-feedback d-block" id="jobTypeError" style="display:none">Select at least one job type.</div>
+      </div>
+      <div class="mb-3">
+        <label for="status" class="form-label">Status</label>
+        <select name="status" id="status" class="form-select" required>
+          <?php foreach ($statuses as $st) : ?>
+            <?php $label = ucwords(str_replace('_', ' ', $st)); ?>
+            <option value="<?= s($st) ?>" <?= $st === 'scheduled' ? 'selected' : '' ?>><?= s($label) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <div class="invalid-feedback">Select a status.</div>
       </div>
     </section>
 
