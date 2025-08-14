@@ -1,9 +1,4 @@
-(cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF'
-diff --git a/public/api/assignments/assign.php b/public/api/assignments/assign.php
-index 84b8d32d5480f282f63a3d0aeaaa278d4357cd96..7fbd1c8613613552ed688e4a8ede88af4fb90c05 100644
---- a/public/api/assignments/assign.php
-+++ b/public/api/assignments/assign.php
-@@ -1,36 +1,44 @@
+
 <?php
 // /public/api/assignments/assign.php
 declare(strict_types=1);
@@ -12,6 +7,7 @@ header('Content-Type: application/json');
 
 try {
   // --- DB bootstrap (robust relative path) ---
+
 -  $dbPath = realpath(__DIR__ . '/../../config/database.php');
 -  if (!$dbPath || !is_file($dbPath)) {
 -    throw new RuntimeException("config/database.php not found (looked at: " . (__DIR__ . '/../../config/database.php') . ")");
@@ -26,8 +22,14 @@ try {
 +  }
 +  if (!$dbPath) {
 +    throw new RuntimeException('config/database.php not found (searched: ' . implode(', ', $DB_PATHS) . ')');
-  }
+
+  $ROOT   = dirname(__DIR__, 3); // repo root
+  $dbPath = realpath($ROOT . '/config/database.php');
+  if (!$dbPath || !is_file($dbPath)) {
+    throw new RuntimeException("config/database.php not found (looked at: {$ROOT}/config/database.php)");
+
   require $dbPath;
+  // Explicit semicolon to prevent parse errors when deploying
   $pdo = getPDO();
   $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
