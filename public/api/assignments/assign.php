@@ -196,36 +196,45 @@ try {
         foreach ($employeeIds as $eid) { $ins2->execute([':j' => $jobId, ':e' => $eid]); }
     }
 
-    // Flip status to 'Assigned' if any rows now exist
-    $upd = $pdo->prepare("UPDATE jobs j
-        SET j.status = 'Assigned'
-        WHERE j.id = :jobId
-          AND EXISTS (
-            SELECT 1 FROM job_employee je WHERE je.job_id = j.id
-            UNION
-            SELECT 1 FROM job_employee_assignment jea WHERE jea.job_id = j.id
-          )");
-    $upd->execute([':jobId' => $jobId]);
+// Flip status to 'Assigned' if any rows now exist for this job
+$upd = $pdo->prepare("
+    UPDATE jobs j
+    SET j.status = 'Assigned'
+    WHERE j.id = :jobId
+      AND (
+        EXISTS (SELECT 1 FROM job_employee je WHERE je.job_id = j.id)
+        OR EXISTS (SELECT 1 FROM job_employee_assignment jea WHERE jea.job_id = j.id)
+      )
+");
+$upd->execute([':jobId' => $jobId]);
 
-    $pdo->commit();
+$rowsUpdated = $upd->rowCount(); // might be 0 if status already 'Assigned' or no matches
 
-    echo json_encode([
-        'ok'            => true,
-        'jobId'         => $jobId,
-        'assignedCount' => count($employeeIds),
-        'force'         => (bool)$force,
-    ]);
+$pdo->commit();
+
+echo json_encode([
+    'ok'            => true,
+    'jobId'         => $jobId,
+    'assignedCount' => count($employeeIds),
+    'statusChanged' => $rowsUpdated > 0,
+    'force'         => (bool)$force,
+]);
 } catch (Throwable $e) {
-    if (isset($pdo) && $pdo->inTransaction()) { $pdo->rollBack(); }
+    if (isset($pdo) && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     $logException($e);
+
     http_response_code(500);
     echo json_encode([
-        'ok'    => false,
-        'code'  => 500,
-        'error' => 'INTERNAL',
-        'detail'=> $e->getMessage(),
-        'file'  => basename($e->getFile()),
-        'line'  => $e->getLine(),
+        'ok'        => false,
+        'code'      => 500,
+        'error'     => 'INTERNAL',
+        'detail'    => $e->getMessage(),
+        'file'      => basename($e->getFile()),
+        'line'      => $e->getLine(),
+        'trace'     => $e->getTraceAsString(), // keep for deeper debugging
+        'jobId'     => $jobId ?? null,
+        'employees' => $employeeIds ?? [],
     ]);
 }
-
