@@ -88,20 +88,6 @@ function s(?string $v): string
       </div>
     </section>
 
-<!-- Section 4: Status -->
-<section class="mb-4">
-  <h2 class="h5">Status</h2>
-  <div class="mb-3">
-    <select name="status" class="form-select" required>
-      <?php foreach ($statuses as $st): ?>
-        <?php $label = ucwords(str_replace('_', ' ', $st)); ?>
-        <option value="<?= s($st) ?>"<?= strtolower($st) === 'scheduled' ? ' selected' : '' ?>>
-          <?= s($label) ?>
-        </option>
-      <?php endforeach; ?>
-    </select>
-  </div>
-</section>
 
 
     <!-- Section 5: Actions -->
