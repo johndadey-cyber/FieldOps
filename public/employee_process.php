@@ -37,15 +37,33 @@ $postal      = trim((string)($_POST['postal_code'] ?? ''));
 $lat         = $_POST['latitude']  !== '' ? (float)$_POST['latitude']  : null;
 $lon         = $_POST['longitude'] !== '' ? (float)$_POST['longitude'] : null;
 $placeId     = trim((string)($_POST['google_place_id'] ?? ''));
-$hire_date   = trim((string)($_POST['hire_date'] ?? ''));
-$is_active   = isset($_POST['is_active']) ? 1 : 0;
-$skills      = $_POST['skills'] ?? [];           // array of job_type_id
+$employment_type = trim((string)($_POST['employment_type'] ?? ''));
+$hire_date       = trim((string)($_POST['hire_date'] ?? ''));
+$status          = trim((string)($_POST['status'] ?? 'Active'));
+$role_id         = (string)($_POST['role_id'] ?? '') !== '' ? (int)$_POST['role_id'] : null;
+$is_active       = $status === 'Active' ? 1 : 0;
+$skills          = $_POST['skills'] ?? [];           // array of job_type_id
 
 $errors = [];
 if ($first_name === '') $errors[] = 'First name is required.';
 if ($last_name === '')  $errors[] = 'Last name is required.';
 if ($hire_date === '')  $errors[] = 'Hire date is required.';
 if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Email is invalid.';
+$validEmpTypes = ['Full-Time','Part-Time','Contractor'];
+if (!in_array($employment_type, $validEmpTypes, true)) {
+    $errors[] = 'Employment type invalid.';
+}
+$validStatus = ['Active','Inactive'];
+if (!in_array($status, $validStatus, true)) {
+    $errors[] = 'Status invalid.';
+}
+if ($role_id !== null) {
+    $st = $pdo->prepare('SELECT 1 FROM roles WHERE id = :id');
+    $st->execute([':id'=>$role_id]);
+    if (!$st->fetchColumn()) {
+        $errors[] = 'Role invalid.';
+    }
+}
 
 if ($errors) {
     redirectWithFlash(($action === 'create' ? 'employee_form.php' : "edit_employee.php?id={$id}"), 'danger', implode(' ', $errors));
@@ -73,8 +91,8 @@ try {
         $personId = (int)$pdo->lastInsertId();
 
         // Insert employee
-        $e = $pdo->prepare("INSERT INTO employees (person_id, hire_date, is_active) VALUES (:pid, :hd, :act)");
-        $e->execute([':pid' => $personId, ':hd' => $hire_date, ':act' => $is_active]);
+        $e = $pdo->prepare("INSERT INTO employees (person_id, employment_type, hire_date, status, is_active, role_id) VALUES (:pid, :et, :hd, :st, :act, :rid)");
+        $e->execute([':pid' => $personId, ':et'=>$employment_type, ':hd' => $hire_date, ':st'=>$status, ':act' => $is_active, ':rid'=>$role_id]);
         $employeeId = (int)$pdo->lastInsertId();
 
         // Skills
@@ -112,8 +130,8 @@ try {
         ]);
 
         // Update employee row
-        $eu = $pdo->prepare("UPDATE employees SET hire_date = :hd, is_active = :act WHERE id = :id");
-        $eu->execute([':hd' => $hire_date, ':act' => $is_active, ':id' => $id]);
+        $eu = $pdo->prepare("UPDATE employees SET employment_type=:et, hire_date = :hd, status=:st, is_active = :act, role_id=:rid WHERE id = :id");
+        $eu->execute([':et'=>$employment_type, ':hd' => $hire_date, ':st'=>$status, ':act' => $is_active, ':rid'=>$role_id, ':id' => $id]);
 
         // Replace skills
         $pdo->prepare("DELETE FROM employee_skills WHERE employee_id = :eid")->execute([':eid' => $id]);

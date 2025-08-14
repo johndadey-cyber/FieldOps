@@ -4,6 +4,7 @@ require __DIR__ . '/_cli_guard.php';
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/JobType.php';
+require_once __DIR__ . '/../models/Role.php';
 require_once __DIR__ . '/_csrf.php';
 
 $pdo   = getPDO();
@@ -12,6 +13,10 @@ $__csrf = csrf_token();
 // Fetch job types to use as skills (id,name)
 /** @var list<array{id:int|string,name:string}> $skills */
 $skills = JobType::all($pdo);
+
+// Fetch available roles
+/** @var list<array{id:int|string,name:string}> $roles */
+$roles = Role::all($pdo);
 ?>
 <!doctype html>
 <html lang="en">
@@ -97,8 +102,15 @@ function stickyArr(string $name): array {
           <option value="Inactive" <?= $st==='Inactive'? 'selected':''; ?>>Inactive</option>
         </select>
       </label>
-      <label>Notes
-        <textarea name="notes" rows="3" cols="40"><?= s(sticky('notes')) ?></textarea>
+      <label>Role
+        <select name="role_id">
+          <?php $selRole = sticky('role_id'); ?>
+          <option value="">-- Select --</option>
+          <?php foreach ($roles as $role): ?>
+            <?php $rid = (string)$role['id']; $rname = (string)$role['name']; ?>
+            <option value="<?= s($rid) ?>" <?= $selRole===$rid ? 'selected' : '' ?>><?= s($rname) ?></option>
+          <?php endforeach; ?>
+        </select>
       </label>
     </fieldset>
 
