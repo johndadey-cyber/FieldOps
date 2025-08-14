@@ -24,11 +24,12 @@
       try{
         const res=await fetch('/api/jobs.php?'+params.toString(),{credentials:'same-origin'});
         const data=await res.json();
+        if(!res.ok) throw new Error(data?.error||`Request failed: ${res.status}`);
         if(!Array.isArray(data)) throw new Error('Invalid response');
         renderRows(data);
       }catch(err){
         console.error('loadJobs failed',err);
-        $tbody.innerHTML='<tr><td colspan="7" class="text-danger">Failed to load jobs</td></tr>';
+        $tbody.innerHTML=`<tr><td colspan="7" class="text-danger">${h(err.message||'Failed to load jobs')}</td></tr>`;
       }
     }
 
