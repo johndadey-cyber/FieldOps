@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 require __DIR__ . '/_cli_guard.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/_csrf.php';
@@ -13,7 +15,10 @@ $__csrf    = csrf_token();
 $today     = date('Y-m-d');
 
 /** HTML escape */
-function s(?string $v): string { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
+function s(?string $v): string
+{
+    return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -51,7 +56,7 @@ function s(?string $v): string { return htmlspecialchars((string)$v, ENT_QUOTES,
       <div class="mb-3">
         <span class="form-label d-block mb-2">Job Types</span>
         <div class="row row-cols-2" id="jobTypes">
-        <?php foreach ($jobTypes as $jt): ?>
+        <?php foreach ($jobTypes as $jt) : ?>
           <div class="col">
             <div class="form-check">
               <input class="form-check-input" type="checkbox" name="job_types[]" value="<?= (int)$jt['id'] ?>" id="jt<?= (int)$jt['id'] ?>">
@@ -83,18 +88,21 @@ function s(?string $v): string { return htmlspecialchars((string)$v, ENT_QUOTES,
       </div>
     </section>
 
-    <!-- Section 4: Status -->
-    <section class="mb-4">
-      <h2 class="h5">Status</h2>
-      <div class="mb-3">
-        <select name="status" class="form-select" required>
-        <?php foreach ($statuses as $st): ?>
-          <?php $label = ucwords(str_replace('_',' ', $st)); ?>
-          <option value="<?= s($st) ?>"<?= $st === 'scheduled' ? ' selected' : '' ?>><?= s($label) ?></option>
-        <?php endforeach; ?>
-        </select>
-      </div>
-    </section>
+<!-- Section 4: Status -->
+<section class="mb-4">
+  <h2 class="h5">Status</h2>
+  <div class="mb-3">
+    <select name="status" class="form-select" required>
+      <?php foreach ($statuses as $st): ?>
+        <?php $label = ucwords(str_replace('_', ' ', $st)); ?>
+        <option value="<?= s($st) ?>"<?= strtolower($st) === 'scheduled' ? ' selected' : '' ?>>
+          <?= s($label) ?>
+        </option>
+      <?php endforeach; ?>
+    </select>
+  </div>
+</section>
+
 
     <!-- Section 5: Actions -->
     <section class="mt-4">
@@ -115,8 +123,15 @@ function s(?string $v): string { return htmlspecialchars((string)$v, ENT_QUOTES,
     const q = this.value.trim();
     customerIdInput.value = '';
     if (q.length < 2) { resultsDiv.innerHTML = ''; return; }
-    const resp = await fetch('api/customer_search.php?q=' + encodeURIComponent(q));
-    results = await resp.json();
+    try {
+      const resp = await fetch('api/customer_search.php?q=' + encodeURIComponent(q));
+      if (!resp.ok) throw new Error('Network response was not ok');
+      results = await resp.json();
+    } catch (err) {
+      console.error('Failed to load customer search results', err);
+      results = [];
+    }
+
     resultsDiv.innerHTML = '';
     activeIndex = -1;
     results.forEach((c, idx) => {
