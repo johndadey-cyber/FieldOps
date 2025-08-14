@@ -20,7 +20,10 @@ final class TestDataFactory
     public static function createEmployee(PDO $pdo, string $first = 'Ellen', string $last = 'Eligible'): int
     {
         $personId = self::createPerson($pdo, $first, $last);
-        $stmt = $pdo->prepare("INSERT INTO employees (person_id, is_active) VALUES (:pid, 1)");
+        $stmt = $pdo->prepare(
+            "INSERT INTO employees (person_id, employment_type, hire_date, status, is_active) " .
+            "VALUES (:pid, 'Full-Time', CURRENT_DATE, 'Active', 1)"
+        );
         $stmt->execute([':pid' => $personId]);
         return (int)$pdo->lastInsertId();
     }
