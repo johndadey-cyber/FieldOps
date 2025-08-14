@@ -6,9 +6,10 @@ header('Content-Type: application/json');
 
 try {
   // --- DB bootstrap (robust relative path) ---
-  $dbPath = realpath(__DIR__ . '/../../config/database.php');
+  $ROOT   = dirname(__DIR__, 3); // repo root
+  $dbPath = realpath($ROOT . '/config/database.php');
   if (!$dbPath || !is_file($dbPath)) {
-    throw new RuntimeException("config/database.php not found (looked at: " . (__DIR__ . '/../../config/database.php') . ")");
+    throw new RuntimeException("config/database.php not found (looked at: {$ROOT}/config/database.php)");
   }
   require $dbPath;
   $pdo = getPDO();
