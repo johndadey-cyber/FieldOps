@@ -86,7 +86,7 @@
         // Actions
         const actCell=document.createElement('td');
         actCell.classList.add('text-nowrap');
-        actCell.innerHTML=`<button class="btn btn-sm btn-outline-primary me-1" onclick="openAssignForJob(${job.job_id}, '${job.scheduled_date}', '${job.scheduled_time||''}')">Assign</button>
+        actCell.innerHTML=`<button class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#assignmentsModal" data-job-id="${job.job_id}">Assign</button>
 <a class="btn btn-sm btn-outline-secondary me-1" href="edit_job.php?id=${job.job_id}" target="_blank">Edit</a>
 <a class="btn btn-sm btn-outline-danger" href="job_delete.php?id=${job.job_id}" onclick="return confirm('Delete this job? This cannot be undone.');">Delete</a>`;
         tr.appendChild(actCell);
@@ -98,10 +98,7 @@
     const trigger=debounce(loadJobs,300);
     [$start,$end,$status,$jobType,$showPast].forEach(el=>{el&&el.addEventListener('change',trigger);});
     $search&&$search.addEventListener('input',trigger);
+    window.addEventListener('assignments:updated', loadJobs);
     loadJobs();
   });
 })();
-
-function openAssignForJob(jobId,date,time){
-  if(typeof openAssignModal==='function') openAssignModal(jobId);
-}
