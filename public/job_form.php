@@ -7,10 +7,12 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/_csrf.php';
 require_once __DIR__ . '/../models/JobType.php';
 require_once __DIR__ . '/../models/Job.php';
+require_once __DIR__ . '/../models/Customer.php';
 
 $pdo       = getPDO();
 $jobTypes  = JobType::all($pdo);
 $statuses  = Job::allowedStatuses();
+$customers = (new Customer($pdo))->getAll();
 $__csrf    = csrf_token();
 $today     = date('Y-m-d');
 
@@ -36,12 +38,17 @@ function s(?string $v): string
     <!-- Section 1: Customer Information -->
     <section class="mb-4">
       <h2 class="h5">Customer Information</h2>
-      <div class="mb-3 position-relative">
-        <label for="customerSearch" class="form-label">Customer</label>
-        <input type="text" id="customerSearch" class="form-control" placeholder="Start typing..." required>
-        <input type="hidden" name="customer_id" id="customerId">
-        <div id="customerResults" class="list-group position-absolute w-100"></div>
-        <div class="invalid-feedback">Select a customer from the list.</div>
+      <div class="mb-3">
+        <label for="customerId" class="form-label">Customer</label>
+        <select name="customer_id" id="customerId" class="form-select" required>
+          <option value="" selected disabled>Select a customer</option>
+          <?php foreach ($customers as $c) : ?>
+            <option value="<?= (int)$c['id'] ?>">
+              <?= s(trim($c['first_name'] . ' ' . $c['last_name'] . ' — ' . ($c['address_line1'] ?? '') . ', ' . ($c['city'] ?? ''))) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+        <div class="invalid-feedback">Select a customer.</div>
       </div>
     </section>
 
@@ -99,74 +106,7 @@ function s(?string $v): string
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-  const searchInput = document.getElementById('customerSearch');
-  const resultsDiv = document.getElementById('customerResults');
   const customerIdInput = document.getElementById('customerId');
-  let results = [];
-  let activeIndex = -1;
-
-  async function fetchCustomers(q) {
-    try {
-      const resp = await fetch(`api/customer_search.php?q=${encodeURIComponent(q)}`);
-      const type = resp.headers.get('content-type') || '';
-      if (!resp.ok || !type.includes('application/json')) {
-        console.error('Customer search request failed', resp.status, resp.statusText);
-        return [];
-      }
-      return await resp.json();
-    } catch (err) {
-      console.error('Failed to load customer search results', err);
-      return [];
-    }
-  }
-
-  function renderResults() {
-    resultsDiv.innerHTML = '';
-    activeIndex = -1;
-    results.forEach((c, idx) => {
-      const item = document.createElement('button');
-      item.type = 'button';
-      item.className = 'list-group-item list-group-item-action';
-      item.textContent = `${c.first_name} ${c.last_name} — ${c.address_line1}, ${c.city}`;
-      item.addEventListener('click', () => selectCustomer(idx));
-      resultsDiv.appendChild(item);
-    });
-  }
-
-  searchInput.addEventListener('input', async function () {
-    const q = this.value.trim();
-    customerIdInput.value = '';
-    if (q.length < 2) { resultsDiv.innerHTML = ''; return; }
-    results = await fetchCustomers(q);
-    renderResults();
-  });
-
-  searchInput.addEventListener('keydown', function(e) {
-    const items = resultsDiv.querySelectorAll('.list-group-item');
-    if (items.length === 0) return;
-    if (e.key === 'ArrowDown') {
-      activeIndex = (activeIndex + 1) % items.length;
-      updateActive(items); e.preventDefault();
-    } else if (e.key === 'ArrowUp') {
-      activeIndex = (activeIndex - 1 + items.length) % items.length;
-      updateActive(items); e.preventDefault();
-    } else if (e.key === 'Enter' && activeIndex >= 0) {
-      selectCustomer(activeIndex); e.preventDefault();
-    }
-  });
-
-  function updateActive(items) {
-    items.forEach((el, idx) => {
-      el.classList.toggle('active', idx === activeIndex);
-    });
-  }
-
-  function selectCustomer(idx) {
-    const c = results[idx];
-    searchInput.value = `${c.first_name} ${c.last_name} — ${c.address_line1}, ${c.city}`;
-    customerIdInput.value = c.id;
-    resultsDiv.innerHTML = '';
-  }
 
   document.getElementById('jobForm').addEventListener('submit', function(e) {
     const jtChecks = document.querySelectorAll('input[name="job_types[]"]:checked');
@@ -176,10 +116,10 @@ function s(?string $v): string
     let valid = true;
 
     if (!customerIdInput.value) {
-      searchInput.classList.add('is-invalid');
+      customerIdInput.classList.add('is-invalid');
       valid = false;
     } else {
-      searchInput.classList.remove('is-invalid');
+      customerIdInput.classList.remove('is-invalid');
     }
 
     if (jtChecks.length === 0) {
