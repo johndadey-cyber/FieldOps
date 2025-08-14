@@ -1,0 +1,16 @@
+parameters:
+  level: 8
+
+  paths:
+    - models
+    - public
+
+  bootstrapFiles:
+    - helpers/response.php
+    - config/database.php
+
+  stubFiles:
+    - tests/stubs/phpstan-stubs.php
+
+  reportUnmatchedIgnoredErrors: true
+  ignoreErrors: []

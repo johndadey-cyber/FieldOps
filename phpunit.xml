@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/12.0/phpunit.xsd"
+    bootstrap="tests/bootstrap.php"
+    colors="true"
+    cacheResult="true"
+    cacheDirectory=".phpunit.cache"
+    executionOrder="depends,defects"
+>
+  <php>
+    <!-- Loud errors in tests -->
+    <ini name="error_reporting" value="-1"/>
+    <ini name="display_errors" value="1"/>
+
+    <!-- Test env -->
+    <env name="APP_ENV" value="test"/>
+    <server name="APP_ENV" value="test"/>
+    <env name="TZ" value="UTC"/>
+  </php>
+
+  <testsuites>
+    <testsuite name="Unit">
+      <directory>tests/Unit</directory>
+    </testsuite>
+    <testsuite name="Integration">
+      <directory>tests/Integration</directory>
+    </testsuite>
+  </testsuites>
+
+  <!-- Optional: source filter (used if you run coverage explicitly) -->
+  <source>
+    <include>
+      <directory suffix=".php">config</directory>
+      <directory suffix=".php">helpers</directory>
+      <directory suffix=".php">models</directory>
+      <directory suffix=".php">public</directory>
+    </include>
+    <exclude>
+      <directory>tests</directory>
+      <directory>vendor</directory>
+      <directory>.phpunit.cache</directory>
+      <file>public/test_csrf.php</file>
+      <file>public/test_auth.php</file>
+    </exclude>
+  </source>
+</phpunit>

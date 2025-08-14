@@ -1,0 +1,7 @@
+mkdir -p tests
+nano tests/bootstrap.php
+
+mkdir -p tests/Integration
+nano tests/Integration/DbSmokeTest.php
+
+

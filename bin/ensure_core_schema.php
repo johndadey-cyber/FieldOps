@@ -1,0 +1,209 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * bin/ensure_core_schema.php  (v2 — safe PK handling)
+ *
+ * Purpose: Ensure core PRIMARY KEYS, FOREIGN KEYS, and UNIQUEs exist,
+ * and clean up obvious orphan rows in dev DB.
+ *
+ * Idempotent. Detects existing PKs/cols before altering.
+ */
+
+require_once __DIR__ . '/../config/database.php';
+
+/** @var PDO $pdo */
+$pdo = getPDO();
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+function out(string $msg): void { echo $msg, PHP_EOL; }
+
+function tableExists(PDO $pdo, string $t): bool {
+    $st = $pdo->prepare("SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :t");
+    $st->execute([':t'=>$t]);
+    return (bool)$st->fetchColumn();
+}
+function columns(PDO $pdo, string $t): array {
+    $st = $pdo->prepare("
+      SELECT COLUMN_NAME, COLUMN_KEY, EXTRA, COLUMN_TYPE, IS_NULLABLE
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :t
+      ORDER BY ORDINAL_POSITION
+    ");
+    $st->execute([':t'=>$t]);
+    $out=[];
+    foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) $out[$r['COLUMN_NAME']] = $r;
+    return $out;
+}
+function primaryKeyCols(PDO $pdo, string $table): array {
+    $st = $pdo->prepare("
+        SELECT COLUMN_NAME
+        FROM information_schema.KEY_COLUMN_USAGE
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = :t
+          AND CONSTRAINT_NAME = 'PRIMARY'
+        ORDER BY ORDINAL_POSITION
+    ");
+    $st->execute([':t'=>$table]);
+    return array_map(fn($r)=>$r['COLUMN_NAME'], $st->fetchAll(PDO::FETCH_ASSOC));
+}
+function hasAutoPk(array $cols, string $id='id'): bool {
+    if (!isset($cols[$id])) return false;
+    return strtoupper((string)$cols[$id]['COLUMN_KEY'])==='PRI'
+        && str_contains(strtoupper((string)$cols[$id]['EXTRA']), 'AUTO_INCREMENT');
+}
+
+/**
+ * Ensure `id INT NOT NULL AUTO_INCREMENT PRIMARY KEY` exists on a table.
+ * - Adds `id` if missing
+ * - Adds PRIMARY KEY on id if PK missing or on a different column
+ * - Adds AUTO_INCREMENT if missing
+ * Never drops a PRIMARY KEY unless it exists and isn’t on `id`.
+ */
+function ensureAutoPk(PDO $pdo, string $table): void {
+    if (!tableExists($pdo,$table)) { out("[-] Table missing: {$table}"); return; }
+    $cols = columns($pdo,$table);
+    $pkCols = primaryKeyCols($pdo,$table);
+    $hasId = array_key_exists('id', $cols);
+
+    // Case A: id exists and is AUTO_INCREMENT PK -> done
+    if ($hasId && hasAutoPk($cols,'id')) {
+        out("[OK] {$table}.id is AUTO_INCREMENT PRIMARY KEY");
+        return;
+    }
+
+    // Case B: id column missing -> add id first
+    if (!$hasId) {
+        out("[..] Adding `id INT NOT NULL` to {$table} (first column) ...");
+        $pdo->exec("ALTER TABLE `{$table}` ADD COLUMN `id` INT NOT NULL FIRST");
+        $cols = columns($pdo,$table);
+        $hasId = true;
+    }
+
+    // Ensure id is NOT NULL INT
+    if (stripos((string)$cols['id']['COLUMN_TYPE'], 'int') === false || strtoupper((string)$cols['id']['IS_NULLABLE']) === 'YES') {
+        out("[..] Normalizing {$table}.id to INT NOT NULL ...");
+        $pdo->exec("ALTER TABLE `{$table}` MODIFY `id` INT NOT NULL");
+        $cols = columns($pdo,$table);
+    }
+
+    // If a PK exists and is NOT on id, drop it first
+    if (!empty($pkCols) && !(count($pkCols) === 1 && strtolower($pkCols[0]) === 'id')) {
+        out("[..] Dropping existing PRIMARY KEY on `".implode(',', $pkCols)."` (not on id) ...");
+        $pdo->exec("ALTER TABLE `{$table}` DROP PRIMARY KEY");
+    }
+
+    // Ensure PRIMARY KEY on id
+    $pkCols = primaryKeyCols($pdo,$table);
+    if (empty($pkCols)) {
+        out("[..] Adding PRIMARY KEY(id) on {$table} ...");
+        $pdo->exec("ALTER TABLE `{$table}` ADD PRIMARY KEY (`id`)");
+    }
+
+    // Ensure AUTO_INCREMENT on id
+    $cols = columns($pdo,$table);
+    if (!hasAutoPk($cols,'id')) {
+        out("[..] Adding AUTO_INCREMENT to {$table}.id ...");
+        $pdo->exec("ALTER TABLE `{$table}` MODIFY `id` INT NOT NULL AUTO_INCREMENT");
+    }
+
+    out("[OK] {$table}.id set to AUTO_INCREMENT PRIMARY KEY");
+}
+
+function fkInfo(PDO $pdo, string $table, string $column): array {
+    $sql = "
+      SELECT rc.CONSTRAINT_NAME, rc.DELETE_RULE, k.REFERENCED_TABLE_NAME, k.REFERENCED_COLUMN_NAME
+      FROM information_schema.REFERENTIAL_CONSTRAINTS rc
+      JOIN information_schema.KEY_COLUMN_USAGE k
+        ON k.CONSTRAINT_SCHEMA = rc.CONSTRAINT_SCHEMA
+       AND k.CONSTRAINT_NAME  = rc.CONSTRAINT_NAME
+      WHERE rc.CONSTRAINT_SCHEMA = DATABASE()
+        AND k.TABLE_NAME = :t AND k.COLUMN_NAME = :c
+    ";
+    $st=$pdo->prepare($sql); $st->execute([':t'=>$table,':c'=>$column]);
+    return $st->fetchAll(PDO::FETCH_ASSOC);
+}
+function ensureFk(PDO $pdo, string $table, string $col, string $refTable, string $refCol='id', string $nameHint=null, string $onDelete='RESTRICT', string $onUpdate='CASCADE'): void {
+    if (!tableExists($pdo,$table) || !tableExists($pdo,$refTable)) { out("[-] Skip FK {$table}.{$col} → {$refTable}.{$refCol} (table missing)"); return; }
+    $have = fkInfo($pdo,$table,$col);
+
+    $existingName=null; $matches=false; $needsRuleChange=false;
+    foreach ($have as $fk) {
+      if (($fk['REFERENCED_TABLE_NAME']??'')===$refTable) {
+        $existingName = $fk['CONSTRAINT_NAME'];
+        $matches = true;
+        if (strtoupper((string)$fk['DELETE_RULE']) !== strtoupper($onDelete)) $needsRuleChange=true;
+        break;
+      }
+    }
+
+    if (!$matches) {
+        $cn = $nameHint ?: "fk_{$table}_{$col}";
+        out("[..] Adding FK {$cn}: {$table}.{$col} → {$refTable}.{$refCol} ON DELETE {$onDelete} ...");
+        $pdo->exec("ALTER TABLE `{$table}` ADD CONSTRAINT `{$cn}` FOREIGN KEY (`{$col}`) REFERENCES `{$refTable}`(`{$refCol}`) ON DELETE {$onDelete} ON UPDATE {$onUpdate}");
+        out("[OK] FK added");
+        return;
+    }
+
+    if ($needsRuleChange && $existingName) {
+        out("[..] Updating FK {$existingName} to ON DELETE {$onDelete} ...");
+        $pdo->exec("ALTER TABLE `{$table}` DROP FOREIGN KEY `{$existingName}`");
+        $cn = $nameHint ?: "fk_{$table}_{$col}";
+        $pdo->exec("ALTER TABLE `{$table}` ADD CONSTRAINT `{$cn}` FOREIGN KEY (`{$col}`) REFERENCES `{$refTable}`(`{$refCol}`) ON DELETE {$onDelete} ON UPDATE {$onUpdate}");
+        out("[OK] FK updated");
+        return;
+    }
+
+    out("[OK] FK {$table}.{$col} → {$refTable}.{$refCol} present");
+}
+function uniqueExists(PDO $pdo, string $table, array $cols): bool {
+    $st=$pdo->prepare("SHOW INDEX FROM `{$table}` WHERE Non_unique=0");
+    $st->execute();
+    $byName=[];
+    foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $byName[$r['Key_name']][$r['Seq_in_index']] = $r['Column_name'];
+    }
+    foreach ($byName as $colsBySeq){
+        ksort($colsBySeq);
+        if (array_values($colsBySeq) === array_values($cols)) return true;
+    }
+    return false;
+}
+function ensureUnique(PDO $pdo, string $table, array $cols, string $name): void {
+    if (!tableExists($pdo,$table)) { out("[-] Table missing: {$table}"); return; }
+    if (uniqueExists($pdo,$table,$cols)) { out("[OK] UNIQUE(".implode(',',$cols).") on {$table} present"); return; }
+    out("[..] Adding UNIQUE {$name} on {$table}(".implode(',',$cols).") ...");
+    $pdo->exec("ALTER TABLE `{$table}` ADD UNIQUE KEY `{$name}` (`" . implode('`,`', $cols) . "`)");
+    out("[OK] UNIQUE added");
+}
+
+out("== Ensuring PRIMARY KEYS ==");
+foreach (['people','employees','job_types'] as $t) {
+    ensureAutoPk($pdo, $t);
+}
+
+out(PHP_EOL . "== Ensuring FOREIGN KEYS ==");
+ensureFk($pdo, 'employees', 'person_id', 'people', 'id', 'fk_employees_person', 'RESTRICT', 'CASCADE');
+ensureFk($pdo, 'jobs',      'customer_id', 'customers', 'id', 'fk_jobs_customer', 'RESTRICT', 'CASCADE');
+
+ensureFk($pdo, 'employee_skills', 'employee_id', 'employees', 'id', 'fk_skills_employee', 'RESTRICT', 'CASCADE');
+ensureFk($pdo, 'employee_skills', 'job_type_id', 'job_types', 'id', 'fk_skills_jobtype', 'RESTRICT', 'CASCADE');
+
+ensureFk($pdo, 'job_employee_assignment', 'job_id', 'jobs', 'id', 'fk_jea_job', 'CASCADE', 'RESTRICT');
+ensureFk($pdo, 'job_employee_assignment', 'employee_id', 'employees', 'id', 'fk_jea_employee', 'RESTRICT', 'RESTRICT');
+
+ensureFk($pdo, 'job_job_types', 'job_id', 'jobs', 'id', 'fk_jjt_job', 'CASCADE', 'RESTRICT');
+ensureFk($pdo, 'job_job_types', 'job_type_id', 'job_types', 'id', 'fk_jjt_jobtype', 'RESTRICT', 'RESTRICT');
+
+out(PHP_EOL . "== Ensuring UNIQUE indexes ==");
+ensureUnique($pdo, 'employee_availability', ['employee_id','day_of_week','start_time','end_time'], 'uq_availability_window');
+
+out(PHP_EOL . "== Cleaning obvious orphan rows (dev only) ==");
+try {
+    $n = $pdo->exec("DELETE a FROM job_employee_assignment a LEFT JOIN jobs j ON j.id=a.job_id WHERE j.id IS NULL");
+    out("[OK] job_employee_assignment orphans removed: " . (int)$n);
+} catch (Throwable $e) {
+    out("[warn] could not clean jea orphans: " . $e->Message());
+}
+
+out(PHP_EOL . "Done.");

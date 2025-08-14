@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<ruleset name="FieldOps Coding Standard">
+  <description>PSR-12 with a few pragmatic excludes for mixed PHP/HTML endpoints.</description>
+
+  <file>public</file>
+  <file>models</file>
+  <file>partials</file>
+  <exclude-pattern>vendor/*</exclude-pattern>
+
+  <rule ref="PSR12"/>
+
+  <!-- Allow short PHP open tags OFF by default -->
+  <rule ref="Generic.PHP.DisallowShortOpenTag"/>
+  <!-- Mixed PHP+HTML often needed in public endpoints; relax some whitespace checks -->
+  <exclude name="Squiz.WhiteSpace.ControlStructureSpacing"/>
+  <exclude name="Squiz.WhiteSpace.SuperfluousWhitespace"/>
+
+  <arg value="p"/>
+  <arg name="colors"/>
+</ruleset>
+

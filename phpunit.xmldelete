@@ -1,0 +1,27 @@
+vendor/bin/phpunit --testdox
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php"
+         colors="true"
+         verbose="true"
+         stopOnFailure="false">
+
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
+    </testsuites>
+
+    <php>
+        <!-- Use a dedicated test DB -->
+        <env name="DB_HOST" value="127.0.0.1"/>
+        <env name="DB_PORT" value="8889"/>
+        <env name="DB_NAME" value="fieldops_test"/>
+        <env name="DB_USER" value="root"/>
+        <env name="DB_PASS" value="root"/>
+	<env name="BASE_URL" value="http://localhost:8888"/>
+
+    </php>
+</phpunit>

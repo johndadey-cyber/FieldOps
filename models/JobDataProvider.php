@@ -1,0 +1,103 @@
+<?php
+// /models/JobDataProvider.php
+declare(strict_types=1);
+
+class JobDataProvider
+{
+    /** @return array<int, array<string, mixed>> */
+    public static function getAllJobs(PDO $pdo): array
+    {
+        $sql = "
+            SELECT
+                j.id AS job_id,
+                j.description,
+                j.scheduled_date,
+                j.scheduled_time,
+                COALESCE(j.duration_minutes, 0) AS duration,
+                j.status,
+                c.id AS customer_id,
+                CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
+                CONCAT_WS(', ', c.address_line1, c.city) AS short_address
+            FROM jobs j
+            JOIN customers c ON c.id = j.customer_id
+            ORDER BY j.scheduled_date ASC, j.scheduled_time ASC, j.id ASC
+        ";
+        $stmt = $pdo->query($sql);
+        if (!$stmt) {
+            return [];
+        }
+        /** @var array<int, array<string, mixed>> $rows */
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $rows ?: [];
+    }
+
+    /**
+     * @param int|null $days
+     * @param string|null $status
+     * @param int|null $jobType
+     * @param string|null $search
+     * @return array<int, array<string, mixed>>
+     */
+    public static function getFiltered(
+        PDO $pdo,
+        ?int $days = null,
+        ?string $status = null,
+        ?int $jobType = null,
+        ?string $search = null
+    ): array {
+        $where = [];
+        $params = [];
+
+        if ($days !== null) {
+            $where[] = 'j.scheduled_date <= DATE_ADD(CURDATE(), INTERVAL :days DAY)';
+            $params[':days'] = $days;
+        }
+        if ($status !== null && $status !== '') {
+            $where[] = 'j.status = :status';
+            $params[':status'] = $status;
+        }
+        if ($jobType !== null) {
+            $where[] = 'EXISTS (SELECT 1 FROM job_job_types jjt WHERE jjt.job_id = j.id AND jjt.job_type_id = :jt)';
+            $params[':jt'] = $jobType;
+        }
+        if ($search !== null && $search !== '') {
+            $where[] = '(j.description LIKE :q OR c.first_name LIKE :q OR c.last_name LIKE :q)';
+            $params[':q'] = '%' . $search . '%';
+        }
+
+        $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+
+        $sql = "
+            SELECT
+                j.id AS job_id,
+                j.description,
+                j.scheduled_date,
+                j.scheduled_time,
+                COALESCE(j.duration_minutes, 0) AS duration,
+                j.status,
+                c.id AS customer_id,
+                CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
+                CONCAT_WS(', ', c.address_line1, c.city) AS short_address
+            FROM jobs j
+            JOIN customers c ON c.id = j.customer_id
+            $whereSql
+            GROUP BY
+                j.id, j.description, j.scheduled_date, j.scheduled_time, j.duration_minutes,
+                j.status, c.id, customer_name, short_address
+            ORDER BY j.scheduled_date ASC, j.scheduled_time ASC, j.id ASC
+        ";
+
+        $stmt = $pdo->prepare($sql);
+        if (!$stmt) {
+            return [];
+        }
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $stmt->execute();
+
+        /** @var array<int, array<string, mixed>> $rows */
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $rows ?: [];
+    }
+}

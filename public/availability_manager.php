@@ -1,0 +1,342 @@
+<?php
+declare(strict_types=1);
+require __DIR__ . '/_cli_guard.php';
+
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/_csrf.php';
+
+/** HTML escape */
+function s(?string $v): string { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
+
+/** @param array<string,mixed> $payload */
+function json_out(array $payload, int $code = 200): void {
+    http_response_code($code);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($payload, JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+$pdo    = getPDO();
+$__csrf = csrf_token();
+
+// JSON list endpoint for AJAX reloads
+if (($_GET['action'] ?? '') === 'list') {
+    $eid = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 0;
+    if ($eid <= 0) { json_out(['ok'=>true,'items'=>[]]); }
+
+    $daysOrder = "FIELD(day_of_week,'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday')";
+    $st = $pdo->prepare("
+        SELECT id,
+               day_of_week,
+               DATE_FORMAT(start_time, '%H:%i') AS start_time,
+               DATE_FORMAT(end_time,   '%H:%i') AS end_time
+        FROM employee_availability
+        WHERE employee_id = :eid
+        ORDER BY {$daysOrder}, start_time
+    ");
+    $st->execute([':eid'=>$eid]);
+    $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+    json_out(['ok'=>true,'items'=>$rows]);
+}
+
+// Detect if employees.is_active exists; if not, omit the filter
+$hasIsActive = false;
+try {
+    $chk = $pdo->query("
+        SELECT 1
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'employees'
+          AND COLUMN_NAME = 'is_active'
+        LIMIT 1
+    ");
+    $hasIsActive = (bool)($chk ? $chk->fetchColumn() : false);
+} catch (Throwable $e) {
+    // If information_schema is restricted, just proceed without the filter
+    $hasIsActive = false;
+}
+
+$sql = "
+    SELECT e.id AS employee_id, p.first_name, p.last_name
+    FROM employees e
+    JOIN people p ON p.id = e.person_id
+";
+if ($hasIsActive) {
+    $sql .= " WHERE e.is_active = 1 ";
+}
+$sql .= " ORDER BY p.last_name, p.first_name ";
+
+$employees = [];
+try {
+    $empStmt = $pdo->query($sql);
+    if ($empStmt) { $employees = (array)$empStmt->fetchAll(PDO::FETCH_ASSOC); }
+} catch (Throwable $e) {
+    // If even this fails, keep list empty but render the page
+    error_log('[availability_manager] employees query failed: ' . $e->getMessage());
+}
+
+// Default selected employee (first row if not provided)
+$selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 0;
+if ($selectedEmployeeId <= 0 && isset($employees[0]['employee_id'])) {
+    $selectedEmployeeId = (int)$employees[0]['employee_id'];
+}
+?>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Availability Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+  <style>
+    body { padding: 24px; }
+    .day-badge { min-width: 90px; display: inline-block; }
+    .table thead th { position: sticky; top: 0; background: #fff; z-index: 1; }
+  </style>
+</head>
+<body>
+  <div class="container-xxl">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h1 class="h3 mb-0">Availability Manager</h1>
+      <a href="availability_form.php" class="btn btn-outline-secondary btn-sm">Classic Form</a>
+    </div>
+
+    <div id="alertBox" class="alert d-none" role="alert"></div>
+
+    <div class="card mb-4">
+      <div class="card-body">
+        <form id="employeePicker" class="row g-2 align-items-end">
+          <div class="col-sm-7 col-md-6 col-lg-5">
+            <label class="form-label">Employee</label>
+            <select id="employee_id" name="employee_id" class="form-select" required>
+              <?php foreach ($employees as $e): ?>
+                <?php $eid = (int)$e['employee_id']; ?>
+                <option value="<?= $eid ?>" <?= $eid === $selectedEmployeeId ? 'selected' : '' ?>>
+                  <?= s(($e['last_name'] ?? '') . ', ' . ($e['first_name'] ?? '') . " (ID: $eid)") ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Load</button>
+          </div>
+          <div class="col-auto">
+            <button type="button" class="btn btn.success btn-success" id="btnAdd">Add Window</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table align-middle" id="availabilityTable">
+            <thead>
+              <tr>
+                <th style="width: 160px;">Day</th>
+                <th style="width: 160px;">Start</th>
+                <th style="width: 160px;">End</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="emptyState" class="text-muted d-none">No availability windows yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="winModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content" id="winForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="winTitle">Add Window</h5>
+          <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body row g-3">
+          <input type="hidden" name="id" id="win_id">
+          <input type="hidden" name="csrf_token" id="csrf_token" value="<?= s($__csrf) ?>">
+          <div class="col-12">
+            <label class="form-label">Day of Week</label>
+            <select class="form-select" name="day_of_week" id="win_day" required>
+              <?php foreach (['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] as $d): ?>
+                <option value="<?= s($d) ?>"><?= s($d) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label">Start</label>
+            <input type="time" class="form-control" name="start_time" id="win_start" required>
+          </div>
+          <div class="col-6">
+            <label class="form-label">End</label>
+            <input type="time" class="form-control" name="end_time" id="win_end" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="winSubmit">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <template id="rowTpl">
+    <tr data-id="">
+      <td><span class="badge bg-light text-dark day-badge"></span></td>
+      <td class="start"></td>
+      <td class="end"></td>
+      <td>
+        <div class="btn-group btn-group-sm">
+          <button class="btn btn-outline-primary btn-edit">Edit</button>
+          <button class="btn btn-outline-danger btn-del">Delete</button>
+        </div>
+      </td>
+    </tr>
+  </template>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+  <script>
+    const CSRF = <?= json_encode($__csrf) ?>;
+    const daysOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    const tableBody = document.querySelector('#availabilityTable tbody');
+    const emptyState = document.getElementById('emptyState');
+    const alertBox = document.getElementById('alertBox');
+    const rowTpl = document.getElementById('rowTpl');
+
+    const employeeSelect = document.getElementById('employee_id');
+    const pickerForm = document.getElementById('employeePicker');
+    const btnAdd = document.getElementById('btnAdd');
+
+    const winModalEl = document.getElementById('winModal');
+    const winModal = new bootstrap.Modal(winModalEl);
+    const winForm = document.getElementById('winForm');
+    const winTitle = document.getElementById('winTitle');
+    const winId = document.getElementById('win_id');
+    const winDay = document.getElementById('win_day');
+    const winStart = document.getElementById('win_start');
+    const winEnd = document.getElementById('win_end');
+
+    function showAlert(kind, msg) {
+      alertBox.className = 'alert alert-' + kind;
+      alertBox.textContent = msg;
+      alertBox.classList.remove('d-none');
+      setTimeout(() => alertBox.classList.add('d-none'), 3000);
+    }
+
+    function currentEmployeeId() {
+      return parseInt(employeeSelect.value || '0', 10) || 0;
+    }
+
+    async function loadAvailability() {
+      const eid = currentEmployeeId();
+      if (!eid) { tableBody.innerHTML=''; emptyState.classList.remove('d-none'); return; }
+      const url = `availability_manager.php?action=list&employee_id=${encodeURIComponent(eid)}`;
+      const res = await fetch(url, { headers: { 'Accept': 'application/json' }});
+      const data = await res.json();
+
+      tableBody.innerHTML = '';
+      const items = (data && data.items) ? data.items : [];
+      if (!items.length) {
+        emptyState.classList.remove('d-none');
+        return;
+      }
+      emptyState.classList.add('d-none');
+
+      items.sort((a,b) => {
+        const da = daysOrder.indexOf(a.day_of_week), db = daysOrder.indexOf(b.day_of_week);
+        if (da !== db) return da - db;
+        return (a.start_time || '').localeCompare(b.start_time || '');
+      });
+
+      for (const it of items) {
+        const tr = rowTpl.content.firstElementChild.cloneNode(true);
+        tr.dataset.id = it.id;
+        tr.querySelector('.day-badge').textContent = it.day_of_week;
+        tr.querySelector('.start').textContent = it.start_time;
+        tr.querySelector('.end').textContent = it.end_time;
+
+        tr.querySelector('.btn-edit').addEventListener('click', () => openEdit(it));
+        tr.querySelector('.btn-del').addEventListener('click', () => delRow(it));
+        tableBody.appendChild(tr);
+      }
+    }
+
+    function openAdd() {
+      winTitle.textContent = 'Add Window';
+      winId.value = '';
+      winDay.value = 'Monday';
+      winStart.value = '09:00';
+      winEnd.value = '17:00';
+      winModal.show();
+    }
+
+    function openEdit(it) {
+      winTitle.textContent = 'Edit Window';
+      winId.value = it.id;
+      winDay.value = it.day_of_week;
+      winStart.value = it.start_time;
+      winEnd.value = it.end_time;
+      winModal.show();
+    }
+
+    async function delRow(it) {
+      if (!confirm(`Delete ${it.day_of_week} ${it.start_time}–${it.end_time}?`)) return;
+      const form = new URLSearchParams();
+      form.set('csrf_token', CSRF);
+      form.set('id', String(it.id));
+      const res = await fetch('availability_delete.php', {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' },
+        body: form
+      });
+      const data = await res.json();
+      if (data && data.ok) {
+        showAlert('success', 'Deleted.');
+        loadAvailability();
+      } else {
+        showAlert('danger', (data && (data.error || (data.errors||[]).join(', '))) || 'Delete failed');
+      }
+    }
+
+    winForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const eid = currentEmployeeId();
+      if (!eid) { showAlert('warning', 'Select an employee first.'); return; }
+
+      const id = winId.value.trim();
+      const form = new URLSearchParams();
+      form.set('csrf_token', CSRF);
+      form.set('employee_id', String(eid));
+      form.set('day_of_week', winDay.value);
+      form.set('start_time', winStart.value);
+      form.set('end_time', winEnd.value);
+
+      const endpoint = id ? 'availability_update.php' : 'availability_save.php';
+      if (id) form.set('id', id);
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' },
+        body: form
+      });
+      const data = await res.json();
+      if (data && data.ok) {
+        showAlert('success', 'Saved.');
+        winModal.hide();
+        loadAvailability();
+      } else {
+        const msg = (data && (data.error || (data.errors||[]).join(', '))) || 'Save failed';
+        showAlert('danger', msg);
+      }
+    });
+
+    document.getElementById('btnAdd').addEventListener('click', openAdd);
+    document.getElementById('employeePicker').addEventListener('submit', (e) => { e.preventDefault(); loadAvailability(); });
+
+    loadAvailability();
+  </script>
+</body>
+</html>

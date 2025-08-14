@@ -1,0 +1,117 @@
+<?php
+declare(strict_types=1);
+
+use PHPUnit\Framework\TestCase;
+
+require_once __DIR__ . '/../TestHelpers/EndpointHarness.php';
+
+final class JobWriteRbacTest extends TestCase
+{
+    private PDO $pdo;
+
+    protected function setUp(): void
+    {
+        require_once __DIR__ . '/../../config/database.php';
+        $this->pdo = getPDO();
+        $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        // Clean minimal fixtures
+        $this->pdo->exec("DELETE FROM job_job_types");
+        $this->pdo->exec("DELETE FROM jobs");
+        $this->pdo->exec("DELETE FROM customers");
+        $this->pdo->exec("DELETE FROM job_types");
+
+        // Seed
+        $this->pdo->exec("INSERT INTO customers (first_name,last_name,phone,created_at) VALUES ('Test','Customer','555-0000',NOW())");
+        $this->pdo->exec("INSERT INTO job_types (name) VALUES ('Window Washing'), ('Pressure Washing')");
+    }
+
+    public function testNonDispatcherCannotCreate(): void
+    {
+        $customerId = (int)$this->pdo->query("SELECT id FROM customers LIMIT 1")->fetchColumn();
+
+        $res = EndpointHarness::run(__DIR__ . '/../../public/job_save.php', [
+            'customer_id'    => $customerId,
+            'description'    => 'Test Job',
+            'scheduled_date' => '2025-08-20',
+            'scheduled_time' => '10:00',
+            'status'         => 'Unassigned',
+            'job_types'      => ['Window Washing'],
+        ], [
+            'role' => 'field_tech',
+        ]);
+
+        $this->assertFalse($res['ok'] ?? true);
+        $this->assertSame(403, $res['code'] ?? 0);
+    }
+
+    public function testMissingCsrfIsRejected(): void
+    {
+        $customerId = (int)$this->pdo->query("SELECT id FROM customers LIMIT 1")->fetchColumn();
+
+        // Use harness but DISABLE CSRF injection
+        $res = EndpointHarness::run(__DIR__ . '/../../public/job_save.php', [
+            'customer_id'    => $customerId,
+            'description'    => 'Test Job',
+            'scheduled_date' => '2025-08-20',
+            'scheduled_time' => '10:00',
+            'status'         => 'Unassigned',
+            // no csrf_token on purpose
+        ], [
+            'role' => 'dispatcher',
+        ], 'POST', ['inject_csrf' => false]);
+
+        $this->assertFalse($res['ok'] ?? true, 'missing CSRF should fail');
+        $this->assertSame(400, $res['code'] ?? 0);
+    }
+
+    public function testDispatcherCanCreateUpdateAndDelete(): void
+    {
+        $customerId = (int)$this->pdo->query("SELECT id FROM customers LIMIT 1")->fetchColumn();
+
+        // CREATE
+        $create = EndpointHarness::run(__DIR__ . '/../../public/job_save.php', [
+            'customer_id'      => $customerId,
+            'description'      => 'Initial Job',
+            'scheduled_date'   => '2025-08-21',
+            'scheduled_time'   => '09:30',
+            'status'           => 'Unassigned',
+            'duration_minutes' => 120,
+            'job_types'        => ['Window Washing','Pressure Washing'],
+        ], ['role' => 'dispatcher']);
+
+        $this->assertTrue($create['ok'] ?? false);
+        $this->assertSame('created', $create['action'] ?? '');
+        $jobId = (int)($create['id'] ?? 0);
+        $this->assertGreaterThan(0, $jobId);
+
+        $count = (int)$this->pdo->query("SELECT COUNT(*) FROM job_job_types WHERE job_id = {$jobId}")->fetchColumn();
+        $this->assertSame(2, $count);
+
+        // UPDATE
+        $update = EndpointHarness::run(__DIR__ . '/../../public/job_save.php', [
+            'id'               => $jobId,
+            'customer_id'      => $customerId,
+            'description'      => 'Updated Job Title',
+            'scheduled_date'   => '2025-08-22',
+            'scheduled_time'   => '14:15',
+            'status'           => 'Assigned',
+            'duration_minutes' => 90,
+            'job_types'        => ['Window Washing'],
+        ], ['role' => 'dispatcher']);
+
+        $this->assertTrue($update['ok'] ?? false);
+        $this->assertSame('updated', $update['action'] ?? '');
+
+        $countAfter = (int)$this->pdo->query("SELECT COUNT(*) FROM job_job_types WHERE job_id = {$jobId}")->fetchColumn();
+        $this->assertSame(1, $countAfter);
+
+        // DELETE
+        $delete = EndpointHarness::run(__DIR__ . '/../../public/job_delete.php', [
+            'id' => $jobId,
+        ], ['role' => 'dispatcher']);
+
+        $this->assertTrue($delete['ok'] ?? false);
+        $this->assertSame('deleted', $delete['action'] ?? '');
+    }
+}
