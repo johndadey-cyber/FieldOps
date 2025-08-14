@@ -126,6 +126,10 @@ function s(?string $v): string
     try {
       const resp = await fetch('api/customer_search.php?q=' + encodeURIComponent(q));
       if (!resp.ok) throw new Error('Network response was not ok');
+      const contentType = resp.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error('Invalid JSON');
+      }
       results = await resp.json();
     } catch (err) {
       console.error('Failed to load customer search results', err);
