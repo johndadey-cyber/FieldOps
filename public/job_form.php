@@ -111,12 +111,13 @@ function s(?string $v): string
     if (q.length < 2) { resultsDiv.innerHTML = ''; return; }
     try {
       const resp = await fetch('api/customer_search.php?q=' + encodeURIComponent(q));
-      if (!resp.ok) throw new Error('Network response was not ok');
       const contentType = resp.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
-        throw new Error('Invalid JSON');
+      if (resp.ok && contentType.includes('application/json')) {
+        results = await resp.json();
+      } else {
+        console.error('Customer search request failed', resp.status, resp.statusText);
+        results = [];
       }
-      results = await resp.json();
     } catch (err) {
       console.error('Failed to load customer search results', err);
       results = [];
@@ -136,6 +137,7 @@ function s(?string $v): string
 
   searchInput.addEventListener('keydown', function(e) {
     const items = resultsDiv.querySelectorAll('.list-group-item');
+    if (items.length === 0) return;
     if (e.key === 'ArrowDown') {
       activeIndex = (activeIndex + 1) % items.length;
       updateActive(items); e.preventDefault();
