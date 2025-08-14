@@ -37,7 +37,7 @@ final class JobEmployeeViewTest extends TestCase
 
         $date = (new DateTimeImmutable('+1 day'))->format('Y-m-d');
         $jobId = TestDataFactory::createJob(
-            $this->pdo, $custId, 'Check view mirrors assignment', $date, '10:00:00', 45, 'Unassigned'
+            $this->pdo, $custId, 'Check view mirrors assignment', $date, '10:00:00', 45, 'scheduled'
         );
 
         $stmt = $this->pdo->prepare('INSERT INTO job_employee_assignment (job_id, employee_id, assigned_at) VALUES (?,?,NOW())');

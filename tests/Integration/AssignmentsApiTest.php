@@ -39,7 +39,7 @@ final class AssignmentsApiTest extends TestCase
         $this->pdo->exec("INSERT INTO customers (first_name,last_name,phone,created_at) VALUES ('Assign','Tester','555-2000',NOW())");
         $this->pdo->exec("
           INSERT INTO jobs (customer_id,description,scheduled_date,scheduled_time,status,duration_minutes,created_at,updated_at)
-          VALUES (LAST_INSERT_ID(),'Assignment API Job',CURDATE(),'08:30:00','Unassigned',60,NOW(),NOW())
+          VALUES (LAST_INSERT_ID(),'Assignment API Job',CURDATE(),'08:30:00','scheduled',60,NOW(),NOW())
         ");
     }
 

@@ -29,7 +29,7 @@ function badge_class(string $status): string {
 
 // Params
 $days   = isset($_GET['days']) && is_numeric($_GET['days']) ? max(0, (int)$_GET['days']) : 30;
-$status = isset($_GET['status']) ? strtolower(trim((string)$_GET['status'])) : '';
+$status = isset($_GET['status']) ? strtolower(str_replace(' ','_',trim((string)$_GET['status']))) : '';
 $search = isset($_GET['search']) ? trim((string)$_GET['search']) : '';
 
 $pdo = getPDO();

@@ -10,7 +10,7 @@ $pdo = getPDO();
 // Filters (defensive defaults)
 $employeeId = (int)($_GET['employee_id'] ?? 0);
 $days       = (int)($_GET['days'] ?? 7);
-$status     = trim((string)($_GET['status'] ?? ''));   // Unassigned / Scheduled / Completed, etc.
+$status     = strtolower(str_replace(' ', '_', trim((string)($_GET['status'] ?? ''))));   // scheduled / assigned / completed, etc.
 $search     = trim((string)($_GET['search'] ?? ''));   // job desc or customer
 
 $sql = "
@@ -83,7 +83,7 @@ foreach ($rows as $r) {
 
   $jid   = (int)($r['job_id'] ?? 0);
   $desc  = htmlspecialchars((string)($r['description'] ?? ''), ENT_QUOTES, 'UTF-8');
-  $stat  = htmlspecialchars((string)($r['status'] ?? ''), ENT_QUOTES, 'UTF-8');
+  $stat  = strtolower((string)($r['status'] ?? ''));
   $date  = htmlspecialchars((string)($r['scheduled_date'] ?? ''), ENT_QUOTES, 'UTF-8');
   $time  = htmlspecialchars((string)($r['scheduled_time'] ?? ''), ENT_QUOTES, 'UTF-8');
   $dur   = (int)($r['duration_minutes'] ?? 0);
@@ -93,16 +93,17 @@ foreach ($rows as $r) {
   $types = htmlspecialchars((string)($r['job_types'] ?? ''), ENT_QUOTES, 'UTF-8');
 
   $badgeClass = 'secondary';
-  if ($stat === 'Unassigned') $badgeClass = 'danger';
-  else if ($stat === 'Scheduled') $badgeClass = 'primary';
-  else if ($stat === 'Completed') $badgeClass = 'success';
+  if ($stat === 'scheduled') $badgeClass = 'danger';
+  elseif ($stat === 'assigned') $badgeClass = 'primary';
+  elseif ($stat === 'completed') $badgeClass = 'success';
 
   echo "<tr>";
   echo "  <td class=\"text-nowrap\">#{$jid}</td>";
   echo "  <td><div class=\"fw-semibold\">{$desc}</div><div class=\"small text-muted\">{$types}</div></td>";
   echo "  <td><div>{$cust}</div><div class=\"small text-muted\">{$addr}</div></td>";
   echo "  <td class=\"text-nowrap\"><div>{$date}</div><div class=\"small text-muted\">{$time} · {$dur} min</div></td>";
-  echo "  <td><span class=\"badge bg-{$badgeClass}\">{$stat}</span></td>";
+  $label = htmlspecialchars(str_replace('_',' ', $stat), ENT_QUOTES, 'UTF-8');
+  echo "  <td><span class=\"badge bg-{$badgeClass}\">{$label}</span></td>";
   echo "  <td class=\"text-end\">";
   echo "    <button class=\"btn btn-sm btn-outline-primary me-1\" data-bs-toggle=\"modal\" data-bs-target=\"#assignModal\" data-job-id=\"{$jid}\">Assign</button>";
   echo "    <a class=\"btn btn-sm btn-outline-secondary\" href=\"edit_job.php?id={$jid}\">Edit</a>";

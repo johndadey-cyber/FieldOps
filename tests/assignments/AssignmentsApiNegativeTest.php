@@ -45,7 +45,7 @@ final class AssignmentsApiNegativeTest extends TestCase
             $date,
             '10:00:00',
             60,
-            'Unassigned'
+            'scheduled'
         );
 
         $this->employeeId = TestDataFactory::createEmployee($this->pdo, 'Casey', 'Tester');
@@ -152,9 +152,9 @@ final class AssignmentsApiNegativeTest extends TestCase
 
         $stmt = $this->pdo->prepare('SELECT status FROM jobs WHERE id = ?');
         $stmt->execute([$this->jobId]);
-        $this->assertSame('Assigned', (string)$stmt->fetchColumn());
+        $this->assertSame('assigned', (string)$stmt->fetchColumn());
 
-        // Unassign → last assignee removed → flip back to Unassigned
+        // Unassign → last assignee removed → flip back to scheduled
         $unassign = $this->api('unassign', [
             'job_id'      => $this->jobId,
             'employee_id' => $this->employeeId,
@@ -163,6 +163,6 @@ final class AssignmentsApiNegativeTest extends TestCase
         $this->assertTrue($unassign['ok'] ?? false);
 
         $stmt->execute([$this->jobId]);
-        $this->assertSame('Unassigned', (string)$stmt->fetchColumn());
+        $this->assertSame('scheduled', (string)$stmt->fetchColumn());
     }
 }

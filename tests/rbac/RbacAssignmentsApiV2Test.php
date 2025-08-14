@@ -35,7 +35,7 @@ final class RbacAssignmentsApiV2Test extends TestCase
         $custId       = TestDataFactory::createCustomer($this->pdo, 'RBAC', 'Customer');
         $this->techId = TestDataFactory::createEmployee($this->pdo, 'Felix', 'FieldTech');
         $date         = (new DateTimeImmutable('+1 day'))->format('Y-m-d');
-        $this->jobId  = TestDataFactory::createJob($this->pdo, $custId, 'RBAC v2 job', $date, '10:00:00', 60, 'Unassigned');
+        $this->jobId  = TestDataFactory::createJob($this->pdo, $custId, 'RBAC v2 job', $date, '10:00:00', 60, 'scheduled');
 
         // CSRF (APP_ENV=test) — fetch via test_csrf.php
         $tok         = json_decode(Http::get('test_csrf.php'), true);

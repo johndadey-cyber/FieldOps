@@ -35,7 +35,7 @@ final class RbacAssignmentsTest extends TestCase
         $custId = TestDataFactory::createCustomer($this->pdo, 'RBAC', 'Customer');
         $this->empId = TestDataFactory::createEmployee($this->pdo, 'Rita', 'Role');
         $date = (new DateTimeImmutable('+1 day'))->format('Y-m-d');
-        $this->jobId = TestDataFactory::createJob($this->pdo, $custId, 'RBAC job', $date, '10:00:00', 60, 'Unassigned');
+        $this->jobId = TestDataFactory::createJob($this->pdo, $custId, 'RBAC job', $date, '10:00:00', 60, 'scheduled');
 
         $tok = json_decode(Http::get('test_csrf.php'), true);
         $this->token = (string)($tok['token'] ?? '');

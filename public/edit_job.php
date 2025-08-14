@@ -11,7 +11,7 @@ $id  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $job = $id > 0 ? Job::getJobAndCustomerDetails(getPDO(), $id) : null;
 $statuses = Job::allowedStatuses();
 $jobTypes = $id > 0 ? Job::getJobTypesForJob(getPDO(), $id) : [];
-$current  = $job['status'] ?? 'Unassigned';
+$current  = strtolower((string)($job['status'] ?? 'draft'));
 
 $pdo = getPDO();
 $__csrf = csrf_token();
@@ -48,7 +48,8 @@ function sticky(string $name, ?string $default = null): string {
         <label>Status
           <select name="status" required>
             <?php foreach ($statuses as $st): ?>
-              <option value="<?= s($st) ?>" <?= $st === $current ? 'selected' : '' ?>><?= s($st) ?></option>
+              <?php $label = ucwords(str_replace('_',' ', $st)); ?>
+              <option value="<?= s($st) ?>" <?= $st === $current ? 'selected' : '' ?>><?= s($label) ?></option>
             <?php endforeach; ?>
           </select>
         </label>
