@@ -18,7 +18,7 @@ final class Job
                 j.scheduled_time,
                 j.duration_minutes,
                 c.id   AS customer_id_actual,
-                c.name AS customer_name,
+                CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
                 c.email AS customer_email,
                 c.phone AS customer_phone
             FROM jobs j
