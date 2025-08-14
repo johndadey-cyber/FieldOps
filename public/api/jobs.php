@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 // /public/api/jobs.php
@@ -93,15 +94,18 @@ try {
             $types[] = ['id' => (int)$t['id'], 'name' => (string)$t['name']];
         }
 
+        // Use distinct placeholders for each occurrence when native prepares are enabled
+        // to avoid "Invalid parameter number" errors with drivers that don't allow
+        // reusing the same named parameter multiple times.
         $stEmp = $pdo->prepare("SELECT e.id, p.first_name, p.last_name FROM (
-                   SELECT employee_id FROM job_employee WHERE job_id = :jid
+                   SELECT employee_id FROM job_employee WHERE job_id = :jid1
                    UNION
-                   SELECT employee_id FROM job_employee_assignment WHERE job_id = :jid
+                   SELECT employee_id FROM job_employee_assignment WHERE job_id = :jid2
                ) je
                JOIN employees e ON e.id = je.employee_id
                JOIN people p ON p.id = e.person_id
                ORDER BY p.last_name, p.first_name");
-        $stEmp->execute([':jid' => $jobId]);
+        $stEmp->execute([':jid1' => $jobId, ':jid2' => $jobId]);
         $emps = [];
         while ($e = $stEmp->fetch(PDO::FETCH_ASSOC)) {
             $empId = (int)$e['id'];
@@ -112,18 +116,21 @@ try {
                             FROM job_employee_assignment a
                             JOIN jobs j2 ON j2.id = a.job_id
                             WHERE a.employee_id = :eid AND a.job_id <> :job_id
-                              AND j2.scheduled_date = :d
+                              AND j2.scheduled_date = :d1
                               AND j2.scheduled_time IS NOT NULL
                               AND j2.duration_minutes IS NOT NULL
-                              AND TIMESTAMP(j2.scheduled_date, j2.scheduled_time) < TIMESTAMP(:d, ADDTIME(:t, SEC_TO_TIME(:dur)))
-                              AND TIMESTAMP(:d, :t) < TIMESTAMP(j2.scheduled_date, ADDTIME(j2.scheduled_time, SEC_TO_TIME(j2.duration_minutes*60)))
+                              AND TIMESTAMP(j2.scheduled_date, j2.scheduled_time) < TIMESTAMP(:d2, ADDTIME(:t1, SEC_TO_TIME(:dur)))
+                              AND TIMESTAMP(:d3, :t2) < TIMESTAMP(j2.scheduled_date, ADDTIME(j2.scheduled_time, SEC_TO_TIME(j2.duration_minutes*60)))
                               LIMIT 1";
                 $confSt = $pdo->prepare($confSql);
                 $confSt->execute([
                     ':eid' => $empId,
                     ':job_id' => $jobId,
-                    ':d' => $r['scheduled_date'],
-                    ':t' => $r['scheduled_time'],
+                    ':d1' => $r['scheduled_date'],
+                    ':d2' => $r['scheduled_date'],
+                    ':d3' => $r['scheduled_date'],
+                    ':t1' => $r['scheduled_time'],
+                    ':t2' => $r['scheduled_time'],
                     ':dur' => $durSeconds,
                 ]);
                 $hasConflict = (bool)$confSt->fetchColumn();
