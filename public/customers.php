@@ -5,7 +5,7 @@ require __DIR__ . '/_cli_guard.php';
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/CustomerDataProvider.php';
-require_once __DIR__ . '/../partials/flash_toast.php'; ?>
+require_once __DIR__ . '/../partials/flash_toast.php';
 
 
 /** HTML escape */
