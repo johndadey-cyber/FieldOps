@@ -47,7 +47,7 @@ $lon            = (string)($_POST['home_address_lon'] ?? '') !== '' ? (float)$_P
 $employmentType = trim((string)($_POST['employment_type']   ?? ''));
 $hireDate       = trim((string)($_POST['hire_date']         ?? ''));
 $status         = trim((string)($_POST['status']            ?? ''));
-$notes          = trim((string)($_POST['notes']             ?? ''));
+$roleId         = (string)($_POST['role_id'] ?? '') !== '' ? (int)$_POST['role_id'] : null;
 $skills         = $_POST['skills'] ?? [];
 
 $errors = [];
@@ -87,6 +87,13 @@ if ($hireDate === '' || $hireDate > date('Y-m-d')) {
 $validStatus = ['Active','Inactive'];
 if (!in_array($status, $validStatus, true)) {
     $errors[] = 'Status invalid.';
+}
+if ($roleId !== null) {
+    $st = $pdo->prepare('SELECT 1 FROM roles WHERE id = :id');
+    $st->execute([':id'=>$roleId]);
+    if (!$st->fetchColumn()) {
+        $errors[] = 'Role invalid.';
+    }
 }
 // Validate skills ids
 $skillIds = [];
@@ -132,13 +139,13 @@ try {
             ':pidKey'=>$personId,
         ]);
 
-        $ue = $pdo->prepare('UPDATE employees SET employment_type=:et, hire_date=:hd, status=:st, notes=:nt, is_active=:ia WHERE id=:id');
+        $ue = $pdo->prepare('UPDATE employees SET employment_type=:et, hire_date=:hd, status=:st, is_active=:ia, role_id=:rid WHERE id=:id');
         $ue->execute([
             ':et'=>$employmentType,
             ':hd'=>$hireDate,
             ':st'=>$status,
-            ':nt'=>$notes !== '' ? $notes : null,
             ':ia'=>$status === 'Active' ? 1 : 0,
+            ':rid'=>$roleId,
             ':id'=>$id,
         ]);
 
@@ -161,14 +168,14 @@ try {
         ]);
         $personId = (int)$pdo->lastInsertId();
 
-        $ie = $pdo->prepare('INSERT INTO employees (person_id, employment_type, hire_date, status, notes, is_active) VALUES (:pid,:et,:hd,:st,:nt,:ia)');
+        $ie = $pdo->prepare('INSERT INTO employees (person_id, employment_type, hire_date, status, is_active, role_id) VALUES (:pid,:et,:hd,:st,:ia,:rid)');
         $ie->execute([
             ':pid'=>$personId,
             ':et'=>$employmentType,
             ':hd'=>$hireDate,
             ':st'=>$status,
-            ':nt'=>$notes !== '' ? $notes : null,
             ':ia'=>$status === 'Active' ? 1 : 0,
+            ':rid'=>$roleId,
         ]);
         $newId = (int)$pdo->lastInsertId();
 
