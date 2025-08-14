@@ -177,8 +177,25 @@ function ensureUnique(PDO $pdo, string $table, array $cols, string $name): void 
     out("[OK] UNIQUE added");
 }
 
+// ---- New tables (idempotent) ----
+if (!tableExists($pdo, 'employee_availability_overrides')) {
+    out('[..] Creating table employee_availability_overrides ...');
+    $pdo->exec(
+        "CREATE TABLE `employee_availability_overrides` (
+            `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            `employee_id` INT NOT NULL,
+            `date` DATE NOT NULL,
+            `status` VARCHAR(20) NOT NULL,
+            `start_time` TIME NULL,
+            `end_time` TIME NULL,
+            `reason` VARCHAR(255) NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+    );
+    out('[OK] employee_availability_overrides created');
+}
+
 out("== Ensuring PRIMARY KEYS ==");
-foreach (['people','employees','job_types'] as $t) {
+foreach (['people','employees','job_types','employee_availability_overrides'] as $t) {
     ensureAutoPk($pdo, $t);
 }
 
@@ -194,6 +211,7 @@ ensureFk($pdo, 'job_employee_assignment', 'employee_id', 'employees', 'id', 'fk_
 
 ensureFk($pdo, 'job_job_types', 'job_id', 'jobs', 'id', 'fk_jjt_job', 'CASCADE', 'RESTRICT');
 ensureFk($pdo, 'job_job_types', 'job_type_id', 'job_types', 'id', 'fk_jjt_jobtype', 'RESTRICT', 'RESTRICT');
+ensureFk($pdo, 'employee_availability_overrides', 'employee_id', 'employees', 'id', 'fk_eao_employee', 'CASCADE', 'CASCADE');
 
 out(PHP_EOL . "== Ensuring UNIQUE indexes ==");
 ensureUnique($pdo, 'employee_availability', ['employee_id','day_of_week','start_time','end_time'], 'uq_availability_window');

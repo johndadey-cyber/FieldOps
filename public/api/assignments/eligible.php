@@ -217,6 +217,20 @@ if ($schema['employee_availability']) {
   }
 }
 
+$overrideByEmp = [];
+if ($schema['employee_availability_overrides']) {
+  $stOv = $pdo->prepare("SELECT employee_id, status, start_time, end_time FROM employee_availability_overrides WHERE date = :d");
+  $stOv->execute([':d'=>$jobDate]);
+  $ovRows = $stOv->fetchAll(PDO::FETCH_ASSOC);
+  foreach ($ovRows as $o) {
+    $overrideByEmp[(int)$o['employee_id']][] = [
+      'status' => (string)$o['status'],
+      'start'  => (string)($o['start_time'] ?? '00:00:00'),
+      'end'    => (string)($o['end_time'] ?? '23:59:59'),
+    ];
+  }
+}
+
 /* -------------- Assignments that day -------------- */
 $assignByEmp = [];
 if ($schema['job_employee_assignment'] || $schema['job_employee']) {
@@ -279,6 +293,17 @@ foreach ($emps as $eRow) {
   // Availability vs job window
   $status = 'none'; $coverStart = null; $coverEnd = null;
   $empAvailWindows = $availByEmp[$empId] ?? [];
+  $ovr = $overrideByEmp[$empId] ?? [];
+  if (!empty($ovr)) {
+    $empAvailWindows = [];
+    foreach ($ovr as $o) {
+      $oStatus = strtoupper($o['status']);
+      if ($oStatus === 'UNAVAILABLE') { $empAvailWindows = []; break; }
+      if ($oStatus === 'AVAILABLE' || $oStatus === 'PARTIAL') {
+        $empAvailWindows[] = ['start'=>$o['start'], 'end'=>$o['end']];
+      }
+    }
+  }
   if (!empty($empAvailWindows)) {
     $jobStart = $jobStartMin; $jobEnd = $jobEndMin; $hasOverlap = false;
     foreach ($empAvailWindows as $w) {

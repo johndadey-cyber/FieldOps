@@ -54,6 +54,23 @@ final class TestDataFactory
         return (int)$pdo->lastInsertId();
     }
 
+    public static function createOverride(PDO $pdo, int $employeeId, string $date, string $status = 'UNAVAILABLE', ?string $start = null, ?string $end = null, string $reason = ''): int
+    {
+        $stmt = $pdo->prepare(
+            "INSERT INTO employee_availability_overrides (employee_id, date, status, start_time, end_time, reason)
+             VALUES (:e,:d,:s,:st,:et,:r)"
+        );
+        $stmt->execute([
+            ':e'  => $employeeId,
+            ':d'  => $date,
+            ':s'  => $status,
+            ':st' => $start,
+            ':et' => $end,
+            ':r'  => $reason,
+        ]);
+        return (int)$pdo->lastInsertId();
+    }
+
     public static function hasAssignment(PDO $pdo, int $jobId, int $employeeId): bool
     {
         $stmt = $pdo->prepare("SELECT 1 FROM job_employee_assignment WHERE job_id=:j AND employee_id=:e LIMIT 1");
