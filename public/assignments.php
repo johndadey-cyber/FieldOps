@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
-require __DIR__ . '/_cli_guard.php';;
+require __DIR__ . '/_cli_guard.php';
 
 require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../partials/assignments_toast_hook.php'; ?>
+require_once __DIR__ . '/../partials/assignments_toast_hook.php';
 
 
 $pdo = getPDO();
