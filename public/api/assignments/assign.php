@@ -4,6 +4,29 @@ declare(strict_types=1);
 
 header('Content-Type: application/json');
 
+// Centralized logging so deploys can inspect failures.  The closure is cheap and
+// allows us to reference the log file without sprinkling error_log calls.
+$__assignLogFile = dirname(__DIR__, 3) . '/logs/assign_error.log';
+$logException = static function (Throwable $e) use ($__assignLogFile): void {
+    $msg = sprintf(
+        "[%s] %s in %s:%d\n%s\n",
+        date('c'),
+        $e->getMessage(),
+        $e->getFile(),
+        $e->getLine(),
+        $e->getTraceAsString()
+    );
+    error_log($msg, 3, $__assignLogFile);
+};
+
+// Capture fatal errors that bypass the try/catch below
+register_shutdown_function(function () use ($logException) {
+    $err = error_get_last();
+    if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+        $logException(new ErrorException($err['message'], 0, $err['type'], $err['file'], $err['line']));
+    }
+});
+
 try {
     // --- DB bootstrap (robust relative path) ---
     $DB_PATHS = [
@@ -119,20 +142,21 @@ try {
         // Overlap: existing.start < newEnd && newStart < existing.end
         // We only have start_time/duration on jobs table, so conflict if another job for same employee overlaps window.
         $conflict = false;
-        // choose a union of the two assignment tables we might use
+        // choose a union of the two assignment tables we might use; duplicates
+        // placeholders need unique names when emulation is disabled
         $confQ = "
       SELECT j2.id, j2.scheduled_time AS st, COALESCE(j2.duration_minutes, 60) AS dur
       FROM jobs j2
       JOIN (
-        SELECT job_id, employee_id FROM job_employee WHERE employee_id = :eid
+        SELECT job_id FROM job_employee WHERE employee_id = :eid1
         UNION
-        SELECT job_id, employee_id FROM job_employee_assignment WHERE employee_id = :eid
+        SELECT job_id FROM job_employee_assignment WHERE employee_id = :eid2
       ) x ON x.job_id = j2.id
       WHERE j2.scheduled_date = :date
         AND j2.id <> :jobId
     ";
         $stc = $pdo->prepare($confQ);
-        $stc->execute([':eid' => $eid, ':date' => $date, ':jobId' => $jobId]);
+        $stc->execute([':eid1' => $eid, ':eid2' => $eid, ':date' => $date, ':jobId' => $jobId]);
         $newStart = strtotime("$date $time");
         $newEnd   = $newStart + $dur * 60;
         while ($row = $stc->fetch(PDO::FETCH_ASSOC)) {
@@ -172,17 +196,16 @@ try {
         foreach ($employeeIds as $eid) { $ins2->execute([':j' => $jobId, ':e' => $eid]); }
     }
 
-    // Flip status to 'assigned' if any rows now exist
-    $pdo->exec("
-    UPDATE jobs j
-    SET j.status = 'assigned'
-    WHERE j.id = {$jobId}
-      AND EXISTS (
-        SELECT 1 FROM job_employee je WHERE je.job_id = j.id
-        UNION
-        SELECT 1 FROM job_employee_assignment jea WHERE jea.job_id = j.id
-      )
-  ");
+    // Flip status to 'Assigned' if any rows now exist
+    $upd = $pdo->prepare("UPDATE jobs j
+        SET j.status = 'Assigned'
+        WHERE j.id = :jobId
+          AND EXISTS (
+            SELECT 1 FROM job_employee je WHERE je.job_id = j.id
+            UNION
+            SELECT 1 FROM job_employee_assignment jea WHERE jea.job_id = j.id
+          )");
+    $upd->execute([':jobId' => $jobId]);
 
     $pdo->commit();
 
@@ -194,12 +217,15 @@ try {
     ]);
 } catch (Throwable $e) {
     if (isset($pdo) && $pdo->inTransaction()) { $pdo->rollBack(); }
+    $logException($e);
     http_response_code(500);
     echo json_encode([
         'ok'    => false,
         'code'  => 500,
         'error' => 'INTERNAL',
         'detail'=> $e->getMessage(),
+        'file'  => basename($e->getFile()),
+        'line'  => $e->getLine(),
     ]);
 }
 
