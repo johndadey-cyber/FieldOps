@@ -51,6 +51,19 @@ $roleId         = (string)($_POST['role_id'] ?? '') !== '' ? (int)$_POST['role_i
 $skills         = $_POST['skills'] ?? [];
 
 $errors = [];
+
+// If updating, fetch associated person_id early for duplicate checks
+$personId = null;
+if ($id > 0) {
+    $st = $pdo->prepare('SELECT person_id FROM employees WHERE id = :id');
+    $st->execute([':id' => $id]);
+    $personId = $st->fetchColumn();
+    if ($personId === false) {
+        $errors[] = 'Employee not found.';
+    } else {
+        $personId = (int)$personId;
+    }
+}
 if ($first === '' || !preg_match('/^[A-Za-z\s\'-]{1,50}$/', $first)) {
     $errors[] = 'First name is required.';
 }
@@ -60,15 +73,29 @@ if ($last === '' || !preg_match('/^[A-Za-z\s\'-]{1,50}$/', $last)) {
 if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $errors[] = 'Valid email is required.';
 } else {
-    $st = $pdo->prepare('SELECT 1 FROM people WHERE email = :em LIMIT 1');
-    $st->execute([':em'=>$email]);
+    $sql = 'SELECT 1 FROM people WHERE email = :em';
+    $params = [':em' => $email];
+    if ($personId !== null) {
+        $sql .= ' AND id <> :pid';
+        $params[':pid'] = $personId;
+    }
+    $sql .= ' LIMIT 1';
+    $st = $pdo->prepare($sql);
+    $st->execute($params);
     if ($st->fetchColumn()) $errors[] = 'An employee with this email already exists.';
 }
 if ($phone === '' || !preg_match('/^\(\d{3}\) \d{3}-\d{4}$/', $phone)) {
     $errors[] = 'Valid phone is required.';
 } else {
-    $st = $pdo->prepare('SELECT 1 FROM people WHERE phone = :ph LIMIT 1');
-    $st->execute([':ph'=>$phone]);
+    $sql = 'SELECT 1 FROM people WHERE phone = :ph';
+    $params = [':ph' => $phone];
+    if ($personId !== null) {
+        $sql .= ' AND id <> :pid';
+        $params[':pid'] = $personId;
+    }
+    $sql .= ' LIMIT 1';
+    $st = $pdo->prepare($sql);
+    $st->execute($params);
     if ($st->fetchColumn()) $errors[] = 'An employee with this phone already exists.';
 }
 if ($addr1 === '' || $city === '' || $state === '' || $postal === '') {
@@ -76,6 +103,8 @@ if ($addr1 === '' || $city === '' || $state === '' || $postal === '') {
 }
 if ($lat === null || $lon === null) {
     $errors[] = 'Lat/Lon required.';
+} elseif ($lat < -90 || $lat > 90 || $lon < -180 || $lon > 180) {
+    $errors[] = 'Invalid Lat/Lon coordinates.';
 }
 $validEmpTypes = ['Full-Time','Part-Time','Contractor'];
 if (!in_array($employmentType, $validEmpTypes, true)) {
@@ -123,14 +152,14 @@ if ($errors) {
 }
 
 try {
-    $pdo->beginTransaction();
+    if (!$pdo->beginTransaction()) {
+        throw new RuntimeException('Failed to start transaction');
+    }
 
     if ($id > 0) {
-        $st = $pdo->prepare('SELECT person_id FROM employees WHERE id = :id');
-        $st->execute([':id'=>$id]);
-        $row = $st->fetch(PDO::FETCH_ASSOC);
-        if (!$row) throw new RuntimeException('Employee not found');
-        $personId = (int)$row['person_id'];
+        if ($personId === null) {
+            throw new RuntimeException('Employee not found');
+        }
 
         $up = $pdo->prepare('UPDATE people SET first_name=:fn,last_name=:ln,email=:em,phone=:ph,address_line1=:a1,address_line2=:a2,city=:city,state=:st,postal_code=:pc,google_place_id=:pid,latitude=:lat,longitude=:lon WHERE id=:pidKey');
         $up->execute([
@@ -159,7 +188,9 @@ try {
             }
         }
 
-        $pdo->commit();
+        if (!$pdo->commit()) {
+            throw new RuntimeException('Commit failed');
+        }
         wants_json() ? json_out(['ok'=>true,'id'=>$id]) : redirect_to('employees.php');
     } else {
         $ins = $pdo->prepare('INSERT INTO people (first_name,last_name,email,phone,address_line1,address_line2,city,state,postal_code,google_place_id,latitude,longitude) VALUES (:fn,:ln,:em,:ph,:a1,:a2,:city,:st,:pc,:pid,:lat,:lon)');
@@ -189,7 +220,9 @@ try {
             }
         }
 
-        $pdo->commit();
+        if (!$pdo->commit()) {
+            throw new RuntimeException('Commit failed');
+        }
         wants_json() ? json_out(['ok'=>true,'id'=>$newId]) : redirect_to('employees.php');
     }
 } catch (Throwable $e) {
