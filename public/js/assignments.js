@@ -423,6 +423,10 @@
             : `Some selections may have issues. Proceed anyway?`;
         }
         bootstrap?.Modal.getOrCreateInstance(document.getElementById('assignConfirmModal'))?.show();
+        // Reset posting state so the confirm button can re-trigger submission
+        isPosting = false;
+        if ($btnAssign) $btnAssign.textContent = btnLabelPrev || `Assign Selected (${selected.size})`;
+        updateSelectedCount();
         return; // stop; wait for "assign anyway"
       }
 
