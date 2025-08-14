@@ -55,7 +55,7 @@ final class JobsTableEdgeCasesTest extends TestCase
         TestDataFactory::createJob($this->pdo, [
             'customer_id'      => $cid,
             'description'      => 'Hello <script>alert(1)</script>',
-            'status'           => 'Unassigned',
+            'status'           => 'scheduled',
             'scheduled_date'   => (new DateTimeImmutable('+1 day'))->format('Y-m-d'),
             'scheduled_time'   => '09:00:00',
             'duration_minutes' => 30,
@@ -81,7 +81,7 @@ final class JobsTableEdgeCasesTest extends TestCase
         TestDataFactory::createJob($this->pdo, [
             'customer_id'      => $cid,
             'description'      => 'Today job',
-            'status'           => 'Unassigned',
+            'status'           => 'scheduled',
             'scheduled_date'   => (new DateTimeImmutable('today'))->format('Y-m-d'),
             'scheduled_time'   => '10:00:00',
             'duration_minutes' => 30,
@@ -91,7 +91,7 @@ final class JobsTableEdgeCasesTest extends TestCase
         TestDataFactory::createJob($this->pdo, [
             'customer_id'      => $cid,
             'description'      => 'Far future job',
-            'status'           => 'Unassigned',
+            'status'           => 'scheduled',
             'scheduled_date'   => (new DateTimeImmutable('+400 days'))->format('Y-m-d'),
             'scheduled_time'   => '10:00:00',
             'duration_minutes' => 30,
@@ -120,7 +120,7 @@ final class JobsTableEdgeCasesTest extends TestCase
         TestDataFactory::createJob($this->pdo, [
             'customer_id'      => $cid,
             'description'      => 'Wash 100% exterior',
-            'status'           => 'Unassigned',
+            'status'           => 'scheduled',
             'scheduled_date'   => (new DateTimeImmutable('+2 days'))->format('Y-m-d'),
             'scheduled_time'   => '11:00:00',
             'duration_minutes' => 60,
@@ -129,7 +129,7 @@ final class JobsTableEdgeCasesTest extends TestCase
         TestDataFactory::createJob($this->pdo, [
             'customer_id'      => $cid,
             'description'      => 'Underscore_name_job',
-            'status'           => 'Unassigned',
+            'status'           => 'scheduled',
             'scheduled_date'   => (new DateTimeImmutable('+2 days'))->format('Y-m-d'),
             'scheduled_time'   => '12:00:00',
             'duration_minutes' => 60,

@@ -6,10 +6,11 @@ require __DIR__ . '/_cli_guard.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/_csrf.php';
 require_once __DIR__ . '/../models/JobType.php';
+require_once __DIR__ . '/../models/Job.php';
 
 $pdo       = getPDO();
 $jobTypes  = JobType::all($pdo);
-$statuses  = ['Scheduled', 'In Progress', 'Completed', 'Cancelled'];
+$statuses  = Job::allowedStatuses();
 $__csrf    = csrf_token();
 $today     = date('Y-m-d');
 
@@ -87,17 +88,21 @@ function s(?string $v): string
       </div>
     </section>
 
-    <!-- Section 4: Status -->
-    <section class="mb-4">
-      <h2 class="h5">Status</h2>
-      <div class="mb-3">
-        <select name="status" class="form-select" required>
-        <?php foreach ($statuses as $st) : ?>
-          <option value="<?= s($st) ?>"<?= $st === 'Scheduled' ? ' selected' : '' ?>><?= s($st) ?></option>
-        <?php endforeach; ?>
-        </select>
-      </div>
-    </section>
+<!-- Section 4: Status -->
+<section class="mb-4">
+  <h2 class="h5">Status</h2>
+  <div class="mb-3">
+    <select name="status" class="form-select" required>
+      <?php foreach ($statuses as $st): ?>
+        <?php $label = ucwords(str_replace('_', ' ', $st)); ?>
+        <option value="<?= s($st) ?>"<?= strtolower($st) === 'scheduled' ? ' selected' : '' ?>>
+          <?= s($label) ?>
+        </option>
+      <?php endforeach; ?>
+    </select>
+  </div>
+</section>
+
 
     <!-- Section 5: Actions -->
     <section class="mt-4">

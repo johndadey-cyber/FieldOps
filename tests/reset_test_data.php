@@ -25,7 +25,7 @@ $pdo->beginTransaction();
 $pdo->exec("DELETE FROM job_employee_assignment");
 
 // Optionally reset job statuses that might have been toggled during tests
-$pdo->exec("UPDATE jobs SET status = 'Unassigned' WHERE id IN (2001,2002,2003)");
+$pdo->exec("UPDATE jobs SET status = 'scheduled' WHERE id IN (2001,2002,2003)");
 
 // (Optional) Re-seed a known assignment if you like:
 // $pdo->exec("INSERT INTO job_employee_assignment (job_id, employee_id) VALUES (2003, 4002)");

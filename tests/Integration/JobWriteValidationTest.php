@@ -29,7 +29,7 @@ final class JobWriteValidationTest extends TestCase
             'description'    => '',
             'scheduled_date' => '',
             'scheduled_time' => '',
-            'status'         => 'Unassigned',
+            'status'         => 'scheduled',
         ], ['role' => 'dispatcher']);
 
         $this->assertFalse($res['ok'] ?? true);

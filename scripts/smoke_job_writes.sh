@@ -65,7 +65,7 @@ curl -sS -c "$COOKIES" -b "$COOKIES" -H "Accept: application/json" \
   -d "scheduled_date=$JOBDATE" \
   -d "scheduled_time=10:00:00" \
   -d "duration_minutes=60" \
-  -d "status=unassigned" \
+  -d "status=scheduled" \
   "$BASE_URL/job_save.php?__return=json" | tee "$JOB_JSON" >/dev/null
 
 JOB_OK="$(php_json '$j=json_decode(file_get_contents("'"$JOB_JSON"'"),true); echo (isset($j["ok"])&&$j["ok"])?1:0;')"
