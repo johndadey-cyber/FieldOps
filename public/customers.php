@@ -20,7 +20,23 @@ $city  = isset($_GET['city']) ? (string)$_GET['city'] : null;
 $state = isset($_GET['state']) ? (string)$_GET['state'] : null;
 $limit = isset($_GET['limit']) ? (string)$_GET['limit'] : null;
 
-$rows = CustomerDataProvider::getFiltered($pdo, $q, $city, $state, $limit);
+$sort = isset($_GET['sort']) ? (string)$_GET['sort'] : 'id';
+$dir  = isset($_GET['dir']) && strtolower((string)$_GET['dir']) === 'desc' ? 'desc' : 'asc';
+
+$baseParams = ['q' => $q, 'city' => $city, 'state' => $state, 'limit' => $limit];
+
+/** Build sortable link */
+function sort_link(string $label, string $column, array $params, string $sort, string $dir): string {
+    $nextDir = ($sort === $column && $dir === 'asc') ? 'desc' : 'asc';
+    $query   = array_merge($params, ['sort' => $column, 'dir' => $nextDir]);
+    $qs      = http_build_query(array_filter($query, fn($v) => $v !== null && $v !== ''));
+    $arrow   = '';
+    if ($sort === $column) {
+        $arrow = $dir === 'asc' ? ' ▲' : ' ▼';
+    }
+    return '<a href="/customers.php?' . s($qs) . '">' . s($label) . $arrow . '</a>';
+}
+$rows = CustomerDataProvider::getFiltered($pdo, $q, $city, $state, $limit, $sort, $dir);
 ?>
 <!doctype html>
 <html lang="en">
@@ -46,12 +62,12 @@ $rows = CustomerDataProvider::getFiltered($pdo, $q, $city, $state, $limit);
       <table class="table table-striped table-hover m-0">
         <thead class="table-light">
           <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Phone</th>
-            <th>City</th>
-            <th>State</th>
+            <th><?= sort_link('ID', 'id', $baseParams, $sort, $dir) ?></th>
+            <th><?= sort_link('Name', 'name', $baseParams, $sort, $dir) ?></th>
+            <th><?= sort_link('Email', 'email', $baseParams, $sort, $dir) ?></th>
+            <th><?= sort_link('Phone', 'phone', $baseParams, $sort, $dir) ?></th>
+            <th><?= sort_link('City', 'city', $baseParams, $sort, $dir) ?></th>
+            <th><?= sort_link('State', 'state', $baseParams, $sort, $dir) ?></th>
             <th>Short Address</th>
             <th class="text-end">Actions</th>
           </tr>

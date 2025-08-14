@@ -22,7 +22,9 @@ final class CustomerDataProvider
         ?string $search = null,
         ?string $city = null,
         ?string $state = null,
-        ?string $limit = null
+        ?string $limit = null,
+        ?string $sort = 'id',
+        string $order = 'asc'
     ): array {
         $sql = "SELECT id, first_name, last_name, email, phone, address_line1, city, state
                 FROM customers
@@ -46,6 +48,24 @@ final class CustomerDataProvider
         if ($state !== null && $state !== '') {
             $sql .= " AND state = :state";
             $params[':state'] = $state;
+        }
+
+        // Determine sort column and direction
+        $allowedSorts = [
+            'id'    => 'id',
+            'email' => 'email',
+            'phone' => 'phone',
+            'city'  => 'city',
+            'state' => 'state',
+        ];
+        $sort = strtolower((string)$sort);
+        $order = strtolower($order) === 'desc' ? 'DESC' : 'ASC';
+        if ($sort === 'name') {
+            $sql .= ' ORDER BY last_name ' . $order . ', first_name ' . $order;
+        } elseif (isset($allowedSorts[$sort])) {
+            $sql .= ' ORDER BY ' . $allowedSorts[$sort] . ' ' . $order;
+        } else {
+            $sql .= ' ORDER BY id ASC';
         }
 
         // Sanitize limit from string → int
