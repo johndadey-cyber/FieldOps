@@ -78,8 +78,19 @@ final class EmployeesSaveControllerTest extends TestCase
         $employeesBefore = $this->countRows('employees');
 
         $resp = $this->postForm('employee_save.php', [
-            'first_name' => 'NoCsrf',
-            'last_name'  => 'User',
+            'first_name'        => 'NoCsrf',
+            'last_name'         => 'User',
+            'email'             => 'nocrsf@example.test',
+            'phone'             => '(512) 555-0000',
+            'address_line1'     => '123 Main',
+            'city'              => 'Austin',
+            'state'             => 'TX',
+            'postal_code'       => '78704',
+            'home_address_lat'  => '30.0000',
+            'home_address_lon'  => '-97.0000',
+            'employment_type'   => 'Full-Time',
+            'hire_date'         => date('Y-m-d'),
+            'status'            => 'Active',
             // intentionally omit csrf_token
         ]);
 
@@ -100,8 +111,19 @@ final class EmployeesSaveControllerTest extends TestCase
 
         $resp = $this->postForm('employee_save.php', [
             // Missing first_name (required)
-            'last_name'  => 'OnlyLast',
-            'csrf_token' => $this->token,
+            'last_name'        => 'OnlyLast',
+            'email'            => 'only.last@example.test',
+            'phone'            => '(512) 555-1111',
+            'address_line1'    => '456 Elm',
+            'city'             => 'Austin',
+            'state'            => 'TX',
+            'postal_code'      => '78704',
+            'home_address_lat' => '30.0000',
+            'home_address_lon' => '-97.0000',
+            'employment_type'  => 'Full-Time',
+            'hire_date'        => date('Y-m-d'),
+            'status'           => 'Active',
+            'csrf_token'       => $this->token,
         ]);
 
         // Expect validation feedback or non-200; avoid brittle copy checks
@@ -120,11 +142,20 @@ final class EmployeesSaveControllerTest extends TestCase
         $employeesBefore = $this->countRows('employees');
 
         $resp = $this->postForm('employee_save.php', [
-            'first_name' => 'Ella',
-            'last_name'  => 'Engineer',
-            'email'      => 'ella.engineer@example.test',
-            'phone'      => '512-555-1234',
-            'csrf_token' => $this->token,
+            'first_name'       => 'Ella',
+            'last_name'        => 'Engineer',
+            'email'            => 'ella.engineer@example.test',
+            'phone'            => '(512) 555-1234',
+            'address_line1'    => '789 Pine',
+            'city'             => 'Austin',
+            'state'            => 'TX',
+            'postal_code'      => '78704',
+            'home_address_lat' => '30.0000',
+            'home_address_lon' => '-97.0000',
+            'employment_type'  => 'Full-Time',
+            'hire_date'        => date('Y-m-d'),
+            'status'           => 'Active',
+            'csrf_token'       => $this->token,
         ]);
 
         // Accept 200 or redirect (3xx) on success; controller often redirects after save
