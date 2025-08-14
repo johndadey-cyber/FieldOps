@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require __DIR__ . '/../_cli_guard.php';
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../models/CustomerDataProvider.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -13,12 +14,17 @@ if (strlen($q) < 2) {
 
 $rows = [];
 try {
-    $pdo = getPDO();
-    $needle = '%' . str_replace(['\\','%','_'], ['\\\\','\\%','\\_'], $q) . '%';
-    $sql = "SELECT id, first_name, last_name, address_line1, city FROM customers WHERE first_name LIKE :q OR last_name LIKE :q OR address_line1 LIKE :q OR city LIKE :q ORDER BY last_name, first_name LIMIT 10";
-    $st = $pdo->prepare($sql);
-    $st->execute([':q' => $needle]);
-    $rows = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    $pdo  = getPDO();
+    $rows = CustomerDataProvider::getFiltered($pdo, $q, null, null, '10');
+    $rows = array_map(static function (array $c): array {
+        return [
+            'id'            => (int)$c['id'],
+            'first_name'    => $c['first_name'],
+            'last_name'     => $c['last_name'],
+            'address_line1' => $c['address_line1'] ?? '',
+            'city'          => $c['city'] ?? '',
+        ];
+    }, $rows);
 } catch (Throwable $e) {
     http_response_code(500);
 }

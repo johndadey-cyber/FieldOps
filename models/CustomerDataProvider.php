@@ -12,6 +12,7 @@ final class CustomerDataProvider
      *   last_name:string,
      *   email:?string,
      *   phone:?string,
+     *   address_line1:?string,
      *   city:?string,
      *   state:?string
      * }>
@@ -23,13 +24,19 @@ final class CustomerDataProvider
         ?string $state = null,
         ?string $limit = null
     ): array {
-        $sql = "SELECT id, first_name, last_name, email, phone, city, state
+        $sql = "SELECT id, first_name, last_name, email, phone, address_line1, city, state
                 FROM customers
                 WHERE 1=1";
         $params = [];
 
         if ($search !== null && $search !== '') {
-            $sql .= " AND (first_name LIKE :q OR last_name LIKE :q OR email LIKE :q)";
+            $sql .= " AND (
+                first_name LIKE :q
+                OR last_name LIKE :q
+                OR email LIKE :q
+                OR address_line1 LIKE :q
+                OR city LIKE :q
+            )";
             $params[':q'] = "%{$search}%";
         }
         if ($city !== null && $city !== '') {
@@ -53,7 +60,7 @@ final class CustomerDataProvider
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
 
-        /** @var array<int, array{id:int, first_name:string, last_name:string, email:?string, phone:?string, city:?string, state:?string}> */
+        /** @var array<int, array{id:int, first_name:string, last_name:string, email:?string, phone:?string, address_line1:?string, city:?string, state:?string}> */
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         return $rows;
     }
