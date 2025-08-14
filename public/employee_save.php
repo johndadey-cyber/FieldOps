@@ -23,13 +23,27 @@ function redirect_to(string $path): void {
     exit;
 }
 
+$__empLogFile = dirname(__DIR__) . '/logs/employee_save.log';
+$log = static function (string $msg) use ($__empLogFile): void {
+    $line = sprintf("[%s] %s\n", date('c'), $msg);
+    error_log($line, 3, $__empLogFile);
+};
+register_shutdown_function(function () use ($log): void {
+    $err = error_get_last();
+    if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+        $log('FATAL: ' . $err['message'] . ' in ' . $err['file'] . ':' . $err['line']);
+    }
+});
+
 $pdo = getPDO();
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-if ($method !== 'POST') { json_out(['ok'=>false,'error'=>'Method not allowed'], 405); }
+$log('entry method=' . $method);
+if ($method !== 'POST') { $log('Invalid method'); json_out(['ok'=>false,'error'=>'Method not allowed'], 405); }
 
 $token = (string)($_POST['csrf_token'] ?? '');
-if (!csrf_verify($token)) { json_out(['ok'=>false,'error'=>'Invalid CSRF token'], 422); }
+if (!csrf_verify($token)) { $log('Invalid CSRF token'); json_out(['ok'=>false,'error'=>'Invalid CSRF token'], 422); }
+$log('CSRF token verified');
 
 $id             = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 $first          = trim((string)($_POST['first_name']        ?? ''));
@@ -50,7 +64,13 @@ $status         = trim((string)($_POST['status']            ?? ''));
 $roleId         = (string)($_POST['role_id'] ?? '') !== '' ? (int)$_POST['role_id'] : null;
 $skills         = $_POST['skills'] ?? [];
 
+$log('Processing id=' . $id);
+
 $errors = [];
+$addError = static function (string $msg) use (&$errors, $log): void {
+    $errors[] = $msg;
+    $log('VALIDATION: ' . $msg);
+};
 
 // If updating, fetch associated person_id early for duplicate checks
 $personId = null;
@@ -59,19 +79,19 @@ if ($id > 0) {
     $st->execute([':id' => $id]);
     $personId = $st->fetchColumn();
     if ($personId === false) {
-        $errors[] = 'Employee not found.';
+        $addError('Employee not found.');
     } else {
         $personId = (int)$personId;
     }
 }
 if ($first === '' || !preg_match('/^[A-Za-z\s\'-]{1,50}$/', $first)) {
-    $errors[] = 'First name is required.';
+    $addError('First name is required.');
 }
 if ($last === '' || !preg_match('/^[A-Za-z\s\'-]{1,50}$/', $last)) {
-    $errors[] = 'Last name is required.';
+    $addError('Last name is required.');
 }
 if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    $errors[] = 'Valid email is required.';
+    $addError('Valid email is required.');
 } else {
     $sql = 'SELECT 1 FROM people WHERE email = :em';
     $params = [':em' => $email];
@@ -82,10 +102,10 @@ if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $sql .= ' LIMIT 1';
     $st = $pdo->prepare($sql);
     $st->execute($params);
-    if ($st->fetchColumn()) $errors[] = 'An employee with this email already exists.';
+    if ($st->fetchColumn()) $addError('An employee with this email already exists.');
 }
 if ($phone === '' || !preg_match('/^\(\d{3}\) \d{3}-\d{4}$/', $phone)) {
-    $errors[] = 'Valid phone is required.';
+    $addError('Valid phone is required.');
 } else {
     $sql = 'SELECT 1 FROM people WHERE phone = :ph';
     $params = [':ph' => $phone];
@@ -96,32 +116,32 @@ if ($phone === '' || !preg_match('/^\(\d{3}\) \d{3}-\d{4}$/', $phone)) {
     $sql .= ' LIMIT 1';
     $st = $pdo->prepare($sql);
     $st->execute($params);
-    if ($st->fetchColumn()) $errors[] = 'An employee with this phone already exists.';
+    if ($st->fetchColumn()) $addError('An employee with this phone already exists.');
 }
 if ($addr1 === '' || $city === '' || $state === '' || $postal === '') {
-    $errors[] = 'Address is required.';
+    $addError('Address is required.');
 }
 if ($lat === null || $lon === null) {
-    $errors[] = 'Lat/Lon required.';
+    $addError('Lat/Lon required.');
 } elseif ($lat < -90 || $lat > 90 || $lon < -180 || $lon > 180) {
-    $errors[] = 'Invalid Lat/Lon coordinates.';
+    $addError('Invalid Lat/Lon coordinates.');
 }
 $validEmpTypes = ['Full-Time','Part-Time','Contractor'];
 if (!in_array($employmentType, $validEmpTypes, true)) {
-    $errors[] = 'Employment type invalid.';
+    $addError('Employment type invalid.');
 }
 if ($hireDate === '' || $hireDate > date('Y-m-d')) {
-    $errors[] = 'Hire date cannot be in the future.';
+    $addError('Hire date cannot be in the future.');
 }
 $validStatus = ['Active','Inactive'];
 if (!in_array($status, $validStatus, true)) {
-    $errors[] = 'Status invalid.';
+    $addError('Status invalid.');
 }
 if ($roleId !== null) {
     $st = $pdo->prepare('SELECT 1 FROM roles WHERE id = :id');
     $st->execute([':id'=>$roleId]);
     if (!$st->fetchColumn()) {
-        $errors[] = 'Role invalid.';
+        $addError('Role invalid.');
     }
 }
 // Validate skills ids (job types)
@@ -139,7 +159,7 @@ if (is_array($skills) && count($skills) > 0) {
     }
     foreach ($skills as $sid) {
         if (!in_array($sid, $skillIds, true)) {
-            $errors[] = 'Invalid skill selected.';
+            $addError('Invalid skill selected.');
             break;
         }
     }
@@ -148,18 +168,22 @@ if (is_array($skills) && count($skills) > 0) {
 }
 
 if ($errors) {
+    $log('Validation failed; redirecting');
     wants_json() ? json_out(['ok'=>false,'errors'=>$errors], 422) : redirect_to('employee_form.php');
 }
 
 try {
+    $log('Starting transaction');
     if (!$pdo->beginTransaction()) {
         throw new RuntimeException('Failed to start transaction');
     }
 
     if ($id > 0) {
         if ($personId === null) {
+            $log('Person ID missing for update');
             throw new RuntimeException('Employee not found');
         }
+        $log('Updating employee id=' . $id);
 
         $up = $pdo->prepare('UPDATE people SET first_name=:fn,last_name=:ln,email=:em,phone=:ph,address_line1=:a1,address_line2=:a2,city=:city,state=:st,postal_code=:pc,google_place_id=:pid,latitude=:lat,longitude=:lon WHERE id=:pidKey');
         $up->execute([
@@ -191,8 +215,10 @@ try {
         if (!$pdo->commit()) {
             throw new RuntimeException('Commit failed');
         }
+        $log('Update committed for id=' . $id);
         wants_json() ? json_out(['ok'=>true,'id'=>$id]) : redirect_to('employees.php');
     } else {
+        $log('Inserting new employee');
         $ins = $pdo->prepare('INSERT INTO people (first_name,last_name,email,phone,address_line1,address_line2,city,state,postal_code,google_place_id,latitude,longitude) VALUES (:fn,:ln,:em,:ph,:a1,:a2,:city,:st,:pc,:pid,:lat,:lon)');
         $ins->execute([
             ':fn'=>$first, ':ln'=>$last, ':em'=>$email, ':ph'=>$phone,
@@ -223,10 +249,12 @@ try {
         if (!$pdo->commit()) {
             throw new RuntimeException('Commit failed');
         }
+        $log('Insert committed for id=' . $newId);
         wants_json() ? json_out(['ok'=>true,'id'=>$newId]) : redirect_to('employees.php');
     }
 } catch (Throwable $e) {
     $pdo->rollBack();
+    $log('Exception: ' . $e->getMessage());
     error_log('[employee_save] ' . $e->getMessage());
     wants_json() ? json_out(['ok'=>false,'error'=>'Save failed'], 500) : redirect_to('employee_form.php');
 }
