@@ -15,7 +15,12 @@ function s(?string $v): string {
 }
 
 $pdo  = getPDO();
-$rows = EmployeeDataProvider::getFiltered($pdo, null);
+$page = isset($_GET['page']) && ctype_digit((string)$_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$perPage = isset($_GET['perPage']) && ctype_digit((string)$_GET['perPage']) ? max(1, (int)$_GET['perPage']) : 25;
+$data = EmployeeDataProvider::getFiltered($pdo, null, $page, $perPage);
+$rows = $data['rows'];
+$total = $data['total'];
+$totalPages = (int)ceil($total / $perPage);
 ?>
 <!doctype html>
 <html lang="en">
@@ -56,6 +61,23 @@ $rows = EmployeeDataProvider::getFiltered($pdo, null);
         </tbody>
       </table>
     </div>
+    <?php if ($totalPages > 1): ?>
+    <nav class="p-2">
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
+          <a class="page-link" href="?page=<?= max(1, $page - 1) ?>&perPage=<?= $perPage ?>">Previous</a>
+        </li>
+        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+        <li class="page-item <?= $i === $page ? 'active' : '' ?>">
+          <a class="page-link" href="?page=<?= $i ?>&perPage=<?= $perPage ?>"><?= $i ?></a>
+        </li>
+        <?php endfor; ?>
+        <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">
+          <a class="page-link" href="?page=<?= min($totalPages, $page + 1) ?>&perPage=<?= $perPage ?>">Next</a>
+        </li>
+      </ul>
+    </nav>
+    <?php endif; ?>
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

@@ -6,15 +6,15 @@ declare(strict_types=1);
 final class EmployeeDataProvider
 {
     /**
-     * @return array<int, array{
+     * @return array{rows:array<int, array{
      *   employee_id:int,
      *   first_name:string,
      *   last_name:string,
      *   skills:string,
      *   is_active:int
-     * }>
+     * }>, total:int}
      */
-    public static function getFiltered(PDO $pdo, ?string $skill = null): array
+    public static function getFiltered(PDO $pdo, ?string $skill = null, int $page = 1, int $perPage = 25): array
     {
         $where = "WHERE e.is_active = 1";
         $params = [];
@@ -30,6 +30,13 @@ final class EmployeeDataProvider
             $params[':skill'] = $skill;
         }
 
+        $countSql = "SELECT COUNT(*) FROM employees e $where";
+        $countStmt = $pdo->prepare($countSql);
+        $countStmt->execute($params);
+        $total = (int)$countStmt->fetchColumn();
+
+        $offset = max(0, ($page - 1) * $perPage);
+
         $sql = "
             SELECT e.id AS employee_id,
                    p.first_name,
@@ -43,13 +50,19 @@ final class EmployeeDataProvider
             $where
             GROUP BY e.id, p.first_name, p.last_name, e.is_active
             ORDER BY p.last_name, p.first_name
+            LIMIT :limit OFFSET :offset
         ";
 
         $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+        $stmt->execute();
 
         /** @var array<int, array{employee_id:int, first_name:string, last_name:string, skills:string, is_active:int}> */
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        return $rows;
+        return ['rows' => $rows, 'total' => $total];
     }
 }
