@@ -56,7 +56,7 @@ function stickyArr(string $name): array {
         <input type="email" name="email" value="<?= s(sticky('email')) ?>" required>
       </label>
       <label>Phone
-        <input type="tel" name="phone" value="<?= s(sticky('phone')) ?>" required>
+        <input type="tel" name="phone" value="<?= s(sticky('phone')) ?>" required pattern="\d{3}[\s-]?\d{3}[\s-]?\d{4}" placeholder="123-456-7890" title="Enter a 10-digit phone number">
       </label>
     </fieldset>
 
