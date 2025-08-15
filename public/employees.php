@@ -9,6 +9,7 @@ $CSRF = $_SESSION['csrf_token'];
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/EmployeeDataProvider.php';
 require_once __DIR__ . '/../models/JobType.php';
+require_once __DIR__ . '/../models/Availability.php';
 
 /** HTML escape */
 function s(?string $v): string {
@@ -62,6 +63,13 @@ $direction = isset($_GET['direction']) ? (string)$_GET['direction'] : null;
 $skills = array_values(array_filter(array_map('strval', (array)($_GET['skills'] ?? []))));
 $data = EmployeeDataProvider::getFiltered($pdo, $skills, $page, $perPage, $sort, $direction);
 $rows = $data['rows'];
+$ids = array_map(static fn(array $r): int => (int)$r['employee_id'], $rows);
+$summaries = Availability::summaryForEmployees($pdo, $ids);
+foreach ($rows as &$r) {
+    $eid = (int)$r['employee_id'];
+    $r['availability'] = $summaries[$eid] ?? '';
+}
+unset($r);
 $total = $data['total'];
 $totalPages = (int)ceil($total / $perPage);
 $allSkills = array_map(static fn(array $r): string => (string)$r['name'], JobType::all($pdo));
@@ -118,6 +126,7 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
             <th>Email</th>
             <th>Phone</th>
             <th>Skills</th>
+            <th>Availability</th>
             <th><a href="?perPage=<?= $perPage ?>&sort=status&direction=<?= $statusDir ?><?= $skillQuery ?>">Status</a></th>
             <th>Info</th>
           </tr>
@@ -146,6 +155,7 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
                 <span class="badge <?= s($cls) ?>"><?= s($sk['name'] . $prof) ?></span>
               <?php endforeach; ?>
             </td>
+            <td><?= s($r['availability']) ?></td>
             <td><?= statusBadge((string)($r['status'] ?? '')) ?></td>
             <td>
               <?php
