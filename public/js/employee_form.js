@@ -6,6 +6,12 @@
     if (phoneEl && typeof Inputmask !== 'undefined') {
       new Inputmask("(999) 999-9999").mask(phoneEl);
     }
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+      var skillsEl = $('#skills');
+      if (skillsEl.length) {
+        skillsEl.select2({ width: '100%' });
+      }
+    }
     var errBox = document.getElementById('form-errors');
     function showErrors(list){
       if(!errBox) return;

@@ -27,8 +27,11 @@ $roles = Role::all($pdo);
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="css/employee_form.css">
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/inputmask@5/dist/inputmask.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 </head>
 <body>
 <?php
@@ -150,15 +153,16 @@ function stickyArr(string $name): array {
       <fieldset class="row g-3">
         <legend class="col-12">Skills</legend>
         <?php $selSkills = stickyArr('skills'); ?>
-        <?php foreach ($skills as $sk): ?>
-          <?php $id = (int)$sk['id']; $name = (string)$sk['name']; ?>
-          <div class="col-md-4">
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" name="skills[]" value="<?= $id ?>" <?= in_array((string)$id, $selSkills, true) ? 'checked' : '' ?>>
-              <label class="form-check-label"><?= s($name) ?></label>
-            </div>
-          </div>
-        <?php endforeach; ?>
+        <div class="col-12">
+          <label class="form-label">Select Skills
+            <select class="form-select" id="skills" name="skills[]" multiple>
+              <?php foreach ($skills as $sk): ?>
+                <?php $id = (string)$sk['id']; $name = (string)$sk['name']; ?>
+                <option value="<?= s($id) ?>" <?= in_array($id, $selSkills, true) ? 'selected' : '' ?>><?= s($name) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </label>
+        </div>
       </fieldset>
 
       <div class="mt-3">
