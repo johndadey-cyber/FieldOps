@@ -81,7 +81,7 @@ function printSample(PDO $pdo, string $table): void {
 }
 
 // Check key tables
-$tables = ['jobs', 'employees', 'job_employee_assignment', 'customers', 'job_job_types'];
+$tables = ['jobs', 'employees', 'job_employee_assignment', 'customers'];
 foreach ($tables as $table) {
     try {
         printSample($pdo, $table);

@@ -73,7 +73,6 @@ $schema = [
   'employee_availability_overrides' => tableExists($pdo, 'employee_availability_overrides'),
   'employee_skills'         => tableExists($pdo,'employee_skills'),
   'job_types'               => tableExists($pdo,'job_types'),
-  'job_job_types'           => tableExists($pdo,'job_job_types'),
   'job_employee_assignment' => tableExists($pdo,'job_employee_assignment'),
   'job_employee'            => tableExists($pdo,'job_employee'),
 ];
@@ -121,20 +120,8 @@ $dtUtc       = (clone $dtLocal)->setTimezone(new DateTimeZone('UTC'));
 $dtUtcEnd    = (clone $dtLocalEnd)->setTimezone(new DateTimeZone('UTC'));
 $jobWindowLabel = sprintf('%s, %s—%s', $dtLocal->format('Y-m-d'), $dtLocal->format('H:i'), $dtLocalEnd->format('H:i'));
 
-/* -------------- Required job types (optional) -------------- */
+/* -------------- Required job types removed -------------- */
 $reqIds = []; $reqNamesById = [];
-if ($schema['job_job_types'] && $schema['job_types']) {
-  $st = $pdo->prepare("
-    SELECT jt.id, jt.name
-    FROM job_job_types jjt
-    JOIN job_types jt ON jt.id = jjt.job_type_id
-    WHERE jjt.job_id = :jobId
-  ");
-  $st->execute([':jobId'=>$jobId]);
-  while ($r = $st->fetch(PDO::FETCH_ASSOC)) {
-    $rid = (int)$r['id']; $reqIds[] = $rid; $reqNamesById[$rid] = (string)$r['name'];
-  }
-}
 
 /* -------------- Helpers -------------- */
 function haversineKm(?float $lat1, ?float $lon1, ?float $lat2, ?float $lon2): ?float {

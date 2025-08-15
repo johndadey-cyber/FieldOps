@@ -90,9 +90,8 @@ try {
     // Discover if job types are in play via presence of tables
     $hasJobTypes = (bool)$pdo->query("SHOW TABLES LIKE 'job_types'")->fetchColumn();
     $hasEmployeeSkills = (bool)$pdo->query("SHOW TABLES LIKE 'employee_skills'")->fetchColumn();
-    $hasJobJobTypes = (bool)$pdo->query("SHOW TABLES LIKE 'job_job_types'")->fetchColumn();
 
-    if ($hasJobTypes && $hasEmployeeSkills && $hasJobJobTypes) {
+    if ($hasJobTypes && $hasEmployeeSkills) {
         $needTypes = true;
         // Create a job type if none exists
         $typeId = (int)($pdo->query("SELECT id FROM job_types LIMIT 1")->fetchColumn() ?: 0);
@@ -100,10 +99,6 @@ try {
             $pdo->exec("INSERT INTO job_types (name) VALUES ('General')");
             $typeId = (int)$pdo->lastInsertId();
         }
-
-        // Link job to type
-        $stmt = $pdo->prepare("INSERT INTO job_job_types (job_id, job_type_id) VALUES (:j,:t)");
-        $stmt->execute([':j' => $jobId, ':t' => $typeId]);
 
         // Grant employee the skill
         $stmt = $pdo->prepare("INSERT INTO employee_skills (employee_id, job_type_id) VALUES (:e,:t)");

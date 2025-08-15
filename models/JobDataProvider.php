@@ -56,10 +56,6 @@ class JobDataProvider
             $where[] = 'j.status = :status';
             $params[':status'] = $status;
         }
-        if ($jobType !== null) {
-            $where[] = 'EXISTS (SELECT 1 FROM job_job_types jjt WHERE jjt.job_id = j.id AND jjt.job_type_id = :jt)';
-            $params[':jt'] = $jobType;
-        }
         if ($search !== null && $search !== '') {
             $where[] = '(j.description LIKE :q OR c.first_name LIKE :q OR c.last_name LIKE :q)';
             $params[':q'] = '%' . $search . '%';

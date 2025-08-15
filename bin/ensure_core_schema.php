@@ -209,8 +209,6 @@ ensureFk($pdo, 'employee_skills', 'job_type_id', 'job_types', 'id', 'fk_skills_j
 ensureFk($pdo, 'job_employee_assignment', 'job_id', 'jobs', 'id', 'fk_jea_job', 'CASCADE', 'RESTRICT');
 ensureFk($pdo, 'job_employee_assignment', 'employee_id', 'employees', 'id', 'fk_jea_employee', 'RESTRICT', 'RESTRICT');
 
-ensureFk($pdo, 'job_job_types', 'job_id', 'jobs', 'id', 'fk_jjt_job', 'CASCADE', 'RESTRICT');
-ensureFk($pdo, 'job_job_types', 'job_type_id', 'job_types', 'id', 'fk_jjt_jobtype', 'RESTRICT', 'RESTRICT');
 ensureFk($pdo, 'employee_availability_overrides', 'employee_id', 'employees', 'id', 'fk_eao_employee', 'CASCADE', 'CASCADE');
 
 out(PHP_EOL . "== Ensuring UNIQUE indexes ==");

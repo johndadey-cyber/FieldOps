@@ -33,10 +33,8 @@ class AssignmentEngine
         $startTs = strtotime($date . ' ' . $time);
         $endTs   = $startTs + ($duration * 60);
 
-        // Required job types
-        $reqTypesStmt = $this->pdo->prepare("SELECT job_type_id FROM job_job_types WHERE job_id = :jid");
-        $reqTypesStmt->execute([':jid' => $jobId]);
-        $reqTypes = array_map('intval', array_column($reqTypesStmt->fetchAll(PDO::FETCH_ASSOC), 'job_type_id'));
+        // Required job types removed with dropped table
+        $reqTypes = [];
 
         // Candidates: active techs
         $candSql = "SELECT e.id AS employee_id, p.first_name, p.last_name, p.latitude AS emp_lat, p.longitude AS emp_lng
