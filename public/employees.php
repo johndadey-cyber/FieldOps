@@ -17,7 +17,9 @@ function s(?string $v): string {
 $pdo  = getPDO();
 $page = isset($_GET['page']) && ctype_digit((string)$_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $perPage = isset($_GET['perPage']) && ctype_digit((string)$_GET['perPage']) ? max(1, (int)$_GET['perPage']) : 25;
-$data = EmployeeDataProvider::getFiltered($pdo, null, $page, $perPage);
+$sort = isset($_GET['sort']) ? (string)$_GET['sort'] : null;
+$direction = isset($_GET['direction']) ? (string)$_GET['direction'] : null;
+$data = EmployeeDataProvider::getFiltered($pdo, null, $page, $perPage, $sort, $direction);
 $rows = $data['rows'];
 $total = $data['total'];
 $totalPages = (int)ceil($total / $perPage);
@@ -42,11 +44,16 @@ $totalPages = (int)ceil($total / $perPage);
     <div class="table-responsive">
       <table class="table table-striped table-hover m-0" id="employees-table">
         <thead class="table-light">
+          <?php
+            $idDir = ($sort === 'employee_id' && strtolower((string)$direction) === 'asc') ? 'desc' : 'asc';
+            $nameDir = ($sort === 'last_name' && strtolower((string)$direction) === 'asc') ? 'desc' : 'asc';
+            $activeDir = ($sort === 'is_active' && strtolower((string)$direction) === 'asc') ? 'desc' : 'asc';
+          ?>
           <tr>
-            <th>ID</th>
-            <th>Name</th>
+            <th><a href="?perPage=<?= $perPage ?>&sort=employee_id&direction=<?= $idDir ?>">ID</a></th>
+            <th><a href="?perPage=<?= $perPage ?>&sort=last_name&direction=<?= $nameDir ?>">Name</a></th>
             <th>Skills</th>
-            <th>Active</th>
+            <th><a href="?perPage=<?= $perPage ?>&sort=is_active&direction=<?= $activeDir ?>">Active</a></th>
           </tr>
         </thead>
         <tbody>
@@ -65,15 +72,15 @@ $totalPages = (int)ceil($total / $perPage);
     <nav class="p-2">
       <ul class="pagination pagination-sm mb-0">
         <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
-          <a class="page-link" href="?page=<?= max(1, $page - 1) ?>&perPage=<?= $perPage ?>">Previous</a>
+          <a class="page-link" href="?page=<?= max(1, $page - 1) ?>&perPage=<?= $perPage ?>&sort=<?= s($sort) ?>&direction=<?= s($direction) ?>">Previous</a>
         </li>
         <?php for ($i = 1; $i <= $totalPages; $i++): ?>
         <li class="page-item <?= $i === $page ? 'active' : '' ?>">
-          <a class="page-link" href="?page=<?= $i ?>&perPage=<?= $perPage ?>"><?= $i ?></a>
+          <a class="page-link" href="?page=<?= $i ?>&perPage=<?= $perPage ?>&sort=<?= s($sort) ?>&direction=<?= s($direction) ?>"><?= $i ?></a>
         </li>
         <?php endfor; ?>
         <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">
-          <a class="page-link" href="?page=<?= min($totalPages, $page + 1) ?>&perPage=<?= $perPage ?>">Next</a>
+          <a class="page-link" href="?page=<?= min($totalPages, $page + 1) ?>&perPage=<?= $perPage ?>&sort=<?= s($sort) ?>&direction=<?= s($direction) ?>">Next</a>
         </li>
       </ul>
     </nav>
