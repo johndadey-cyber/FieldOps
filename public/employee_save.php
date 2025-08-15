@@ -49,7 +49,14 @@ $id             = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 $first          = trim((string)($_POST['first_name']        ?? ''));
 $last           = trim((string)($_POST['last_name']         ?? ''));
 $email          = trim((string)($_POST['email']             ?? ''));
-$phone          = trim((string)($_POST['phone']             ?? ''));
+$phoneRaw       = trim((string)($_POST['phone']             ?? ''));
+// Normalize phone to (123) 456-7890 if 10 digits supplied
+$digits = preg_replace('/\D+/', '', $phoneRaw);
+if (is_string($digits) && strlen($digits) === 10) {
+    $phone = sprintf('(%s) %s-%s', substr($digits, 0, 3), substr($digits, 3, 3), substr($digits, 6));
+} else {
+    $phone = $phoneRaw;
+}
 $addr1          = trim((string)($_POST['address_line1']     ?? ''));
 $addr2          = trim((string)($_POST['address_line2']     ?? ''));
 $city           = trim((string)($_POST['city']              ?? ''));
