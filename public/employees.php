@@ -53,6 +53,14 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
   <div class="mb-3">
     <input type="search" id="employee-search" class="form-control form-control-sm" placeholder="Search employees">
   </div>
+  <div class="mb-3 d-flex">
+    <select id="bulk-action" class="form-select form-select-sm w-auto me-2">
+      <option value="">Bulk Actions</option>
+      <option value="activate">Activate</option>
+      <option value="deactivate">Deactivate</option>
+    </select>
+    <button id="bulk-apply" class="btn btn-sm btn-secondary">Apply</button>
+  </div>
   <div class="card">
     <div class="table-responsive">
       <table class="table table-striped table-hover m-0" id="employees-table">
@@ -63,6 +71,7 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
             $activeDir = ($sort === 'is_active' && strtolower((string)$direction) === 'asc') ? 'desc' : 'asc';
           ?>
           <tr>
+            <th><input type="checkbox" id="select-all"></th>
             <th><a href="?perPage=<?= $perPage ?>&sort=employee_id&direction=<?= $idDir ?><?= $skillQuery ?>">ID</a></th>
             <th><a href="?perPage=<?= $perPage ?>&sort=last_name&direction=<?= $nameDir ?><?= $skillQuery ?>">Name</a></th>
             <th>Skills</th>
@@ -72,6 +81,7 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
         <tbody>
         <?php foreach ($rows as $r): ?>
           <tr>
+            <td><input type="checkbox" class="emp-check" value="<?= (int)$r['employee_id'] ?>"></td>
             <td><?= (int)$r['employee_id'] ?></td>
             <td><?= s($r['first_name'] . ' ' . $r['last_name']) ?></td>
             <td><?= s($r['skills']) ?></td>
@@ -122,6 +132,20 @@ $(function(){
     const vals=skillFilter.val()||[];
     vals.forEach(v=>params.append('skills[]',v));
     window.location='?'+params.toString();
+  });
+
+  $('#select-all').on('change',function(){
+    const checked=this.checked;
+    $('.emp-check').prop('checked',checked);
+  });
+
+  $('#bulk-apply').on('click',function(){
+    const action=$('#bulk-action').val();
+    const ids=$('.emp-check:checked').map((_,el)=>el.value).get();
+    if(!action||ids.length===0){return;}
+    $.post('employee_bulk_update.php',{action:action,ids:ids,csrf_token:'<?= $CSRF ?>'},function(res){
+      if(res.ok){location.reload();}else{alert(res.error||'Error');}
+    },'json');
   });
 });
 </script>
