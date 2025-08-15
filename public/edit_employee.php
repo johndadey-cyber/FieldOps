@@ -34,6 +34,10 @@ if ($id > 0) {
                 $st2->execute([':id' => $id]);
                 $skillIds = array_map('strval', $st2->fetchAll(PDO::FETCH_COLUMN));
             }
+            $ph = $employee['phone'] ?? '';
+            if (is_string($ph) && preg_match('/^\d{10}$/', $ph)) {
+                $employee['phone'] = sprintf('(%s) %s-%s', substr($ph, 0, 3), substr($ph, 3, 3), substr($ph, 6));
+            }
         }
     }
 }
