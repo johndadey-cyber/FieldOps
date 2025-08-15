@@ -57,10 +57,14 @@
         const addr=h(job.customer.address_line1||'');
         custCell.innerHTML=`<a href="customer_form.php?id=${job.customer.id}" target="_blank">${name}</a><br><small class="text-muted">${addr}</small>`;
         tr.appendChild(custCell);
-        // Job types
-        const jtCell=document.createElement('td');
-        if(job.job_types?.length){jtCell.innerHTML=job.job_types.map(t=>`<span class="badge bg-secondary-subtle text-secondary border me-1">${h(t.name)}</span>`).join('');}
-        else jtCell.textContent='—'; tr.appendChild(jtCell);
+        // Job skills
+        const jsCell=document.createElement('td');
+        if(job.job_skills?.length){
+          jsCell.innerHTML=job.job_skills.map(s=>`<span class="badge bg-secondary-subtle text-secondary border me-1">${h(s.name)}</span>`).join('');
+        } else {
+          jsCell.textContent='—';
+        }
+        tr.appendChild(jsCell);
         // Employees
         const empCell=document.createElement('td');
         if(job.assigned_employees?.length){
