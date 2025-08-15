@@ -44,6 +44,16 @@ function skillClass(string $name, array $map): string {
     return $map[$key] ?? 'badge-default-skill';
 }
 
+function statusBadge(string $status): string {
+    $lower = strtolower($status);
+    return match ($lower) {
+        'active' => '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Active</span>',
+        'inactive' => '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Inactive</span>',
+        'on leave' => '<span class="badge bg-warning text-dark"><i class="bi bi-pause-circle me-1"></i>On Leave</span>',
+        default => '<span class="badge bg-secondary">'.s($status).'</span>',
+    };
+}
+
 $pdo  = getPDO();
 $page = isset($_GET['page']) && ctype_digit((string)$_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $perPage = isset($_GET['perPage']) && ctype_digit((string)$_GET['perPage']) ? max(1, (int)$_GET['perPage']) : 25;
@@ -65,6 +75,7 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
   <title>Employees</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <link href="css/skills.css" rel="stylesheet">
 </head>
@@ -98,14 +109,14 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
           <?php
             $idDir = ($sort === 'employee_id' && strtolower((string)$direction) === 'asc') ? 'desc' : 'asc';
             $nameDir = ($sort === 'last_name' && strtolower((string)$direction) === 'asc') ? 'desc' : 'asc';
-            $activeDir = ($sort === 'is_active' && strtolower((string)$direction) === 'asc') ? 'desc' : 'asc';
+            $statusDir = ($sort === 'status' && strtolower((string)$direction) === 'asc') ? 'desc' : 'asc';
           ?>
           <tr>
             <th><input type="checkbox" id="select-all"></th>
             <th><a href="?perPage=<?= $perPage ?>&sort=employee_id&direction=<?= $idDir ?><?= $skillQuery ?>">ID</a></th>
             <th><a href="?perPage=<?= $perPage ?>&sort=last_name&direction=<?= $nameDir ?><?= $skillQuery ?>">Name</a></th>
             <th>Skills</th>
-            <th><a href="?perPage=<?= $perPage ?>&sort=is_active&direction=<?= $activeDir ?><?= $skillQuery ?>">Active</a></th>
+            <th><a href="?perPage=<?= $perPage ?>&sort=status&direction=<?= $statusDir ?><?= $skillQuery ?>">Status</a></th>
           </tr>
         </thead>
         <tbody>
@@ -122,7 +133,7 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
                 <span class="badge <?= s($cls) ?>"><?= s($sk['name'] . $prof) ?></span>
               <?php endforeach; ?>
             </td>
-            <td><?= (int)$r['is_active'] ? 'Yes' : 'No' ?></td>
+            <td><?= statusBadge((string)($r['status'] ?? '')) ?></td>
           </tr>
         <?php endforeach; ?>
         </tbody>

@@ -11,7 +11,8 @@ final class EmployeeDataProvider
      *   first_name:string,
      *   last_name:string,
      *   skills:string, // CSV of "skill|proficiency"
-     *   is_active:int
+     *   is_active:int,
+     *   status:string
      * }>, total:int}
      */
     public static function getFiltered(
@@ -23,7 +24,7 @@ final class EmployeeDataProvider
         ?string $direction = null
     ): array
     {
-        $where = "WHERE e.is_active = 1";
+        $where = "WHERE 1=1";
         $params = [];
 
         if ($skills !== null && $skills !== []) {
@@ -57,7 +58,7 @@ final class EmployeeDataProvider
         $sortable = [
             'employee_id' => 'e.id',
             'last_name' => 'p.last_name',
-            'is_active' => 'e.is_active',
+            'status' => 'e.status',
         ];
         if ($sort !== null && isset($sortable[$sort])) {
             $dir = strtoupper($direction ?? '') === 'DESC' ? 'DESC' : 'ASC';
@@ -80,13 +81,14 @@ final class EmployeeDataProvider
                        ),
                        ''
                    ) AS skills,
-                   e.is_active
+                   e.is_active,
+                   e.status
             FROM employees e
             JOIN people p ON p.id = e.person_id
             LEFT JOIN employee_skills es ON es.employee_id = e.id
             LEFT JOIN job_types jt ON jt.id = es.job_type_id
             $where
-            GROUP BY e.id, p.first_name, p.last_name, e.is_active
+            GROUP BY e.id, p.first_name, p.last_name, e.is_active, e.status
             ORDER BY $orderBy
             LIMIT :limit OFFSET :offset
         ";
@@ -99,7 +101,7 @@ final class EmployeeDataProvider
         $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
         $stmt->execute();
 
-        /** @var array<int, array{employee_id:int, first_name:string, last_name:string, skills:string, is_active:int}> */
+        /** @var array<int, array{employee_id:int, first_name:string, last_name:string, skills:string, is_active:int, status:string}> */
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         return ['rows' => $rows, 'total' => $total];
     }
