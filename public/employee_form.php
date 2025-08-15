@@ -28,6 +28,7 @@ $roles = Role::all($pdo);
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="css/employee_form.css">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/inputmask@5/dist/inputmask.min.js"></script>
 </head>
 <body>
 <?php
@@ -67,11 +68,11 @@ function stickyArr(string $name): array {
           </label>
         </div>
         <div class="col-md-6">
-          <label class="form-label">Phone
-            <input type="tel" class="form-control" name="phone" value="<?= s(sticky('phone')) ?>" required pattern="\d{3}[\s-]?\d{3}[\s-]?\d{4}" placeholder="123-456-7890" title="Enter a 10-digit phone number">
-          </label>
-        </div>
-      </fieldset>
+            <label class="form-label">Phone
+              <input type="tel" class="form-control" name="phone" value="<?= s(sticky('phone')) ?>" required pattern="\\(\\d{3}\\) \\d{3}-\\d{4}" placeholder="(123) 456-7890" title="Enter a 10-digit phone number">
+            </label>
+          </div>
+        </fieldset>
 
       <fieldset class="row g-3">
         <legend class="col-12">Contact &amp; Address</legend>
