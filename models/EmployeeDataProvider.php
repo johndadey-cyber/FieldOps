@@ -14,7 +14,14 @@ final class EmployeeDataProvider
      *   is_active:int
      * }>, total:int}
      */
-    public static function getFiltered(PDO $pdo, ?string $skill = null, int $page = 1, int $perPage = 25): array
+    public static function getFiltered(
+        PDO $pdo,
+        ?string $skill = null,
+        int $page = 1,
+        int $perPage = 25,
+        ?string $sort = null,
+        ?string $direction = null
+    ): array
     {
         $where = "WHERE e.is_active = 1";
         $params = [];
@@ -37,6 +44,21 @@ final class EmployeeDataProvider
 
         $offset = max(0, ($page - 1) * $perPage);
 
+        $sortable = [
+            'employee_id' => 'e.id',
+            'last_name' => 'p.last_name',
+            'is_active' => 'e.is_active',
+        ];
+        if ($sort !== null && isset($sortable[$sort])) {
+            $dir = strtoupper($direction ?? '') === 'DESC' ? 'DESC' : 'ASC';
+            $orderBy = $sortable[$sort] . ' ' . $dir;
+            if ($sort === 'last_name') {
+                $orderBy .= ', p.first_name ' . $dir;
+            }
+        } else {
+            $orderBy = 'p.last_name ASC, p.first_name ASC';
+        }
+
         $sql = "
             SELECT e.id AS employee_id,
                    p.first_name,
@@ -49,7 +71,7 @@ final class EmployeeDataProvider
             LEFT JOIN job_types jt ON jt.id = es.job_type_id
             $where
             GROUP BY e.id, p.first_name, p.last_name, e.is_active
-            ORDER BY p.last_name, p.first_name
+            ORDER BY $orderBy
             LIMIT :limit OFFSET :offset
         ";
 
