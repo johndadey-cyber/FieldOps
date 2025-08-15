@@ -28,7 +28,8 @@ if ($id > 0) {
         $st->execute([':id' => $id]);
         $employee = $st->fetch(PDO::FETCH_ASSOC) ?: null;
         if ($employee) {
-            $st2 = $pdo->prepare('SELECT skill_id FROM employee_skills WHERE employee_id = :id');
+            // employee_skills stores job_type_id; fetch those ids for the form
+            $st2 = $pdo->prepare('SELECT job_type_id FROM employee_skills WHERE employee_id = :id');
             if ($st2) {
                 $st2->execute([':id' => $id]);
                 $skillIds = array_map('strval', $st2->fetchAll(PDO::FETCH_COLUMN));
