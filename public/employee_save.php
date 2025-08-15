@@ -55,12 +55,9 @@ $email          = trim((string)($_POST['email']             ?? ''));
 $phoneRaw       = trim((string)($_POST['phone']             ?? ''));
 // Strip all non-digits so we can validate length reliably
 $digits = preg_replace('/\D+/', '', $phoneRaw);
-// Format to (123) 456-7890 when 10 digits supplied; otherwise keep raw for now
-if (is_string($digits) && strlen($digits) === 10) {
-    $phone = sprintf('(%s) %s-%s', substr($digits, 0, 3), substr($digits, 3, 3), substr($digits, 6));
-} else {
-    $phone = $phoneRaw;
-}
+// Store raw digits for consistency across duplicate checks and persistence
+$phone  = is_string($digits) ? $digits : '';
+$log(sprintf('Phone raw input: %s, digits: %s', $phoneRaw, $phone));
 $addr1          = trim((string)($_POST['address_line1']     ?? ''));
 $addr2          = trim((string)($_POST['address_line2']     ?? ''));
 $city           = trim((string)($_POST['city']              ?? ''));
@@ -118,7 +115,7 @@ if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
 if (!is_string($digits) || strlen($digits) !== 10) {
     $addError('Valid phone is required.');
 } else {
-    // $phone already formatted above when 10 digits were supplied
+    // $phone contains only digits for comparison
     $sql = 'SELECT 1 FROM people WHERE phone = :ph';
     $params = [':ph' => $phone];
     if ($personId !== null) {
