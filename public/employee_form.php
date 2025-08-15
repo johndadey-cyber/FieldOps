@@ -25,6 +25,7 @@ $roles = Role::all($pdo);
   <meta charset="utf-8">
   <title>Add Employee</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="css/employee_form.css">
 </head>
 <body>
 <?php
@@ -47,36 +48,36 @@ function stickyArr(string $name): array {
 
     <fieldset>
       <legend>Personal Information</legend>
-      <label>First Name
-        <input type="text" name="first_name" maxlength="50" value="<?= s(sticky('first_name')) ?>" required>
+      <label>First Name <span class="required">*</span>
+        <input type="text" name="first_name" maxlength="50" value="<?= s(sticky('first_name')) ?>" required aria-required="true">
       </label>
-      <label>Last Name
-        <input type="text" name="last_name" maxlength="50" value="<?= s(sticky('last_name')) ?>" required>
+      <label>Last Name <span class="required">*</span>
+        <input type="text" name="last_name" maxlength="50" value="<?= s(sticky('last_name')) ?>" required aria-required="true">
       </label>
-      <label>Email
-        <input type="email" name="email" value="<?= s(sticky('email')) ?>" required>
+      <label>Email <span class="required">*</span>
+        <input type="email" name="email" value="<?= s(sticky('email')) ?>" required aria-required="true">
       </label>
-      <label>Phone
-        <input type="tel" name="phone" value="<?= s(sticky('phone')) ?>" required pattern="\d{3}[\s-]?\d{3}[\s-]?\d{4}" placeholder="123-456-7890" title="Enter a 10-digit phone number">
+      <label>Phone <span class="required">*</span>
+        <input type="tel" name="phone" value="<?= s(sticky('phone')) ?>" required aria-required="true" pattern="\d{3}[\s-]?\d{3}[\s-]?\d{4}" placeholder="123-456-7890" title="Enter a 10-digit phone number">
       </label>
     </fieldset>
 
     <fieldset>
       <legend>Contact &amp; Address</legend>
-      <label>Address Line 1
-        <input type="text" id="address_line1" name="address_line1" value="<?= s(sticky('address_line1')) ?>" required>
+      <label>Address Line 1 <span class="required">*</span>
+        <input type="text" id="address_line1" name="address_line1" value="<?= s(sticky('address_line1')) ?>" required aria-required="true">
       </label>
       <label>Address Line 2
         <input type="text" id="address_line2" name="address_line2" value="<?= s(sticky('address_line2')) ?>">
       </label>
-      <label>City
-        <input type="text" id="city" name="city" value="<?= s(sticky('city')) ?>" required>
+      <label>City <span class="required">*</span>
+        <input type="text" id="city" name="city" value="<?= s(sticky('city')) ?>" required aria-required="true">
       </label>
-      <label>State
-        <input type="text" id="state" name="state" value="<?= s(sticky('state')) ?>" required>
+      <label>State <span class="required">*</span>
+        <input type="text" id="state" name="state" value="<?= s(sticky('state')) ?>" required aria-required="true">
       </label>
-      <label>Postal Code
-        <input type="text" id="postal_code" name="postal_code" value="<?= s(sticky('postal_code')) ?>" required>
+      <label>Postal Code <span class="required">*</span>
+        <input type="text" id="postal_code" name="postal_code" value="<?= s(sticky('postal_code')) ?>" required aria-required="true">
       </label>
       <input type="hidden" id="home_address_lat" name="home_address_lat" value="<?= s(sticky('home_address_lat')) ?>">
       <input type="hidden" id="home_address_lon" name="home_address_lon" value="<?= s(sticky('home_address_lon')) ?>">
@@ -85,8 +86,8 @@ function stickyArr(string $name): array {
 
     <fieldset>
       <legend>Employment Details</legend>
-      <label>Employment Type
-        <select name="employment_type" required>
+      <label>Employment Type <span class="required">*</span>
+        <select name="employment_type" required aria-required="true">
           <?php $et = sticky('employment_type'); ?>
           <option value="">-- Select --</option>
           <option value="Full-Time" <?= $et==='Full-Time'? 'selected':''; ?>>Full-Time</option>
@@ -94,12 +95,12 @@ function stickyArr(string $name): array {
           <option value="Contractor" <?= $et==='Contractor'? 'selected':''; ?>>Contractor</option>
         </select>
       </label>
-      <label>Hire Date
-        <input type="date" name="hire_date" value="<?= s(sticky('hire_date', date('Y-m-d'))) ?>" required>
+      <label>Hire Date <span class="required">*</span>
+        <input type="date" name="hire_date" value="<?= s(sticky('hire_date', date('Y-m-d'))) ?>" required aria-required="true">
       </label>
-      <label>Status
+      <label>Status <span class="required">*</span>
         <?php $st = sticky('status', 'Active'); ?>
-        <select name="status" required>
+        <select name="status" required aria-required="true">
           <option value="Active" <?= $st==='Active'? 'selected':''; ?>>Active</option>
           <option value="Inactive" <?= $st==='Inactive'? 'selected':''; ?>>Inactive</option>
         </select>
