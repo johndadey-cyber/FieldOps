@@ -25,6 +25,7 @@ $roles = Role::all($pdo);
   <meta charset="utf-8">
   <title>Add Employee</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 </head>
 <body>
 <?php
@@ -119,18 +120,19 @@ function stickyArr(string $name): array {
     <fieldset>
       <legend>Skills</legend>
       <?php $selSkills = stickyArr('skills'); ?>
-      <?php foreach ($skills as $sk): ?>
-        <?php $id = (int)$sk['id']; $name = (string)$sk['name']; ?>
-        <label>
-          <input type="checkbox" name="skills[]" value="<?= $id ?>" <?= in_array((string)$id, $selSkills, true) ? 'checked' : '' ?>>
-          <?= s($name) ?>
-        </label>
-      <?php endforeach; ?>
+      <select id="skills" name="skills[]" multiple="multiple">
+        <?php foreach ($skills as $sk): ?>
+          <?php $id = (int)$sk['id']; $name = (string)$sk['name']; ?>
+          <option value="<?= $id ?>" <?= in_array((string)$id, $selSkills, true) ? 'selected' : '' ?>><?= s($name) ?></option>
+        <?php endforeach; ?>
+      </select>
     </fieldset>
 
     <button type="submit">Save Employee</button>
     <button type="button" onclick="window.location.href='employees.php'">Cancel</button>
   </form>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
   <script src="js/employee_form.js"></script>
   <script src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars(MAPS_API_KEY, ENT_QUOTES, 'UTF-8') ?>&libraries=places"></script>
   <script src="js/google_address_autocomplete.js"></script>

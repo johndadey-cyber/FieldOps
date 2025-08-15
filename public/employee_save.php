@@ -72,7 +72,14 @@ $employmentType = trim((string)($_POST['employment_type']   ?? ''));
 $hireDate       = trim((string)($_POST['hire_date']         ?? ''));
 $status         = trim((string)($_POST['status']            ?? ''));
 $roleId         = (string)($_POST['role_id'] ?? '') !== '' ? (int)$_POST['role_id'] : null;
-$skills         = $_POST['skills'] ?? [];
+$skillsInput    = $_POST['skills'] ?? [];
+if (is_string($skillsInput)) {
+    $skills = array_filter(array_map('intval', explode(',', $skillsInput)));
+} elseif (is_array($skillsInput)) {
+    $skills = $skillsInput;
+} else {
+    $skills = [];
+}
 
 $log('Processing id=' . $id);
 

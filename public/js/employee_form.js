@@ -1,5 +1,12 @@
 (function(){
   document.addEventListener('DOMContentLoaded', function () {
+    if (window.jQuery && jQuery('#skills').length) {
+      jQuery('#skills').select2({
+        width: '100%',
+        placeholder: 'Select skills'
+      });
+    }
+
     var form = document.getElementById('employeeForm');
     if (!form) return;
     var errBox = document.getElementById('form-errors');
