@@ -71,6 +71,7 @@ function stickyArr(string $name): array {
         </div>
         <div class="col-md-6">
           <label class="form-label" for="phone">Phone <span class="text-danger">*</span><span class="visually-hidden"> required</span></label>
+
           <input type="tel" class="form-control" id="phone" name="phone" value="<?= s(sticky('phone')) ?>" required aria-required="true" placeholder="(xxx) xxx-xxxx" maxlength="14">
           <div class="invalid-feedback">Valid phone is required.</div>
         </div>
