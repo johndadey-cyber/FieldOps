@@ -72,7 +72,7 @@ function stickyArr(string $name): array {
         </div>
         <div class="col-md-6">
           <label class="form-label" for="phone">Phone <span class="text-danger">*</span><span class="visually-hidden"> required</span></label>
-          <input type="tel" class="form-control" id="phone" name="phone" value="<?= s(sticky('phone')) ?>" required aria-required="true" pattern="\\(\\d{3}\\)[\\s\\u00A0]\\d{3}-\\d{4}" placeholder="(123) 456-7890" title="Enter a 10-digit phone number">
+          <input type="tel" class="form-control" id="phone" name="phone" value="<?= s(sticky('phone')) ?>" required aria-required="true" pattern="\\(\\d{3}\\)[\\s\\u00A0]\\d{3}-\\d{4}" placeholder="(123) 456-7890" title="Enter a 10-digit phone number" inputmode="tel" data-phone-mask="(999) 999-9999">
           <div class="invalid-feedback">Valid phone is required.</div>
         </div>
         </fieldset>
