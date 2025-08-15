@@ -92,7 +92,7 @@ $weekLater = date('Y-m-d', strtotime('+7 days'));
             <th>Date</th>
             <th>Time</th>
             <th>Customer</th>
-            <th>Job Types</th>
+            <th>Job Skills</th>
             <th>Assigned Employees</th>
             <th>Status</th>
             <th>Actions</th>
