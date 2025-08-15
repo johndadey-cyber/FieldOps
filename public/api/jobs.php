@@ -5,6 +5,7 @@ declare(strict_types=1);
 // /public/api/jobs.php
 require __DIR__ . '/../_cli_guard.php';
 require __DIR__ . '/../../config/database.php';
+require __DIR__ . '/../../models/JobType.php';
 
 header('Content-Type: application/json');
 
@@ -88,12 +89,9 @@ try {
     foreach ($rows as $r) {
         $jobId = (int)$r['id'];
 
-        $stTypes = $pdo->prepare("SELECT jt.id, jt.name FROM job_job_types jj JOIN job_types jt ON jt.id = jj.job_type_id WHERE jj.job_id = :id ORDER BY jt.name");
-        $stTypes->execute([':id' => $jobId]);
-        $types = [];
-        foreach ($stTypes->fetchAll(PDO::FETCH_ASSOC) as $t) {
-            $types[] = ['id' => (int)$t['id'], 'name' => (string)$t['name']];
-        }
+        // Required job skills for this job derived from its job type(s)
+        $skills = JobType::getRequiredSkillsForJob($pdo, $jobId);
+        $skills = array_map(fn($n) => ['name' => $n], $skills);
 
         // Use distinct placeholders for each occurrence when native prepares are enabled
         // to avoid "Invalid parameter number" errors with drivers that don't allow
@@ -155,7 +153,8 @@ try {
                 'address_line1' => (string)$r['address_line1'],
                 'city' => (string)$r['city'],
             ],
-            'job_types' => $types,
+            'job_skills' => $skills,
+            // 'job_types' => $types, // deprecated
             'assigned_employees' => $emps,
             'status' => (string)$r['status'],
         ];
