@@ -16,7 +16,7 @@ final class EmployeeDataProvider
      */
     public static function getFiltered(
         PDO $pdo,
-        ?string $skill = null,
+        ?array $skills = null,
         int $page = 1,
         int $perPage = 25,
         ?string $sort = null,
@@ -26,15 +26,25 @@ final class EmployeeDataProvider
         $where = "WHERE e.is_active = 1";
         $params = [];
 
-        if ($skill !== null && $skill !== '') {
-            $where .= " AND EXISTS (
-                SELECT 1
-                FROM employee_skills es
-                JOIN job_types jt ON jt.id = es.job_type_id
-                WHERE es.employee_id = e.id
-                  AND jt.name = :skill
-            )";
-            $params[':skill'] = $skill;
+        if ($skills !== null && $skills !== []) {
+            $skills = array_values(array_unique(array_filter($skills, static fn($s): bool => $s !== '')));
+            if ($skills !== []) {
+                $placeholders = [];
+                foreach ($skills as $i => $skill) {
+                    $ph = ':skill' . $i;
+                    $placeholders[] = $ph;
+                    $params[$ph] = $skill;
+                }
+                $count = count($placeholders);
+                $where .= " AND e.id IN (
+                    SELECT es.employee_id
+                    FROM employee_skills es
+                    JOIN job_types jt ON jt.id = es.job_type_id
+                    WHERE jt.name IN (" . implode(',', $placeholders) . ")
+                    GROUP BY es.employee_id
+                    HAVING COUNT(DISTINCT jt.name) = $count
+                )";
+            }
         }
 
         $countSql = "SELECT COUNT(*) FROM employees e $where";
