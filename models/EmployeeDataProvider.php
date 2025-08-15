@@ -10,7 +10,7 @@ final class EmployeeDataProvider
      *   employee_id:int,
      *   first_name:string,
      *   last_name:string,
-     *   skills:string,
+     *   skills:string, // CSV of "skill|proficiency"
      *   is_active:int
      * }>, total:int}
      */
@@ -73,7 +73,13 @@ final class EmployeeDataProvider
             SELECT e.id AS employee_id,
                    p.first_name,
                    p.last_name,
-                   COALESCE(GROUP_CONCAT(DISTINCT jt.name ORDER BY jt.name SEPARATOR ', '), '') AS skills,
+                   COALESCE(
+                       GROUP_CONCAT(
+                           DISTINCT CONCAT(jt.name, '|', COALESCE(es.proficiency, ''))
+                           ORDER BY jt.name SEPARATOR ','
+                       ),
+                       ''
+                   ) AS skills,
                    e.is_active
             FROM employees e
             JOIN people p ON p.id = e.person_id

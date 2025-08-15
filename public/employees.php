@@ -15,6 +15,35 @@ function s(?string $v): string {
     return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 }
 
+/** Parse CSV "skill|proficiency" string into an array */
+function parseSkillProficiencies(string $skills): array {
+    $list = [];
+    foreach (array_filter(explode(',', $skills)) as $chunk) {
+        [$name, $prof] = array_pad(explode('|', $chunk), 2, '');
+        $list[] = ['name' => $name, 'proficiency' => $prof];
+    }
+    return $list;
+}
+
+/** Map proficiency values to readable labels */
+function formatProficiency(string $p): string {
+    $p = strtolower($p);
+    if ($p === '1' || $p === 'beginner') { return 'Beginner'; }
+    if ($p === '2' || $p === 'intermediate') { return 'Intermediate'; }
+    if ($p === '3' || $p === 'expert') { return 'Expert'; }
+    return ucfirst($p);
+}
+
+$skillClasses = [
+    'pressure washing' => 'badge-pressure-washing',
+    'window washing'   => 'badge-window-washing',
+];
+
+function skillClass(string $name, array $map): string {
+    $key = strtolower($name);
+    return $map[$key] ?? 'badge-default-skill';
+}
+
 $pdo  = getPDO();
 $page = isset($_GET['page']) && ctype_digit((string)$_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $perPage = isset($_GET['perPage']) && ctype_digit((string)$_GET['perPage']) ? max(1, (int)$_GET['perPage']) : 25;
@@ -37,6 +66,7 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <link href="css/skills.css" rel="stylesheet">
 </head>
 <body class="bg-light">
 <div class="container py-3">
@@ -84,7 +114,14 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
             <td><input type="checkbox" class="emp-check" value="<?= (int)$r['employee_id'] ?>"></td>
             <td><?= (int)$r['employee_id'] ?></td>
             <td><?= s($r['first_name'] . ' ' . $r['last_name']) ?></td>
-            <td><?= s($r['skills']) ?></td>
+            <td>
+              <?php foreach (parseSkillProficiencies($r['skills']) as $sk):
+                  $cls = skillClass($sk['name'], $skillClasses);
+                  $prof = $sk['proficiency'] !== '' ? ' (' . formatProficiency($sk['proficiency']) . ')' : '';
+              ?>
+                <span class="badge <?= s($cls) ?>"><?= s($sk['name'] . $prof) ?></span>
+              <?php endforeach; ?>
+            </td>
             <td><?= (int)$r['is_active'] ? 'Yes' : 'No' ?></td>
           </tr>
         <?php endforeach; ?>
