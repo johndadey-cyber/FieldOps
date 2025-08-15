@@ -28,6 +28,123 @@ final class Availability
     }
 
     /**
+     * Return availability summaries for a list of employees.
+     *
+     * Each summary is a human friendly string like "Mon–Fri 8–5".
+     *
+     * @param list<int> $employeeIds
+     * @return array<int,string> Map of employee id to summary string
+     */
+    public static function summaryForEmployees(PDO $pdo, array $employeeIds): array
+    {
+        $ids = array_values(array_unique(array_map('intval', $employeeIds)));
+        $ids = array_filter($ids, static fn(int $v): bool => $v > 0);
+        if ($ids === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "SELECT employee_id, day_of_week, "
+             . "DATE_FORMAT(start_time,'%H:%i') AS start_time, "
+             . "DATE_FORMAT(end_time,'%H:%i')   AS end_time "
+             . "FROM employee_availability "
+             . "WHERE employee_id IN ($placeholders)";
+
+        $st = $pdo->prepare($sql);
+        if ($st === false) {
+            return [];
+        }
+        foreach ($ids as $i => $id) {
+            $st->bindValue($i + 1, $id, PDO::PARAM_INT);
+        }
+        $st->execute();
+
+        /** @var list<array{employee_id:int, day_of_week:string, start_time:string, end_time:string}> $rows */
+        $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+
+        $map = [];
+        $nameMap = [
+            'sunday'    => 0, 'sun' => 0, '0' => 0, '1' => 0,
+            'monday'    => 1, 'mon' => 1, '2' => 1,
+            'tuesday'   => 2, 'tue' => 2, '3' => 2,
+            'wednesday' => 3, 'wed' => 3, '4' => 3,
+            'thursday'  => 4, 'thu' => 4, '5' => 4,
+            'friday'    => 5, 'fri' => 5, '6' => 5,
+            'saturday'  => 6, 'sat' => 6, '7' => 6,
+        ];
+        $shortNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+        foreach ($rows as $r) {
+            $eid = (int)$r['employee_id'];
+            $dow = strtolower((string)$r['day_of_week']);
+            $day = $nameMap[$dow] ?? null;
+            if ($day === null && is_numeric($dow)) {
+                $int = (int)$dow;
+                if ($int >= 0 && $int <= 6) {
+                    $day = $int;
+                } elseif ($int >= 1 && $int <= 7) {
+                    $day = $int - 1;
+                }
+            }
+            if ($day === null) {
+                continue;
+            }
+            $pattern = $r['start_time'] . '|' . $r['end_time'];
+            $map[$eid][$pattern][] = $day;
+        }
+
+        $out = [];
+        foreach ($map as $eid => $patterns) {
+            $parts = [];
+            foreach ($patterns as $pattern => $days) {
+                sort($days);
+                $uniqueDays = array_values(array_unique($days));
+
+                [$startTime, $endTime] = explode('|', $pattern);
+                $ranges = [];
+                $rangeStart = $uniqueDays[0];
+                $prev = $uniqueDays[0];
+                for ($i = 1, $cnt = count($uniqueDays); $i < $cnt; $i++) {
+                    $d = $uniqueDays[$i];
+                    if ($d === $prev + 1) {
+                        $prev = $d;
+                        continue;
+                    }
+                    $ranges[] = [$rangeStart, $prev];
+                    $rangeStart = $prev = $d;
+                }
+                $ranges[] = [$rangeStart, $prev];
+
+                foreach ($ranges as [$startDay, $endDay]) {
+                    $dayPart = $shortNames[$startDay];
+                    if ($startDay !== $endDay) {
+                        $dayPart .= '–' . $shortNames[$endDay];
+                    }
+                    $timePart = self::formatTime($startTime) . '–' . self::formatTime($endTime);
+                    $parts[] = $dayPart . ' ' . $timePart;
+                }
+            }
+            $out[(int)$eid] = implode(', ', $parts);
+        }
+
+        return $out;
+    }
+
+    private static function formatTime(string $t): string
+    {
+        $t = substr($t, 0, 5); // HH:MM
+        [$h, $m] = array_map('intval', explode(':', $t));
+        $h12 = $h % 12;
+        if ($h12 === 0) {
+            $h12 = 12;
+        }
+        if ($m === 0) {
+            return (string)$h12;
+        }
+        return $h12 . ':' . str_pad((string)$m, 2, '0', STR_PAD_LEFT);
+    }
+
+    /**
      * Flexible helper used by UI.
      * @param int|array<string,mixed> $employee Either the id or an employee row (with 'id')
      * @return list<array<string,mixed>>
