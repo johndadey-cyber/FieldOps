@@ -70,6 +70,7 @@ $schema = [
   'people'                  => tableExists($pdo,'people'),
   'roles'                   => tableExists($pdo,'roles'),
   'employee_availability'   => tableExists($pdo,'employee_availability'),
+  'employee_availability_overrides' => tableExists($pdo, 'employee_availability_overrides'),
   'employee_skills'         => tableExists($pdo,'employee_skills'),
   'job_types'               => tableExists($pdo,'job_types'),
   'job_job_types'           => tableExists($pdo,'job_job_types'),
@@ -218,7 +219,7 @@ if ($schema['employee_availability']) {
 }
 
 $overrideByEmp = [];
-if ($schema['employee_availability_overrides']) {
+if (!empty($schema['employee_availability_overrides'])) {
   $stOv = $pdo->prepare("SELECT employee_id, status, start_time, end_time FROM employee_availability_overrides WHERE date = :d");
   $stOv->execute([':d'=>$jobDate]);
   $ovRows = $stOv->fetchAll(PDO::FETCH_ASSOC);
