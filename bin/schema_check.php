@@ -120,7 +120,6 @@ $required = [
   'customers' => ['id','first_name','last_name'],
   'jobs' => ['id','customer_id','description','status','scheduled_date','scheduled_time','duration_minutes'],
   'job_types' => ['id','name'],
-  'job_job_types' => ['job_id','job_type_id'],
   'employee_skills' => ['employee_id','job_type_id'],
   'employee_availability' => ['id','employee_id','day_of_week','start_time','end_time'],
   'job_employee_assignment' => ['id','job_id','employee_id','assigned_at'],
@@ -153,10 +152,6 @@ $fkExpect = [
   'job_employee_assignment' => [
       ['cols'=>['job_id'],'ref'=>'jobs','refcols'=>['id']],
       ['cols'=>['employee_id'],'ref'=>'employees','refcols'=>['id']],
-  ],
-  'job_job_types' => [
-      ['cols'=>['job_id'],'ref'=>'jobs','refcols'=>['id']],
-      ['cols'=>['job_type_id'],'ref'=>'job_types','refcols'=>['id']],
   ],
 ];
 foreach ($fkExpect as $t=>$list) {

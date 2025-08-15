@@ -32,7 +32,6 @@ $scheduled_date= trim((string)($_POST['scheduled_date'] ?? ''));
 $scheduled_time= trim((string)($_POST['scheduled_time'] ?? ''));
 $duration_min  = (int)($_POST['duration_minutes'] ?? 0);
 $status        = trim((string)($_POST['status'] ?? ''));
-$job_types     = $_POST['job_types'] ?? [];
 
 $errors = [];
 if ($customer_id <= 0)      $errors[] = 'Customer is required.';
@@ -60,12 +59,7 @@ try {
         ]);
         $jobId = (int)$pdo->lastInsertId();
 
-        if (is_array($job_types) && !empty($job_types)) {
-            $jtIns = $pdo->prepare("INSERT INTO job_job_types (job_id, job_type_id) VALUES (:jid, :jt)");
-            foreach ($job_types as $jt) {
-                $jt = (int)$jt; if ($jt > 0) $jtIns->execute([':jid' => $jobId, ':jt' => $jt]);
-            }
-        }
+        // job types removed
     } else {
         if ($id <= 0) throw new RuntimeException('Missing job ID.');
         $upd = $pdo->prepare("
@@ -79,13 +73,7 @@ try {
             ':dur'=>$duration_min, ':stt'=>$status, ':id'=>$id,
         ]);
 
-        $pdo->prepare("DELETE FROM job_job_types WHERE job_id = :id")->execute([':id'=>$id]);
-        if (is_array($job_types) && !empty($job_types)) {
-            $jtIns = $pdo->prepare("INSERT INTO job_job_types (job_id, job_type_id) VALUES (:jid, :jt)");
-            foreach ($job_types as $jt) {
-                $jt = (int)$jt; if ($jt > 0) $jtIns->execute([':jid'=>$id, ':jt'=>$jt]);
-            }
-        }
+        // job types removed
     }
 
     $pdo->commit();

@@ -15,7 +15,6 @@ final class JobWriteValidationTest extends TestCase
         $this->pdo = getPDO();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        $this->pdo->exec("DELETE FROM job_job_types");
         $this->pdo->exec("DELETE FROM jobs");
         $this->pdo->exec("DELETE FROM customers");
 

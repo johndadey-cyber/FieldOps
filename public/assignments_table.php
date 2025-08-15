@@ -25,12 +25,9 @@ SELECT
   c.last_name  AS cust_last,
   CONCAT(c.address_line1, ' ', COALESCE(c.city,''), ' ', COALESCE(c.state,'')) AS short_address,
   e.id AS employee_id,
-  CONCAT(p.first_name, ' ', p.last_name) AS employee_name,
-  GROUP_CONCAT(DISTINCT jt.name ORDER BY jt.name SEPARATOR ', ') AS job_types
+  CONCAT(p.first_name, ' ', p.last_name) AS employee_name
 FROM jobs j
 JOIN customers c ON c.id = j.customer_id
-LEFT JOIN job_job_types jjt ON jjt.job_id = j.id
-LEFT JOIN job_types jt ON jt.id = jjt.job_type_id
 LEFT JOIN job_employee_assignment jea ON jea.job_id = j.id
 LEFT JOIN employees e ON e.id = jea.employee_id
 LEFT JOIN people p ON p.id = e.person_id
@@ -90,7 +87,6 @@ foreach ($rows as $r) {
   $cust  = trim(((string)($r['cust_first'] ?? '')) . ' ' . ((string)($r['cust_last'] ?? '')));
   $cust  = htmlspecialchars($cust, ENT_QUOTES, 'UTF-8');
   $addr  = htmlspecialchars((string)($r['short_address'] ?? ''), ENT_QUOTES, 'UTF-8');
-  $types = htmlspecialchars((string)($r['job_types'] ?? ''), ENT_QUOTES, 'UTF-8');
 
   $badgeClass = 'secondary';
   if ($stat === 'scheduled') $badgeClass = 'danger';
@@ -99,7 +95,7 @@ foreach ($rows as $r) {
 
   echo "<tr>";
   echo "  <td class=\"text-nowrap\">#{$jid}</td>";
-  echo "  <td><div class=\"fw-semibold\">{$desc}</div><div class=\"small text-muted\">{$types}</div></td>";
+  echo "  <td><div class=\"fw-semibold\">{$desc}</div></td>";
   echo "  <td><div>{$cust}</div><div class=\"small text-muted\">{$addr}</div></td>";
   echo "  <td class=\"text-nowrap\"><div>{$date}</div><div class=\"small text-muted\">{$time} · {$dur} min</div></td>";
   $label = htmlspecialchars(str_replace('_',' ', $stat), ENT_QUOTES, 'UTF-8');

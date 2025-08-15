@@ -37,8 +37,6 @@ try {
         $mappedStatuses = ['scheduled', 'assigned', 'in_progress'];
     }
 
-    $jobTypeParam = $_GET['job_type'] ?? '';
-    $jobTypeIds = array_values(array_filter(array_map('intval', explode(',', $jobTypeParam))));
     $search = trim($_GET['search'] ?? '');
 
     $where = ['j.scheduled_date BETWEEN :start AND :end'];
@@ -54,15 +52,6 @@ try {
         $where[] = 'j.status IN (' . implode(',', $ph) . ')';
     }
 
-    if ($jobTypeIds) {
-        $ph = [];
-        foreach ($jobTypeIds as $i => $jt) {
-            $key = ':jt' . $i;
-            $ph[] = $key;
-            $args[$key] = $jt;
-        }
-        $where[] = 'EXISTS (SELECT 1 FROM job_job_types jj WHERE jj.job_id = j.id AND jj.job_type_id IN (' . implode(',', $ph) . '))';
-    }
 
     if ($search !== '') {
         $needle = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search);

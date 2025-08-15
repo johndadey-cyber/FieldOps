@@ -16,14 +16,11 @@ final class JobWriteRbacTest extends TestCase
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
         // Clean minimal fixtures
-        $this->pdo->exec("DELETE FROM job_job_types");
         $this->pdo->exec("DELETE FROM jobs");
         $this->pdo->exec("DELETE FROM customers");
-        $this->pdo->exec("DELETE FROM job_types");
 
         // Seed
         $this->pdo->exec("INSERT INTO customers (first_name,last_name,phone,created_at) VALUES ('Test','Customer','555-0000',NOW())");
-        $this->pdo->exec("INSERT INTO job_types (name) VALUES ('Window Washing'), ('Pressure Washing')");
     }
 
     public function testNonDispatcherCannotCreate(): void
@@ -36,7 +33,6 @@ final class JobWriteRbacTest extends TestCase
             'scheduled_date' => '2025-08-20',
             'scheduled_time' => '10:00',
             'status'         => 'scheduled',
-            'job_types'      => ['Window Washing'],
         ], [
             'role' => 'field_tech',
         ]);
@@ -77,7 +73,6 @@ final class JobWriteRbacTest extends TestCase
             'scheduled_time'   => '09:30',
             'status'           => 'scheduled',
             'duration_minutes' => 120,
-            'job_types'        => ['Window Washing','Pressure Washing'],
         ], ['role' => 'dispatcher']);
 
         $this->assertTrue($create['ok'] ?? false);
@@ -85,8 +80,6 @@ final class JobWriteRbacTest extends TestCase
         $jobId = (int)($create['id'] ?? 0);
         $this->assertGreaterThan(0, $jobId);
 
-        $count = (int)$this->pdo->query("SELECT COUNT(*) FROM job_job_types WHERE job_id = {$jobId}")->fetchColumn();
-        $this->assertSame(2, $count);
 
         // UPDATE
         $update = EndpointHarness::run(__DIR__ . '/../../public/job_save.php', [
@@ -97,14 +90,11 @@ final class JobWriteRbacTest extends TestCase
             'scheduled_time'   => '14:15',
             'status'           => 'assigned',
             'duration_minutes' => 90,
-            'job_types'        => ['Window Washing'],
         ], ['role' => 'dispatcher']);
 
         $this->assertTrue($update['ok'] ?? false);
         $this->assertSame('updated', $update['action'] ?? '');
 
-        $countAfter = (int)$this->pdo->query("SELECT COUNT(*) FROM job_job_types WHERE job_id = {$jobId}")->fetchColumn();
-        $this->assertSame(1, $countAfter);
 
         // DELETE
         $delete = EndpointHarness::run(__DIR__ . '/../../public/job_delete.php', [

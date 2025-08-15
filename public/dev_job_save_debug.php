@@ -55,14 +55,6 @@ if ($scheduledTime === '') { $errors[] = 'scheduled_time required'; }
 if ($durationMinutes <= 0) { $errors[] = 'duration_minutes must be > 0'; }
 if ($errors) { json_out(['ok'=>false,'error'=>'Validation','code'=>422,'fields'=>$errors], 422); }
 
-// optional types
-$jobTypeIds = [];
-if (isset($_POST['job_type_ids'])) {
-  $raw = is_array($_POST['job_type_ids']) ? $_POST['job_type_ids'] : explode(',', (string)$_POST['job_type_ids']);
-  foreach ($raw as $t) { $v=(int)trim((string)$t); if ($v>0) $jobTypeIds[]=$v; }
-  $jobTypeIds = array_values(array_unique($jobTypeIds));
-}
-
 require_once __DIR__ . '/../config/database.php';
 
 try {
@@ -91,17 +83,6 @@ try {
     ':dur'   => $durationMinutes,
   ]);
   $jobId = (int)$pdo->lastInsertId();
-
-  if (!empty($jobTypeIds)) {
-    $in  = implode(',', array_fill(0, count($jobTypeIds), '?'));
-    $q   = $pdo->prepare("SELECT id FROM job_types WHERE id IN ($in)");
-    $q->execute($jobTypeIds);
-    $valid = array_map('intval', $q->fetchAll(PDO::FETCH_COLUMN));
-    if (!empty($valid)) {
-      $ins = $pdo->prepare("INSERT IGNORE INTO job_job_types (job_id, job_type_id) VALUES (:j,:t)");
-      foreach ($valid as $tid) { $ins->execute([':j'=>$jobId, ':t'=>$tid]); }
-    }
-  }
 
   $pdo->commit();
   json_out(['ok'=>true,'id'=>$jobId,'customer_id'=>$customerId,'status'=>$status], 200);
