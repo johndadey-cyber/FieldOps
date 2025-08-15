@@ -41,7 +41,8 @@ function stickyArr(string $name): array {
 }
 ?>
   <h1>Add Employee</h1>
-  <form method="post" action="employee_save.php" autocomplete="off">
+  <div id="form-errors" style="color:red"></div>
+  <form id="employeeForm" method="post" action="employee_save.php" autocomplete="off">
     <input type="hidden" name="csrf_token" value="<?= s($__csrf) ?>">
 
     <fieldset>
@@ -130,6 +131,7 @@ function stickyArr(string $name): array {
     <button type="submit">Save Employee</button>
     <button type="button" onclick="window.location.href='employees.php'">Cancel</button>
   </form>
+  <script src="js/employee_form.js"></script>
   <script src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars(MAPS_API_KEY, ENT_QUOTES, 'UTF-8') ?>&libraries=places"></script>
   <script src="js/google_address_autocomplete.js"></script>
   <script>

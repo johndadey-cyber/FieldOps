@@ -178,7 +178,7 @@ if (is_array($skills) && count($skills) > 0) {
 }
 
 if ($errors) {
-    $log('Validation failed; redirecting');
+    $log('Validation failed: ' . implode('; ', $errors));
     wants_json() ? json_out(['ok'=>false,'errors'=>$errors], 422) : redirect_to('employee_form.php');
 }
 
