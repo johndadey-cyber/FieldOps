@@ -53,8 +53,9 @@ $first          = trim((string)($_POST['first_name']        ?? ''));
 $last           = trim((string)($_POST['last_name']         ?? ''));
 $email          = trim((string)($_POST['email']             ?? ''));
 $phoneRaw       = trim((string)($_POST['phone']             ?? ''));
-// Normalize phone to (123) 456-7890 if 10 digits supplied
+// Strip all non-digits so we can validate length reliably
 $digits = preg_replace('/\D+/', '', $phoneRaw);
+// Format to (123) 456-7890 when 10 digits supplied; otherwise keep raw for now
 if (is_string($digits) && strlen($digits) === 10) {
     $phone = sprintf('(%s) %s-%s', substr($digits, 0, 3), substr($digits, 3, 3), substr($digits, 6));
 } else {
@@ -114,9 +115,10 @@ if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $st->execute($params);
     if ($st->fetchColumn()) $addError('An employee with this email already exists.');
 }
-if ($phone === '' || !preg_match('/^\(\d{3}\) \d{3}-\d{4}$/', $phone)) {
+if (!is_string($digits) || strlen($digits) !== 10) {
     $addError('Valid phone is required.');
 } else {
+    // $phone already formatted above when 10 digits were supplied
     $sql = 'SELECT 1 FROM people WHERE phone = :ph';
     $params = [':ph' => $phone];
     if ($personId !== null) {
