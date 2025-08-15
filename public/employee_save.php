@@ -62,8 +62,11 @@ $first          = trim((string)($_POST['first_name']        ?? ''));
 $last           = trim((string)($_POST['last_name']         ?? ''));
 $email          = trim((string)($_POST['email']             ?? ''));
 $phoneRaw       = trim((string)($_POST['phone']             ?? ''));
-$phone          = normalize_phone($phoneRaw);
-$log(sprintf('Phone raw input: %s, normalized: %s', $phoneRaw, $phone ?? 'invalid'));
+
+$digits         = preg_replace('/\D+/', '', $phoneRaw);
+$phone          = is_string($digits) ? $digits : '';
+$log(sprintf('Phone raw input: %s, digits: %s', $phoneRaw, $phone));
+
 $addr1          = trim((string)($_POST['address_line1']     ?? ''));
 $addr2          = trim((string)($_POST['address_line2']     ?? ''));
 $city           = trim((string)($_POST['city']              ?? ''));
