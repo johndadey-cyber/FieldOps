@@ -55,7 +55,7 @@ if ($description==='')   { $errors[]='description required'; }
 if ($scheduledDate==='') { $errors[]='scheduled_date required'; }
 else {
   $dt = DateTime::createFromFormat('Y-m-d', $scheduledDate);
-  $errs = DateTime::getLastErrors();
+  $errs = DateTime::getLastErrors() ?: ['warning_count' => 0, 'error_count' => 0];
   if (!$dt || $dt->format('Y-m-d') !== $scheduledDate || $errs['warning_count'] || $errs['error_count']) {
     $errors[]='scheduled_date invalid';
     log_error("Invalid scheduled_date: $scheduledDate");
@@ -64,7 +64,7 @@ else {
 if ($scheduledTime==='') { $errors[]='scheduled_time required'; }
 else {
   $tt = DateTime::createFromFormat('H:i', $scheduledTime);
-  $errs = DateTime::getLastErrors();
+  $errs = DateTime::getLastErrors() ?: ['warning_count' => 0, 'error_count' => 0];
   if (!$tt || $tt->format('H:i') !== $scheduledTime || $errs['warning_count'] || $errs['error_count']) {
     $errors[]='scheduled_time invalid';
     log_error("Invalid scheduled_time: $scheduledTime");
