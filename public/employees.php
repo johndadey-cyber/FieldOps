@@ -115,8 +115,11 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
             <th><input type="checkbox" id="select-all"></th>
             <th><a href="?perPage=<?= $perPage ?>&sort=employee_id&direction=<?= $idDir ?><?= $skillQuery ?>">ID</a></th>
             <th><a href="?perPage=<?= $perPage ?>&sort=last_name&direction=<?= $nameDir ?><?= $skillQuery ?>">Name</a></th>
+            <th>Email</th>
+            <th>Phone</th>
             <th>Skills</th>
             <th><a href="?perPage=<?= $perPage ?>&sort=status&direction=<?= $statusDir ?><?= $skillQuery ?>">Status</a></th>
+            <th>Info</th>
           </tr>
         </thead>
         <tbody>
@@ -126,6 +129,16 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
             <td><?= (int)$r['employee_id'] ?></td>
             <td><?= s($r['first_name'] . ' ' . $r['last_name']) ?></td>
             <td>
+              <?php if (!empty($r['email'])): ?>
+                <a href="mailto:<?= s($r['email']) ?>"><?= s($r['email']) ?></a>
+              <?php endif; ?>
+            </td>
+            <td>
+              <?php if (!empty($r['phone'])): ?>
+                <a href="tel:<?= s($r['phone']) ?>"><?= s($r['phone']) ?></a>
+              <?php endif; ?>
+            </td>
+            <td>
               <?php foreach (parseSkillProficiencies($r['skills']) as $sk):
                   $cls = skillClass($sk['name'], $skillClasses);
                   $prof = $sk['proficiency'] !== '' ? ' (' . formatProficiency($sk['proficiency']) . ')' : '';
@@ -134,6 +147,23 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
               <?php endforeach; ?>
             </td>
             <td><?= statusBadge((string)($r['status'] ?? '')) ?></td>
+            <td>
+              <?php
+                $info = '';
+                if (!empty($r['email'])) {
+                    $e = s($r['email']);
+                    $info .= "Email: <a href='mailto:$e'>$e</a>";
+                }
+                if (!empty($r['phone'])) {
+                    $p = s($r['phone']);
+                    if ($info !== '') { $info .= '<br>'; }
+                    $info .= "Phone: <a href='tel:$p'>$p</a>";
+                }
+              ?>
+              <?php if ($info !== ''): ?>
+                <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-html="true" title="<?= $info ?>"></i>
+              <?php endif; ?>
+            </td>
           </tr>
         <?php endforeach; ?>
         </tbody>
@@ -195,6 +225,9 @@ $(function(){
       if(res.ok){location.reload();}else{alert(res.error||'Error');}
     },'json');
   });
+
+  const tooltipTriggerList=[].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  tooltipTriggerList.map(el=>new bootstrap.Tooltip(el));
 });
 </script>
 </body>

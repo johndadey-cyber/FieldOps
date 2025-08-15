@@ -10,6 +10,8 @@ final class EmployeeDataProvider
      *   employee_id:int,
      *   first_name:string,
      *   last_name:string,
+     *   email:?string,
+     *   phone:?string,
      *   skills:string, // CSV of "skill|proficiency"
      *   is_active:int,
      *   status:string
@@ -74,6 +76,8 @@ final class EmployeeDataProvider
             SELECT e.id AS employee_id,
                    p.first_name,
                    p.last_name,
+                   p.email,
+                   p.phone,
                    COALESCE(
                        GROUP_CONCAT(
                            DISTINCT CONCAT(jt.name, '|', COALESCE(es.proficiency, ''))
@@ -88,7 +92,7 @@ final class EmployeeDataProvider
             LEFT JOIN employee_skills es ON es.employee_id = e.id
             LEFT JOIN job_types jt ON jt.id = es.job_type_id
             $where
-            GROUP BY e.id, p.first_name, p.last_name, e.is_active, e.status
+            GROUP BY e.id, p.first_name, p.last_name, p.email, p.phone, e.is_active, e.status
             ORDER BY $orderBy
             LIMIT :limit OFFSET :offset
         ";
@@ -101,7 +105,7 @@ final class EmployeeDataProvider
         $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
         $stmt->execute();
 
-        /** @var array<int, array{employee_id:int, first_name:string, last_name:string, skills:string, is_active:int, status:string}> */
+        /** @var array<int, array{employee_id:int, first_name:string, last_name:string, email:?string, phone:?string, skills:string, is_active:int, status:string}> */
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         return ['rows' => $rows, 'total' => $total];
     }
