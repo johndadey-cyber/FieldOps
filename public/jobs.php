@@ -1,19 +1,25 @@
 <?php
+
 // /public/jobs.php
+
 declare(strict_types=1);
 
 require __DIR__ . '/_cli_guard.php';
-if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
-if (!isset($_SESSION['csrf_token'])) { $_SESSION['csrf_token'] = bin2hex(random_bytes(16)); }
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(16));
+}
 $CSRF = $_SESSION['csrf_token'];
 
 require __DIR__ . '/../config/database.php';
 require __DIR__ . '/../models/JobType.php';
+require __DIR__ . '/../models/Job.php';
 
 $pdo = getPDO();
 $jobTypes = JobType::all($pdo);
-
-$statuses = ['Scheduled','In Progress','Completed','Cancelled'];
+$statuses = Job::allowedStatuses();
 $today = date('Y-m-d');
 $weekLater = date('Y-m-d', strtotime('+7 days'));
 ?>
@@ -52,15 +58,18 @@ $weekLater = date('Y-m-d', strtotime('+7 days'));
     <div>
       <label for="filter-status" class="form-label small mb-0">Status</label>
       <select id="filter-status" class="form-select form-select-sm" multiple>
-        <?php foreach ($statuses as $s): ?>
-          <option value="<?=$s?>" <?=in_array($s,['Scheduled','In Progress'])?'selected':''?>><?=$s?></option>
+        <?php foreach ($statuses as $s) : ?>
+            <?php $label = ucwords(str_replace('_', ' ', $s)); ?>
+            <option value="<?=htmlspecialchars($s)?>"
+                <?=in_array($s, ['scheduled', 'in_progress'], true) ? 'selected' : ''?>>
+                <?=htmlspecialchars($label)?></option>
         <?php endforeach; ?>
       </select>
     </div>
     <div>
       <label for="filter-job-type" class="form-label small mb-0">Job Type</label>
       <select id="filter-job-type" class="form-select form-select-sm" multiple>
-        <?php foreach ($jobTypes as $jt): ?>
+        <?php foreach ($jobTypes as $jt) : ?>
           <option value="<?=htmlspecialchars((string)$jt['id'])?>"><?=htmlspecialchars((string)$jt['name'])?></option>
         <?php endforeach; ?>
       </select>
