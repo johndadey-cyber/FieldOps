@@ -35,11 +35,14 @@ register_shutdown_function(function () use ($log): void {
     }
 });
 
-$pdo = getPDO();
-
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $log('entry method=' . $method);
-if ($method !== 'POST') { $log('Invalid method'); json_out(['ok'=>false,'error'=>'Method not allowed'], 405); }
+if ($method !== 'POST') {
+    $log('Invalid method; redirecting to employee_form.php');
+    redirect_to('employee_form.php');
+}
+
+$pdo = getPDO();
 
 $token = (string)($_POST['csrf_token'] ?? '');
 if (!csrf_verify($token)) { $log('Invalid CSRF token'); json_out(['ok'=>false,'error'=>'Invalid CSRF token'], 422); }
