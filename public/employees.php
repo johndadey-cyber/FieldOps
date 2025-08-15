@@ -10,6 +10,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/EmployeeDataProvider.php';
 require_once __DIR__ . '/../models/JobType.php';
 require_once __DIR__ . '/../models/Availability.php';
+require_once __DIR__ . '/../models/EmployeeScheduleStatusProvider.php';
 
 /** HTML escape */
 function s(?string $v): string {
@@ -55,6 +56,16 @@ function statusBadge(string $status): string {
     };
 }
 
+function scheduleBadge(string $status): string {
+    $lower = strtolower($status);
+    return match ($lower) {
+        'available' => '<span class="badge bg-success">Available</span>',
+        'booked' => '<span class="badge bg-danger">Booked</span>',
+        'partially booked' => '<span class="badge bg-warning text-dark">Partially Booked</span>',
+        default => '<span class="badge bg-secondary">'.s($status).'</span>',
+    };
+}
+
 $pdo  = getPDO();
 $page = isset($_GET['page']) && ctype_digit((string)$_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $perPage = isset($_GET['perPage']) && ctype_digit((string)$_GET['perPage']) ? max(1, (int)$_GET['perPage']) : 25;
@@ -65,9 +76,11 @@ $data = EmployeeDataProvider::getFiltered($pdo, $skills, $page, $perPage, $sort,
 $rows = $data['rows'];
 $ids = array_map(static fn(array $r): int => (int)$r['employee_id'], $rows);
 $summaries = Availability::summaryForEmployees($pdo, $ids);
+$scheduleStatuses = EmployeeScheduleStatusProvider::forDate($pdo, $ids, date('Y-m-d'));
 foreach ($rows as &$r) {
     $eid = (int)$r['employee_id'];
     $r['availability'] = $summaries[$eid] ?? '';
+    $r['schedule_status'] = $scheduleStatuses[$eid] ?? 'Available';
 }
 unset($r);
 $total = $data['total'];
@@ -127,6 +140,7 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
             <th>Phone</th>
             <th>Skills</th>
             <th>Availability</th>
+            <th>Today</th>
             <th><a href="?perPage=<?= $perPage ?>&sort=status&direction=<?= $statusDir ?><?= $skillQuery ?>">Status</a></th>
             <th>Info</th>
           </tr>
@@ -156,6 +170,7 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
               <?php endforeach; ?>
             </td>
             <td><?= s($r['availability']) ?></td>
+            <td><?= scheduleBadge((string)$r['schedule_status']) ?></td>
             <td><?= statusBadge((string)($r['status'] ?? '')) ?></td>
             <td>
               <?php
@@ -196,6 +211,12 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
       </ul>
     </nav>
     <?php endif; ?>
+  </div>
+  <div class="mt-3 small">
+    <strong>Legend:</strong>
+    <span class="badge bg-success me-1">Available</span> Available
+    <span class="badge bg-danger ms-3 me-1">Booked</span> Booked
+    <span class="badge bg-warning text-dark ms-3 me-1">Partially Booked</span> Partially Booked
   </div>
 </div>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
