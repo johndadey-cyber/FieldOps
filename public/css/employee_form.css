@@ -1,0 +1,9 @@
+input.error, select.error, textarea.error {
+  border: 1px solid red;
+}
+
+.field-error {
+  color: red;
+  font-size: 0.875rem;
+  margin-top: 4px;
+}

@@ -25,6 +25,7 @@ $roles = Role::all($pdo);
   <meta charset="utf-8">
   <title>Add Employee</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="css/employee_form.css">
 </head>
 <body>
 <?php
