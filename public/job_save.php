@@ -14,6 +14,10 @@ function json_out(array $p, int $code=200): never {
   exit;
 }
 
+function log_error(string $msg): void {
+  error_log(date('[Y-m-d H:i:s] ').$msg.PHP_EOL, 3, __DIR__ . '/../logs/job_errors.log');
+}
+
 // RBAC
 $role = ($_SESSION['role'] ?? '') ?: ($_SESSION['user']['role'] ?? '');
 if ($role !== 'dispatcher') { json_out(['ok'=>false,'error'=>'Forbidden','code'=>403], 403); }
@@ -49,9 +53,28 @@ $errors=[];
 if ($customerId<=0)      { $errors[]='customer_id required'; }
 if ($description==='')   { $errors[]='description required'; }
 if ($scheduledDate==='') { $errors[]='scheduled_date required'; }
+else {
+  $dt = DateTime::createFromFormat('Y-m-d', $scheduledDate);
+  $errs = DateTime::getLastErrors();
+  if (!$dt || $dt->format('Y-m-d') !== $scheduledDate || $errs['warning_count'] || $errs['error_count']) {
+    $errors[]='scheduled_date invalid';
+    log_error("Invalid scheduled_date: $scheduledDate");
+  }
+}
 if ($scheduledTime==='') { $errors[]='scheduled_time required'; }
+else {
+  $tt = DateTime::createFromFormat('H:i', $scheduledTime);
+  $errs = DateTime::getLastErrors();
+  if (!$tt || $tt->format('H:i') !== $scheduledTime || $errs['warning_count'] || $errs['error_count']) {
+    $errors[]='scheduled_time invalid';
+    log_error("Invalid scheduled_time: $scheduledTime");
+  }
+}
 if ($durationMinutes<=0) { $errors[]='duration_minutes must be > 0'; }
-if ($errors) { json_out(['ok'=>false,'error'=>'Validation','code'=>422,'fields'=>$errors], 422); }
+if ($errors) {
+  log_error('Validation failed: '.json_encode($errors));
+  json_out(['ok'=>false,'error'=>'Validation','code'=>422,'fields'=>$errors], 422);
+}
 
 require_once __DIR__ . '/../config/database.php';
 
@@ -80,5 +103,6 @@ try {
 
 } catch (Throwable $e) {
   if (isset($pdo) && $pdo->inTransaction()) { $pdo->rollBack(); }
+  log_error('Exception: '.$e->getMessage());
   json_out(['ok'=>false,'error'=>'Server error','code'=>500,'detail'=>$e->getMessage()], 500);
 }
