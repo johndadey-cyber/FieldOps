@@ -57,7 +57,7 @@ function stickyArr(string $name): array {
         <input type="email" name="email" value="<?= s(sticky('email')) ?>" required>
       </label>
       <label>Phone
-        <input type="tel" name="phone" value="<?= s(sticky('phone')) ?>" required pattern="\d{3}[\s-]?\d{3}[\s-]?\d{4}" placeholder="123-456-7890" title="Enter a 10-digit phone number">
+        <input type="tel" name="phone" value="<?= s(sticky('phone')) ?>" required placeholder="(123) 456-7890" title="Enter a 10-digit phone number">
       </label>
     </fieldset>
 
@@ -131,6 +131,7 @@ function stickyArr(string $name): array {
     <button type="submit">Save Employee</button>
     <button type="button" onclick="window.location.href='employees.php'">Cancel</button>
   </form>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/inputmask/5.0.8/inputmask.min.js"></script>
   <script src="js/employee_form.js"></script>
   <script src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars(MAPS_API_KEY, ENT_QUOTES, 'UTF-8') ?>&libraries=places"></script>
   <script src="js/google_address_autocomplete.js"></script>

@@ -2,6 +2,10 @@
   document.addEventListener('DOMContentLoaded', function () {
     var form = document.getElementById('employeeForm');
     if (!form) return;
+    var phoneInput = document.querySelector('input[name="phone"]');
+    if (phoneInput && window.Inputmask) {
+      Inputmask("(999) 999-9999").mask(phoneInput);
+    }
     var errBox = document.getElementById('form-errors');
     function showErrors(list){
       if(!errBox) return;
