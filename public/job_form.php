@@ -92,11 +92,13 @@ function s(?string $v): string
       <div class="row g-3 align-items-end">
         <div class="col-md-4">
           <label for="scheduled_date" class="form-label">Scheduled Date</label>
-          <input type="date" id="scheduled_date" name="scheduled_date" class="form-control" min="<?= s($today) ?>">
+          <input type="date" id="scheduled_date" name="scheduled_date" class="form-control" min="<?= s($today) ?>" max="9999-12-31" required>
+          <div class="invalid-feedback">Enter a valid scheduled date.</div>
         </div>
         <div class="col-md-4">
           <label for="scheduled_time" class="form-label">Scheduled Time</label>
-          <input type="time" id="scheduled_time" name="scheduled_time" class="form-control">
+          <input type="time" id="scheduled_time" name="scheduled_time" class="form-control" required>
+          <div class="invalid-feedback">Enter a valid scheduled time.</div>
         </div>
         <div class="col-md-4">
           <label for="duration_minutes" class="form-label">Duration (minutes)</label>
@@ -121,8 +123,10 @@ function s(?string $v): string
   document.getElementById('jobForm').addEventListener('submit', function(e) {
     const jtChecks = document.querySelectorAll('input[name="job_types[]"]:checked');
     const jobTypeError = document.getElementById('jobTypeError');
-    const timeVal = document.getElementById('scheduled_time').value;
-    const dateVal = document.getElementById('scheduled_date').value;
+    const dateInput = document.getElementById('scheduled_date');
+    const timeInput = document.getElementById('scheduled_time');
+    const timeVal = timeInput.value;
+    const dateVal = dateInput.value;
     let valid = true;
 
     if (!customerIdInput.value) {
@@ -139,11 +143,20 @@ function s(?string $v): string
       jobTypeError.style.display = 'none';
     }
 
-    if (timeVal && !dateVal) {
-      document.getElementById('scheduled_date').classList.add('is-invalid');
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+    if (!datePattern.test(dateVal)) {
+      dateInput.classList.add('is-invalid');
       valid = false;
     } else {
-      document.getElementById('scheduled_date').classList.remove('is-invalid');
+      dateInput.classList.remove('is-invalid');
+    }
+
+    const timePattern = /^\d{2}:\d{2}$/;
+    if (!timePattern.test(timeVal)) {
+      timeInput.classList.add('is-invalid');
+      valid = false;
+    } else {
+      timeInput.classList.remove('is-invalid');
     }
 
     if (!valid) e.preventDefault();
