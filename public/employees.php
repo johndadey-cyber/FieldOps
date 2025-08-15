@@ -106,6 +106,7 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
     <h1 class="h4 m-0 me-2">Employees</h1>
   </div>
   <div class="mb-3">
+    <label for="skill-filter" class="form-label">Top Skills</label>
     <select id="skill-filter" class="form-select" multiple>
       <?php foreach ($allSkills as $sk): ?>
         <option value="<?= s($sk) ?>"<?= in_array($sk, $skills, true) ? ' selected' : '' ?>><?= s($sk) ?></option>
