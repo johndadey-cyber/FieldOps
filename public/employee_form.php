@@ -50,59 +50,58 @@ function stickyArr(string $name): array {
   <div class="container mt-4">
     <h1 class="mb-4">Add Employee</h1>
     <div id="form-errors" class="text-danger mb-3"></div>
-    <form id="employeeForm" method="post" action="employee_save.php" autocomplete="off">
+    <form id="employeeForm" method="post" action="employee_save.php" autocomplete="off" class="needs-validation" novalidate>
       <input type="hidden" name="csrf_token" value="<?= s($__csrf) ?>">
 
       <fieldset class="row g-3">
         <legend class="col-12">Personal Information</legend>
         <div class="col-md-6">
-          <label class="form-label">First Name <span class="text-danger">*</span><span class="visually-hidden"> required</span>
-            <input type="text" class="form-control" name="first_name" maxlength="50" value="<?= s(sticky('first_name')) ?>" required aria-required="true">
-          </label>
+          <label class="form-label" for="first_name">First Name <span class="text-danger">*</span><span class="visually-hidden"> required</span></label>
+          <input type="text" class="form-control" id="first_name" name="first_name" maxlength="50" value="<?= s(sticky('first_name')) ?>" required aria-required="true">
+          <div class="invalid-feedback">First name is required.</div>
         </div>
         <div class="col-md-6">
-          <label class="form-label">Last Name <span class="text-danger">*</span><span class="visually-hidden"> required</span>
-            <input type="text" class="form-control" name="last_name" maxlength="50" value="<?= s(sticky('last_name')) ?>" required aria-required="true">
-          </label>
+          <label class="form-label" for="last_name">Last Name <span class="text-danger">*</span><span class="visually-hidden"> required</span></label>
+          <input type="text" class="form-control" id="last_name" name="last_name" maxlength="50" value="<?= s(sticky('last_name')) ?>" required aria-required="true">
+          <div class="invalid-feedback">Last name is required.</div>
         </div>
         <div class="col-md-6">
-          <label class="form-label">Email <span class="text-danger">*</span><span class="visually-hidden"> required</span>
-            <input type="email" class="form-control" name="email" value="<?= s(sticky('email')) ?>" required aria-required="true">
-          </label>
+          <label class="form-label" for="email">Email <span class="text-danger">*</span><span class="visually-hidden"> required</span></label>
+          <input type="email" class="form-control" id="email" name="email" value="<?= s(sticky('email')) ?>" required aria-required="true">
+          <div class="invalid-feedback">Valid email is required.</div>
         </div>
         <div class="col-md-6">
-            <label class="form-label">Phone <span class="text-danger">*</span><span class="visually-hidden"> required</span>
-              <input type="tel" class="form-control" name="phone" value="<?= s(sticky('phone')) ?>" required aria-required="true" pattern="\\(\\d{3}\\) \\d{3}-\\d{4}" placeholder="(123) 456-7890" title="Enter a 10-digit phone number">
-            </label>
-          </div>
+          <label class="form-label" for="phone">Phone <span class="text-danger">*</span><span class="visually-hidden"> required</span></label>
+          <input type="tel" class="form-control" id="phone" name="phone" value="<?= s(sticky('phone')) ?>" required aria-required="true" pattern="\\(\\d{3}\\) \\d{3}-\\d{4}" placeholder="(123) 456-7890" title="Enter a 10-digit phone number">
+          <div class="invalid-feedback">Valid phone is required.</div>
+        </div>
         </fieldset>
 
       <fieldset class="row g-3">
         <legend class="col-12">Contact &amp; Address</legend>
         <div class="col-md-6">
-          <label class="form-label">Address Line 1 <span class="text-danger">*</span><span class="visually-hidden"> required</span>
-            <input type="text" class="form-control" id="address_line1" name="address_line1" value="<?= s(sticky('address_line1')) ?>" required aria-required="true">
-          </label>
+          <label class="form-label" for="address_line1">Address Line 1 <span class="text-danger">*</span><span class="visually-hidden"> required</span></label>
+          <input type="text" class="form-control" id="address_line1" name="address_line1" value="<?= s(sticky('address_line1')) ?>" required aria-required="true">
+          <div class="invalid-feedback">Address line 1 is required.</div>
         </div>
         <div class="col-md-6">
-          <label class="form-label">Address Line 2
-            <input type="text" class="form-control" id="address_line2" name="address_line2" value="<?= s(sticky('address_line2')) ?>">
-          </label>
+          <label class="form-label" for="address_line2">Address Line 2</label>
+          <input type="text" class="form-control" id="address_line2" name="address_line2" value="<?= s(sticky('address_line2')) ?>">
         </div>
         <div class="col-md-4">
-          <label class="form-label">City <span class="text-danger">*</span><span class="visually-hidden"> required</span>
-            <input type="text" class="form-control" id="city" name="city" value="<?= s(sticky('city')) ?>" required aria-required="true">
-          </label>
+          <label class="form-label" for="city">City <span class="text-danger">*</span><span class="visually-hidden"> required</span></label>
+          <input type="text" class="form-control" id="city" name="city" value="<?= s(sticky('city')) ?>" required aria-required="true">
+          <div class="invalid-feedback">City is required.</div>
         </div>
         <div class="col-md-4">
-          <label class="form-label">State <span class="text-danger">*</span><span class="visually-hidden"> required</span>
-            <input type="text" class="form-control" id="state" name="state" value="<?= s(sticky('state')) ?>" required aria-required="true">
-          </label>
+          <label class="form-label" for="state">State <span class="text-danger">*</span><span class="visually-hidden"> required</span></label>
+          <input type="text" class="form-control" id="state" name="state" value="<?= s(sticky('state')) ?>" required aria-required="true">
+          <div class="invalid-feedback">State is required.</div>
         </div>
         <div class="col-md-4">
-          <label class="form-label">Postal Code <span class="text-danger">*</span><span class="visually-hidden"> required</span>
-            <input type="text" class="form-control" id="postal_code" name="postal_code" value="<?= s(sticky('postal_code')) ?>" required aria-required="true">
-          </label>
+          <label class="form-label" for="postal_code">Postal Code <span class="text-danger">*</span><span class="visually-hidden"> required</span></label>
+          <input type="text" class="form-control" id="postal_code" name="postal_code" value="<?= s(sticky('postal_code')) ?>" required aria-required="true">
+          <div class="invalid-feedback">Postal code is required.</div>
         </div>
         <input type="hidden" id="home_address_lat" name="home_address_lat" value="<?= s(sticky('home_address_lat')) ?>">
         <input type="hidden" id="home_address_lon" name="home_address_lon" value="<?= s(sticky('home_address_lon')) ?>">
@@ -112,29 +111,29 @@ function stickyArr(string $name): array {
       <fieldset class="row g-3">
         <legend class="col-12">Employment Details</legend>
         <div class="col-md-6">
-          <label class="form-label">Employment Type <span class="text-danger">*</span><span class="visually-hidden"> required</span>
-            <select class="form-select" name="employment_type" required aria-required="true">
-              <?php $et = sticky('employment_type'); ?>
-              <option value="">-- Select --</option>
-              <option value="Full-Time" <?= $et==='Full-Time'? 'selected':''; ?>>Full-Time</option>
-              <option value="Part-Time" <?= $et==='Part-Time'? 'selected':''; ?>>Part-Time</option>
-              <option value="Contractor" <?= $et==='Contractor'? 'selected':''; ?>>Contractor</option>
-            </select>
-          </label>
+          <label class="form-label" for="employment_type">Employment Type <span class="text-danger">*</span><span class="visually-hidden"> required</span></label>
+          <select class="form-select" id="employment_type" name="employment_type" required aria-required="true">
+            <?php $et = sticky('employment_type'); ?>
+            <option value="">-- Select --</option>
+            <option value="Full-Time" <?= $et==='Full-Time'? 'selected':''; ?>>Full-Time</option>
+            <option value="Part-Time" <?= $et==='Part-Time'? 'selected':''; ?>>Part-Time</option>
+            <option value="Contractor" <?= $et==='Contractor'? 'selected':''; ?>>Contractor</option>
+          </select>
+          <div class="invalid-feedback">Employment type is required.</div>
         </div>
         <div class="col-md-6">
-          <label class="form-label">Hire Date <span class="text-danger">*</span><span class="visually-hidden"> required</span>
-            <input type="date" class="form-control" name="hire_date" value="<?= s(sticky('hire_date', date('Y-m-d'))) ?>" required aria-required="true">
-          </label>
+          <label class="form-label" for="hire_date">Hire Date <span class="text-danger">*</span><span class="visually-hidden"> required</span></label>
+          <input type="date" class="form-control" id="hire_date" name="hire_date" value="<?= s(sticky('hire_date', date('Y-m-d'))) ?>" required aria-required="true">
+          <div class="invalid-feedback">Hire date is required.</div>
         </div>
         <div class="col-md-6">
-          <label class="form-label">Status <span class="text-danger">*</span><span class="visually-hidden"> required</span>
-            <?php $st = sticky('status', 'Active'); ?>
-            <select class="form-select" name="status" required aria-required="true">
-              <option value="Active" <?= $st==='Active'? 'selected':''; ?>>Active</option>
-              <option value="Inactive" <?= $st==='Inactive'? 'selected':''; ?>>Inactive</option>
-            </select>
-          </label>
+          <label class="form-label" for="status">Status <span class="text-danger">*</span><span class="visually-hidden"> required</span></label>
+          <?php $st = sticky('status', 'Active'); ?>
+          <select class="form-select" id="status" name="status" required aria-required="true">
+            <option value="Active" <?= $st==='Active'? 'selected':''; ?>>Active</option>
+            <option value="Inactive" <?= $st==='Inactive'? 'selected':''; ?>>Inactive</option>
+          </select>
+          <div class="invalid-feedback">Status is required.</div>
         </div>
         <div class="col-md-6">
           <label class="form-label">Role

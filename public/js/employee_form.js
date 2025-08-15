@@ -22,6 +22,10 @@
     form.addEventListener('submit', function(e){
       e.preventDefault();
       showErrors([]);
+      if (!form.checkValidity()) {
+        form.classList.add('was-validated');
+        return;
+      }
       var submitBtn = form.querySelector('button[type="submit"]');
       var originalBtnHTML = submitBtn ? submitBtn.innerHTML : '';
       if(submitBtn){
