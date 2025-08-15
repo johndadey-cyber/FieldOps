@@ -29,7 +29,6 @@ $roles = Role::all($pdo);
   <link rel="stylesheet" href="css/employee_form.css">
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/inputmask@5/dist/inputmask.min.js"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 </head>
@@ -72,7 +71,7 @@ function stickyArr(string $name): array {
         </div>
         <div class="col-md-6">
           <label class="form-label" for="phone">Phone <span class="text-danger">*</span><span class="visually-hidden"> required</span></label>
-          <input type="tel" class="form-control" id="phone" name="phone" value="<?= s(sticky('phone')) ?>" required aria-required="true" pattern="\\(\\d{3}\\)[\\s\\u00A0]\\d{3}-\\d{4}" placeholder="(123) 456-7890" title="Enter a 10-digit phone number">
+          <input type="tel" class="form-control" id="phone" name="phone" value="<?= s(sticky('phone')) ?>" required aria-required="true" placeholder="(xxx) xxx-xxxx" maxlength="14">
           <div class="invalid-feedback">Valid phone is required.</div>
         </div>
         </fieldset>

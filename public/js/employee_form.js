@@ -2,9 +2,23 @@
   document.addEventListener('DOMContentLoaded', function () {
     var form = document.getElementById('employeeForm');
     if (!form) return;
-    var phoneEl = form.querySelector('input[name="phone"]');
-    if (phoneEl && typeof Inputmask !== 'undefined') {
-      new Inputmask("(999) 999-9999").mask(phoneEl);
+    var phoneEl = form.querySelector('#phone');
+    if (phoneEl) {
+      phoneEl.addEventListener('input', function (e) {
+        var digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+        var formatted = digits;
+        if (digits.length > 6) {
+          formatted = '(' + digits.slice(0, 3) + ') ' + digits.slice(3, 6) + '-' + digits.slice(6);
+        } else if (digits.length > 3) {
+          formatted = '(' + digits.slice(0, 3) + ') ' + digits.slice(3);
+        } else if (digits.length > 0) {
+          formatted = '(' + digits;
+        }
+        e.target.value = formatted;
+        var valid = digits.length === 10;
+        e.target.classList.toggle('is-invalid', !valid);
+        e.target.setCustomValidity(valid ? '' : 'Invalid phone number');
+      });
     }
     if (typeof $ !== 'undefined' && $.fn.select2) {
       var skillsEl = $('#skills');
