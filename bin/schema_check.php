@@ -120,7 +120,7 @@ $required = [
   'customers' => ['id','first_name','last_name'],
   'jobs' => ['id','customer_id','description','status','scheduled_date','scheduled_time','duration_minutes'],
   'job_types' => ['id','name'],
-  'employee_skills' => ['employee_id','job_type_id'],
+  'employee_skills' => ['employee_id','job_type_id','proficiency'],
   'employee_availability' => ['id','employee_id','day_of_week','start_time','end_time'],
   'job_employee_assignment' => ['id','job_id','employee_id','assigned_at'],
 ];

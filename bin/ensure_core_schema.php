@@ -194,6 +194,18 @@ if (!tableExists($pdo, 'employee_availability_overrides')) {
     out('[OK] employee_availability_overrides created');
 }
 
+// Ensure employee_skills.proficiency column exists
+if (tableExists($pdo, 'employee_skills')) {
+    $cols = columns($pdo, 'employee_skills');
+    if (!array_key_exists('proficiency', $cols)) {
+        out('[..] Adding `proficiency` column to employee_skills ...');
+        $pdo->exec("ALTER TABLE `employee_skills` ADD COLUMN `proficiency` VARCHAR(20) NULL");
+        out('[OK] employee_skills.proficiency added');
+    } else {
+        out('[OK] employee_skills.proficiency present');
+    }
+}
+
 out("== Ensuring PRIMARY KEYS ==");
 foreach (['people','employees','job_types','employee_availability_overrides'] as $t) {
     ensureAutoPk($pdo, $t);
