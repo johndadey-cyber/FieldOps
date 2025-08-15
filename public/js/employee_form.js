@@ -12,6 +12,12 @@
     form.addEventListener('submit', function(e){
       e.preventDefault();
       showErrors([]);
+      var submitBtn = form.querySelector('button[type="submit"]');
+      var originalBtnHTML = submitBtn ? submitBtn.innerHTML : '';
+      if(submitBtn){
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Saving...';
+      }
       var fd = new FormData(form);
       fetch('employee_save.php?json=1', {
         method: 'POST',
@@ -24,6 +30,7 @@
         return resp.json();
       }).then(function(data){
         if(data && data.ok){
+          alert('Employee saved');
           window.location.href = 'employees.php';
           return;
         }
@@ -36,8 +43,15 @@
           errs = ['Unknown error'];
         }
         showErrors(errs);
+        if(errBox) errBox.scrollIntoView({behavior:'smooth'});
       }).catch(function(){
         showErrors(['Request failed. Please try again.']);
+        if(errBox) errBox.scrollIntoView({behavior:'smooth'});
+      }).finally(function(){
+        if(submitBtn){
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalBtnHTML;
+        }
       });
     });
   });
