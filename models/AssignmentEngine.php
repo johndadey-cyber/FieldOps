@@ -33,8 +33,8 @@ class AssignmentEngine
         $startTs = strtotime($date . ' ' . $time);
         $endTs   = $startTs + ($duration * 60);
 
-        // Required job types removed with dropped table
-        $reqTypes = [];
+        // Required skills for this job
+        $requiredSkillIds = array_map('intval', JobType::getRequiredSkillsForJob($this->pdo, $jobId));
 
         // Candidates: active techs
         $candSql = "SELECT e.id AS employee_id, p.first_name, p.last_name, p.latitude AS emp_lat, p.longitude AS emp_lng
@@ -62,15 +62,15 @@ class AssignmentEngine
             $eid = (int)$row['employee_id'];
             $reasons = [];
 
-            // Skill check: employee must have ALL required types
-            if (!empty($reqTypes)) {
+            // Skill check: employee must possess ALL required skills
+            if (!empty($requiredSkillIds)) {
                 $q = $this->pdo->prepare(
-                    "SELECT COUNT(DISTINCT job_type_id) FROM employee_skills
-                     WHERE employee_id = :eid AND job_type_id IN (" . implode(',', array_map('intval', $reqTypes)) . ")"
+                    "SELECT COUNT(DISTINCT skill_id) FROM employee_skills
+                     WHERE employee_id = :eid AND skill_id IN (" . implode(',', $requiredSkillIds) . ")"
                 );
                 $q->execute([':eid' => $eid]);
                 $cnt = (int)($q->fetchColumn() ?: 0);
-                if ($cnt < count($reqTypes)) $reasons[] = 'missing_skills';
+                if ($cnt < count($requiredSkillIds)) $reasons[] = 'missing_required_skills';
             }
 
             // Availability: overrides take precedence over recurring availability
