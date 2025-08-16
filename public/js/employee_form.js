@@ -2,6 +2,7 @@
   document.addEventListener('DOMContentLoaded', function () {
     var form = document.getElementById('employeeForm');
     if (!form) return;
+    var mode = form.getAttribute('data-mode') || 'add';
     var phoneEl = form.querySelector('#phone');
     if (phoneEl) {
       phoneEl.addEventListener('input', function (e) {
@@ -74,7 +75,7 @@
         if(data && data.ok){
           try{localStorage.setItem('employeesUpdated',Date.now().toString());}catch(_){ }
           try{window.dispatchEvent(new Event('employees:updated'));}catch(_){ }
-          showToast('Employee saved');
+          showToast(mode === 'edit' ? 'Employee updated' : 'Employee saved');
           setTimeout(function(){window.location.href='employees.php';},800);
           return;
         }
