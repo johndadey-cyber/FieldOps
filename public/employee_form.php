@@ -33,6 +33,7 @@ $roles = Role::all($pdo);
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 </head>
 <body>
+  <div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer"></div>
 <?php
 /** HTML escape */
 function s(?string $v): string { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }

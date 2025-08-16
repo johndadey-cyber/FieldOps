@@ -460,6 +460,17 @@
     submit(true);
   });
 
+  function handleEmployeesUpdated(){
+    const modal=document.getElementById('assignmentsModal');
+    if(modal && modal.classList.contains('show')){
+      fetchEligible();
+    }
+  }
+  window.addEventListener('employees:updated', handleEmployeesUpdated);
+  window.addEventListener('storage', function(e){
+    if(e.key==='employeesUpdated') handleEmployeesUpdated();
+  });
+
   function debounce(fn, ms) {
     let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
   }

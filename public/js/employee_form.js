@@ -33,6 +33,20 @@
       var html = '<ul>' + list.map(function(e){return '<li>'+e+'</li>';}).join('') + '</ul>';
       errBox.innerHTML = html;
     }
+    function showToast(msg){
+      var container=document.getElementById('toastContainer');
+      if(!container||typeof bootstrap==='undefined') return;
+      var el=document.createElement('div');
+      el.className='toast align-items-center text-bg-success border-0';
+      el.setAttribute('role','alert');
+      el.setAttribute('aria-live','assertive');
+      el.setAttribute('aria-atomic','true');
+      el.innerHTML='<div class="d-flex"><div class="toast-body"></div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>';
+      el.querySelector('.toast-body').textContent=msg;
+      container.appendChild(el);
+      var toast=new bootstrap.Toast(el,{delay:2000});
+      toast.show();
+    }
     form.addEventListener('submit', function(e){
       e.preventDefault();
       showErrors([]);
@@ -58,8 +72,10 @@
         return resp.json();
       }).then(function(data){
         if(data && data.ok){
-          alert('Employee saved');
-          window.location.href = 'employees.php';
+          try{localStorage.setItem('employeesUpdated',Date.now().toString());}catch(_){ }
+          try{window.dispatchEvent(new Event('employees:updated'));}catch(_){ }
+          showToast('Employee saved');
+          setTimeout(function(){window.location.href='employees.php';},800);
           return;
         }
         var errs = [];
