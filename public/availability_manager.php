@@ -233,14 +233,6 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       return parseInt(employeeIdField.value || '0', 10) || 0;
     }
 
-    function currentWeekStart() {
-      const d = new Date();
-      const day = d.getDay(); // 0 Sun - 6 Sat
-      const diff = (day === 0 ? -6 : 1) - day;
-      d.setDate(d.getDate() + diff);
-      return d.toISOString().slice(0, 10);
-    }
-
     function clearRows() {
       tableBody.querySelectorAll('.sub-row').forEach(r => r.remove());
       for (const d of daysOrder) {
@@ -264,35 +256,16 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       tr.querySelector('.actions').appendChild(actions);
     }
 
-    function flagOverrides(overrides) {
-      const ovDays = new Set();
-      for (const o of overrides) {
-        const dt = new Date(o.date + 'T00:00:00');
-        const idx = dt.getDay();
-        const dayName = daysOrder[(idx + 6) % 7];
-        ovDays.add(dayName);
-      }
-      for (const d of daysOrder) {
-        const badge = dayRows[d].querySelector('.day-badge');
-        if (ovDays.has(d)) {
-          badge.className = 'badge bg-warning text-dark day-badge';
-        }
-      }
-    }
-
     async function loadAvailability() {
       const eid = currentEmployeeId();
 
       clearRows();
       if (!eid) { emptyState.classList.remove('d-none'); return; }
-      const ws = currentWeekStart();
-      const url = `api/availability/index.php?employee_id=${encodeURIComponent(eid)}&week_start=${ws}`;
+      const url = `availability_manager.php?action=list&employee_id=${encodeURIComponent(eid)}`;
       const res = await fetch(url, { headers: { 'Accept': 'application/json' }});
       const data = await res.json();
 
-
-      const items = (data && data.availability) ? data.availability : [];
-      const overrides = (data && data.overrides) ? data.overrides : [];
+      const items = (data && data.items) ? data.items : [];
 
       if (!items.length) {
         emptyState.classList.remove('d-none');
@@ -319,8 +292,6 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           prev = sub;
         }
       }
-
-      if (overrides.length) flagOverrides(overrides);
     }
 
     function openAdd() {
