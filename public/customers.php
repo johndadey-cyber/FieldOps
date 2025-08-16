@@ -68,7 +68,7 @@ $rows = CustomerDataProvider::getFiltered($pdo, $q, $city, $state, $limit, $sort
             <th><?= sort_link('Phone', 'phone', $baseParams, $sort, $dir) ?></th>
             <th><?= sort_link('City', 'city', $baseParams, $sort, $dir) ?></th>
             <th><?= sort_link('State', 'state', $baseParams, $sort, $dir) ?></th>
-            <th>Short Address</th>
+            <th>Address</th>
             <th class="text-end">Actions</th>
           </tr>
         </thead>
@@ -81,7 +81,18 @@ $rows = CustomerDataProvider::getFiltered($pdo, $q, $city, $state, $limit, $sort
             <td><?= s($r['phone'] ?? '') ?></td>
             <td><?= s($r['city'] ?? '') ?></td>
             <td><?= s($r['state'] ?? '') ?></td>
-            <td><?= s(trim(($r['city'] ?? '') . ', ' . ($r['state'] ?? ''), ' ,')) ?></td>
+            <td><?php
+              $parts = [
+                  $r['address_line1'] ?? null,
+                  $r['address_line2'] ?? null,
+                  $r['city'] ?? null,
+                  $r['state'] ?? null,
+                  $r['postal_code'] ?? null,
+                  $r['country'] ?? null,
+              ];
+              $parts = array_filter($parts, fn($v) => $v !== null && $v !== '');
+              echo s(implode(', ', $parts));
+            ?></td>
             <td class="text-end">
               <a href="/customer_form.php?id=<?= (int)$r['id'] ?>" class="btn btn-sm btn-outline-secondary">Edit</a>
             </td>
