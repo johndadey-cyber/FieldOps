@@ -2,8 +2,12 @@
 declare(strict_types=1);
 require __DIR__ . '/_cli_guard.php';
 
-require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/_csrf.php';
+
+// Only include DB helpers when needed (AJAX list action)
+if (($_GET['action'] ?? '') === 'list') {
+    require_once __DIR__ . '/../config/database.php';
+}
 
 /** HTML escape */
 function s(?string $v): string { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
@@ -16,11 +20,11 @@ function json_out(array $payload, int $code = 200): void {
     exit;
 }
 
-$pdo    = getPDO();
 $__csrf = csrf_token();
 
 // JSON list endpoint for AJAX reloads
 if (($_GET['action'] ?? '') === 'list') {
+    $pdo = getPDO();
     $eid = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 0;
     if ($eid <= 0) { json_out(['ok'=>true,'items'=>[]]); }
 
@@ -39,47 +43,8 @@ if (($_GET['action'] ?? '') === 'list') {
     json_out(['ok'=>true,'items'=>$rows]);
 }
 
-// Detect if employees.is_active exists; if not, omit the filter
-$hasIsActive = false;
-try {
-    $chk = $pdo->query("
-        SELECT 1
-        FROM information_schema.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = 'employees'
-          AND COLUMN_NAME = 'is_active'
-        LIMIT 1
-    ");
-    $hasIsActive = (bool)($chk ? $chk->fetchColumn() : false);
-} catch (Throwable $e) {
-    // If information_schema is restricted, just proceed without the filter
-    $hasIsActive = false;
-}
-
-$sql = "
-    SELECT e.id AS employee_id, p.first_name, p.last_name
-    FROM employees e
-    JOIN people p ON p.id = e.person_id
-";
-if ($hasIsActive) {
-    $sql .= " WHERE e.is_active = 1 ";
-}
-$sql .= " ORDER BY p.last_name, p.first_name ";
-
-$employees = [];
-try {
-    $empStmt = $pdo->query($sql);
-    if ($empStmt) { $employees = (array)$empStmt->fetchAll(PDO::FETCH_ASSOC); }
-} catch (Throwable $e) {
-    // If even this fails, keep list empty but render the page
-    error_log('[availability_manager] employees query failed: ' . $e->getMessage());
-}
-
-// Default selected employee (first row if not provided)
+// Selected employee id from query string (if any)
 $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 0;
-if ($selectedEmployeeId <= 0 && isset($employees[0]['employee_id'])) {
-    $selectedEmployeeId = (int)$employees[0]['employee_id'];
-}
 ?>
 <!doctype html>
 <html lang="en">
@@ -109,20 +74,12 @@ if ($selectedEmployeeId <= 0 && isset($employees[0]['employee_id'])) {
         <form id="employeePicker" class="row g-2 align-items-end">
           <div class="col-sm-7 col-md-6 col-lg-5">
             <label class="form-label">Employee</label>
-            <select id="employee_id" name="employee_id" class="form-select" required>
-              <?php foreach ($employees as $e): ?>
-                <?php $eid = (int)$e['employee_id']; ?>
-                <option value="<?= $eid ?>" <?= $eid === $selectedEmployeeId ? 'selected' : '' ?>>
-                  <?= s(($e['last_name'] ?? '') . ', ' . ($e['first_name'] ?? '') . " (ID: $eid)") ?>
-                </option>
-              <?php endforeach; ?>
-            </select>
+            <input type="search" id="employeeSearch" class="form-control" placeholder="Type to search..." list="employeeList" autocomplete="off">
+            <datalist id="employeeList"></datalist>
+            <input type="hidden" id="employee_id" name="employee_id" value="<?= $selectedEmployeeId ?: '' ?>">
           </div>
           <div class="col-auto">
-            <button type="submit" class="btn btn-primary">Load</button>
-          </div>
-          <div class="col-auto">
-            <button type="button" class="btn btn.success btn-success" id="btnAdd">Add Window</button>
+            <button type="button" class="btn btn-success" id="btnAdd">Add Window</button>
           </div>
         </form>
       </div>
@@ -206,8 +163,9 @@ if ($selectedEmployeeId <= 0 && isset($employees[0]['employee_id'])) {
     const alertBox = document.getElementById('alertBox');
     const rowTpl = document.getElementById('rowTpl');
 
-    const employeeSelect = document.getElementById('employee_id');
-    const pickerForm = document.getElementById('employeePicker');
+    const employeeInput = document.getElementById('employeeSearch');
+    const employeeIdField = document.getElementById('employee_id');
+    const suggestionList = document.getElementById('employeeList');
     const btnAdd = document.getElementById('btnAdd');
 
     const winModalEl = document.getElementById('winModal');
@@ -219,6 +177,34 @@ if ($selectedEmployeeId <= 0 && isset($employees[0]['employee_id'])) {
     const winStart = document.getElementById('win_start');
     const winEnd = document.getElementById('win_end');
 
+    employeeInput.addEventListener('input', async () => {
+      const q = employeeInput.value.trim();
+      if (q.length < 2) { suggestionList.innerHTML = ''; return; }
+      try {
+        const res = await fetch(`api/employees/search.php?q=${encodeURIComponent(q)}`);
+        if (!res.ok) throw new Error('bad response');
+        const data = await res.json();
+        suggestionList.innerHTML = '';
+        for (const it of data) {
+          const opt = document.createElement('option');
+          opt.value = `${it.name} (ID: ${it.id})`;
+          suggestionList.appendChild(opt);
+        }
+      } catch (err) {
+        suggestionList.innerHTML = '';
+      }
+    });
+
+    employeeInput.addEventListener('change', () => {
+      const m = /\(ID:\s*(\d+)\)$/.exec(employeeInput.value);
+      if (m) {
+        employeeIdField.value = m[1];
+        loadAvailability();
+      } else {
+        employeeIdField.value = '';
+      }
+    });
+
     function showAlert(kind, msg) {
       alertBox.className = 'alert alert-' + kind;
       alertBox.textContent = msg;
@@ -227,15 +213,22 @@ if ($selectedEmployeeId <= 0 && isset($employees[0]['employee_id'])) {
     }
 
     function currentEmployeeId() {
-      return parseInt(employeeSelect.value || '0', 10) || 0;
+      return parseInt(employeeIdField.value || '0', 10) || 0;
     }
 
     async function loadAvailability() {
       const eid = currentEmployeeId();
       if (!eid) { tableBody.innerHTML=''; emptyState.classList.remove('d-none'); return; }
       const url = `availability_manager.php?action=list&employee_id=${encodeURIComponent(eid)}`;
-      const res = await fetch(url, { headers: { 'Accept': 'application/json' }});
-      const data = await res.json();
+      let data = null;
+      try {
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' }});
+        if (res.ok) {
+          data = await res.json();
+        }
+      } catch (_) {
+        // ignore parse/network errors
+      }
 
       tableBody.innerHTML = '';
       const items = (data && data.items) ? data.items : [];
@@ -334,9 +327,19 @@ if ($selectedEmployeeId <= 0 && isset($employees[0]['employee_id'])) {
     });
 
     document.getElementById('btnAdd').addEventListener('click', openAdd);
-    document.getElementById('employeePicker').addEventListener('submit', (e) => { e.preventDefault(); loadAvailability(); });
 
-    loadAvailability();
+    const initId = currentEmployeeId();
+    if (initId) {
+      fetch(`api/employees/search.php?id=${initId}`)
+        .then(r => r.json())
+        .then(emp => {
+          if (emp && emp.name) employeeInput.value = `${emp.name} (ID: ${emp.id})`;
+          loadAvailability();
+        })
+        .catch(() => loadAvailability());
+    } else {
+      loadAvailability();
+    }
   </script>
 </body>
 </html>
