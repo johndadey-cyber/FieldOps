@@ -6,6 +6,7 @@ declare(strict_types=1);
 final class EmployeeDataProvider
 {
     /**
+     * @param ?list<string> $skills
      * @return array{rows:array<int, array{
      *   employee_id:int,
      *   first_name:string,
@@ -42,10 +43,10 @@ final class EmployeeDataProvider
                 $where .= " AND e.id IN (
                     SELECT es.employee_id
                     FROM employee_skills es
-                    JOIN job_types jt ON jt.id = es.job_type_id
-                    WHERE jt.name IN (" . implode(',', $placeholders) . ")
+                    JOIN skills s ON s.id = es.skill_id
+                    WHERE s.name IN (" . implode(',', $placeholders) . ")
                     GROUP BY es.employee_id
-                    HAVING COUNT(DISTINCT jt.name) = $count
+                    HAVING COUNT(DISTINCT s.name) = $count
                 )";
             }
         }
@@ -80,8 +81,8 @@ final class EmployeeDataProvider
                    p.phone,
                    COALESCE(
                        GROUP_CONCAT(
-                           DISTINCT CONCAT(jt.name, '|', COALESCE(es.proficiency, ''))
-                           ORDER BY jt.name SEPARATOR ','
+                           DISTINCT CONCAT(s.name, '|', COALESCE(es.proficiency, ''))
+                           ORDER BY s.name SEPARATOR ','
                        ),
                        ''
                    ) AS skills,
@@ -90,7 +91,7 @@ final class EmployeeDataProvider
             FROM employees e
             JOIN people p ON p.id = e.person_id
             LEFT JOIN employee_skills es ON es.employee_id = e.id
-            LEFT JOIN job_types jt ON jt.id = es.job_type_id
+            LEFT JOIN skills s ON s.id = es.skill_id
             $where
             GROUP BY e.id, p.first_name, p.last_name, p.email, p.phone, e.is_active, e.status
             ORDER BY $orderBy
