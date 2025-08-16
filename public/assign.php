@@ -48,7 +48,7 @@ function e(string $v): string { return htmlspecialchars($v, ENT_QUOTES, 'UTF-8')
         <div class="col-md-6"><strong>Customer:</strong> <span id="jobCustomer">—</span></div>
         <div class="col-md-6"><strong>Description:</strong> <span id="jobDesc">—</span></div>
         <div class="col-md-6"><strong>Scheduled:</strong> <span id="jobSched">—</span></div>
-        <div class="col-md-6"><strong>Job Types:</strong> <span id="jobTypes">—</span></div>
+        <div class="col-md-6"><strong>Required Skills:</strong> <span id="jobSkills">—</span></div>
       </div>
 
       <!-- Filters -->
@@ -159,8 +159,8 @@ function loadCandidates() {
     document.getElementById('jobCustomer').textContent = (job.customer && job.customer.name) ? job.customer.name : '—';
     document.getElementById('jobDesc').textContent     = job.description || '—';
     document.getElementById('jobSched').textContent    = (job.scheduledDate ? fmtHuman(job.scheduledDate, job.scheduledTime) : '—');
-    document.getElementById('jobTypes').textContent    = Array.isArray(job.requiredJobTypes) && job.requiredJobTypes.length
-      ? job.requiredJobTypes.map(t=>t.name).join(', ')
+    document.getElementById('jobSkills').textContent   = Array.isArray(job.requiredSkills) && job.requiredSkills.length
+      ? job.requiredSkills.map(s=>s.name).join(', ')
       : '—';
 
     const assignedSet = new Set((curr && curr.employees ? curr.employees : []).map(Number));

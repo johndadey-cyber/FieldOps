@@ -59,7 +59,7 @@
         tr.appendChild(custCell);
         // Job skills
         const jsCell=document.createElement('td');
-        const skills = job.job_skills?.length ? job.job_skills : job.job_types;
+        const skills = job.skills?.length ? job.skills : job.job_skills;
         if(skills?.length){
           jsCell.innerHTML=skills.map(s=>`<span class="badge bg-secondary-subtle text-secondary border me-1">${h(s.name)}</span>`).join('');
         } else {
