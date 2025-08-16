@@ -162,14 +162,13 @@ if ($roleId !== null) {
         $addError('Role invalid.');
     }
 }
-// Validate skills ids (job types)
+// Validate skill ids
 $skillIds = [];
 if (is_array($skills) && count($skills) > 0) {
     $skills = array_map('intval', $skills);
     $placeholders = implode(',', array_fill(0, count($skills), '?'));
     try {
-        // job types are used as skills
-        $st = $pdo->prepare('SELECT id FROM job_types WHERE id IN (' . $placeholders . ')');
+        $st = $pdo->prepare('SELECT id FROM skills WHERE id IN (' . $placeholders . ')');
         $st->execute($skills);
         $skillIds = array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN));
     } catch (Throwable $e) {
@@ -223,8 +222,8 @@ try {
 
         $pdo->prepare('DELETE FROM employee_skills WHERE employee_id = :eid')->execute([':eid'=>$id]);
         if (!empty($skills)) {
-            // employee_skills references job_type_id
-            $ins = $pdo->prepare('INSERT INTO employee_skills (employee_id, job_type_id) VALUES (:eid,:sid)');
+            // employee_skills references skill_id
+            $ins = $pdo->prepare('INSERT INTO employee_skills (employee_id, skill_id) VALUES (:eid,:sid)');
             foreach ($skills as $sid) {
                 $ins->execute([':eid'=>$id, ':sid'=>$sid]);
             }
@@ -257,8 +256,8 @@ try {
         $newId = (int)$pdo->lastInsertId();
 
         if (!empty($skills)) {
-            // employee_skills references job_type_id
-            $ins = $pdo->prepare('INSERT INTO employee_skills (employee_id, job_type_id) VALUES (:eid,:sid)');
+            // employee_skills references skill_id
+            $ins = $pdo->prepare('INSERT INTO employee_skills (employee_id, skill_id) VALUES (:eid,:sid)');
             foreach ($skills as $sid) {
                 $ins->execute([':eid'=>$newId, ':sid'=>$sid]);
             }
