@@ -130,6 +130,146 @@ final class Availability
         return $out;
     }
 
+    /**
+     * Return availability summary for each employee on a specific date.
+     *
+     * The summary lists remaining free time blocks after subtracting any jobs
+     * scheduled on the given date. If an employee has no availability defined,
+     * "Unknown" is returned. If they have availability but no free time after
+     * assignments, "Off" is returned.
+     *
+     * @param list<int> $employeeIds
+     * @return array<int,string> Map of employee id to summary string
+     */
+    public static function summaryForEmployeesOnDate(PDO $pdo, array $employeeIds, string $date): array
+    {
+        $ids = array_values(array_unique(array_map('intval', $employeeIds)));
+        $ids = array_filter($ids, static fn(int $v): bool => $v > 0);
+        if ($ids === []) {
+            return [];
+        }
+
+        $dayIndex = (int)date('w', strtotime($date));
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "SELECT employee_id, day_of_week, "
+             . "DATE_FORMAT(start_time,'%H:%i') AS start_time, "
+             . "DATE_FORMAT(end_time,'%H:%i')   AS end_time "
+             . "FROM employee_availability "
+             . "WHERE employee_id IN ($placeholders)";
+
+        $st = $pdo->prepare($sql);
+        if ($st === false) {
+            return [];
+        }
+        foreach ($ids as $i => $id) {
+            $st->bindValue($i + 1, $id, PDO::PARAM_INT);
+        }
+        $st->execute();
+
+        /** @var list<array{employee_id:int, day_of_week:string, start_time:string, end_time:string}> $rows */
+        $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+
+        $nameMap = [
+            'sunday'    => 0, 'sun' => 0, '0' => 0, '1' => 0,
+            'monday'    => 1, 'mon' => 1, '2' => 1,
+            'tuesday'   => 2, 'tue' => 2, '3' => 2,
+            'wednesday' => 3, 'wed' => 3, '4' => 3,
+            'thursday'  => 4, 'thu' => 4, '5' => 4,
+            'friday'    => 5, 'fri' => 5, '6' => 5,
+            'saturday'  => 6, 'sat' => 6, '7' => 6,
+        ];
+
+        $avail = [];
+        foreach ($rows as $r) {
+            $eid = (int)$r['employee_id'];
+            $dow = strtolower((string)$r['day_of_week']);
+            $day = $nameMap[$dow] ?? null;
+            if ($day === null && is_numeric($dow)) {
+                $int = (int)$dow;
+                if ($int >= 0 && $int <= 6) {
+                    $day = $int;
+                } elseif ($int >= 1 && $int <= 7) {
+                    $day = $int - 1;
+                }
+            }
+            if ($day === null || $day !== $dayIndex) {
+                continue;
+            }
+            $avail[$eid][] = [self::toMinutes($r['start_time']), self::toMinutes($r['end_time'])];
+        }
+
+        $placeholders2 = implode(',', array_fill(0, count($ids), '?'));
+        $sql2 = "SELECT a.employee_id, DATE_FORMAT(j.scheduled_time,'%H:%i') AS start_time, j.duration_minutes "
+              . "FROM job_employee_assignment a JOIN jobs j ON j.id = a.job_id "
+              . "WHERE a.employee_id IN ($placeholders2) AND j.scheduled_date = ?";
+
+        $st2 = $pdo->prepare($sql2);
+        if ($st2 === false) {
+            return [];
+        }
+        $pos = 1;
+        foreach ($ids as $id) {
+            $st2->bindValue($pos++, $id, PDO::PARAM_INT);
+        }
+        $st2->bindValue($pos, $date, PDO::PARAM_STR);
+        $st2->execute();
+
+        /** @var list<array{employee_id:int, start_time:string, duration_minutes:int}> $jobRows */
+        $jobRows = $st2->fetchAll(PDO::FETCH_ASSOC);
+        $jobs = [];
+        foreach ($jobRows as $r) {
+            $eid = (int)$r['employee_id'];
+            $start = self::toMinutes($r['start_time']);
+            $end = $start + (int)$r['duration_minutes'];
+            $jobs[$eid][] = [$start, $end];
+        }
+
+        $out = [];
+        foreach ($ids as $eid) {
+            $blocks = $avail[$eid] ?? null;
+            if ($blocks === null) {
+                $out[$eid] = 'Unknown';
+                continue;
+            }
+            $free = $blocks;
+            foreach ($jobs[$eid] ?? [] as [$js, $je]) {
+                $next = [];
+                foreach ($free as [$fs, $fe]) {
+                    if ($je <= $fs || $js >= $fe) {
+                        $next[] = [$fs, $fe];
+                        continue;
+                    }
+                    if ($js > $fs) {
+                        $next[] = [$fs, min($js, $fe)];
+                    }
+                    if ($je < $fe) {
+                        $next[] = [max($je, $fs), $fe];
+                    }
+                }
+                $free = $next;
+                if ($free === []) {
+                    break;
+                }
+            }
+
+            if ($free === []) {
+                $out[$eid] = 'Off';
+                continue;
+            }
+            usort($free, static fn(array $a, array $b): int => $a[0] <=> $b[0]);
+            $parts = [];
+            foreach ($free as [$s, $e]) {
+                $parts[] = self::formatTime(sprintf('%02d:%02d', intdiv($s, 60), $s % 60))
+                    . '–'
+                    . self::formatTime(sprintf('%02d:%02d', intdiv($e, 60), $e % 60));
+            }
+            $out[$eid] = implode(', ', $parts);
+        }
+
+        return $out;
+    }
+
     private static function formatTime(string $t): string
     {
         $t = substr($t, 0, 5); // HH:MM
@@ -142,6 +282,13 @@ final class Availability
             return (string)$h12;
         }
         return $h12 . ':' . str_pad((string)$m, 2, '0', STR_PAD_LEFT);
+    }
+
+    private static function toMinutes(string $t): int
+    {
+        $t = substr($t, 0, 5);
+        [$h, $m] = array_map('intval', explode(':', $t));
+        return $h * 60 + $m;
     }
 
     /**
