@@ -71,8 +71,9 @@ $page = isset($_GET['page']) && ctype_digit((string)$_GET['page']) ? max(1, (int
 $perPage = isset($_GET['perPage']) && ctype_digit((string)$_GET['perPage']) ? max(1, (int)$_GET['perPage']) : 25;
 $sort = isset($_GET['sort']) ? (string)$_GET['sort'] : null;
 $direction = isset($_GET['direction']) ? (string)$_GET['direction'] : null;
+$search = isset($_GET['search']) ? (string)$_GET['search'] : null;
 $skills = array_values(array_filter(array_map('strval', (array)($_GET['skills'] ?? []))));
-$data = EmployeeDataProvider::getFiltered($pdo, $skills, $page, $perPage, $sort, $direction);
+$data = EmployeeDataProvider::getFiltered($pdo, $skills, $page, $perPage, $sort, $direction, $search);
 $rows = $data['rows'];
 $ids = array_map(static fn(array $r): int => (int)$r['employee_id'], $rows);
 $summaries = Availability::summaryForEmployees($pdo, $ids);
@@ -88,6 +89,7 @@ $totalPages = (int)ceil($total / $perPage);
 $allSkills = array_map(static fn(array $r): string => (string)$r['name'], JobType::all($pdo));
 $skillQuery = '';
 foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
+$searchQuery = $search !== null && $search !== '' ? '&search=' . urlencode($search) : '';
 ?>
 <!doctype html>
 <html lang="en">
@@ -113,9 +115,9 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
       <?php endforeach; ?>
     </select>
   </div>
-  <div class="mb-3">
-    <input type="search" id="employee-search" class="form-control form-control-sm" placeholder="Search employees">
-  </div>
+  <form id="search-form" class="mb-3">
+    <input type="search" id="employee-search" name="search" class="form-control form-control-sm" placeholder="Search employees" value="<?= s($search) ?>">
+  </form>
   <div class="mb-3 d-flex">
     <select id="bulk-action" class="form-select form-select-sm w-auto me-2">
       <option value="">Bulk Actions</option>
@@ -135,14 +137,14 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
           ?>
           <tr>
             <th><input type="checkbox" id="select-all"></th>
-            <th><a href="?perPage=<?= $perPage ?>&sort=employee_id&direction=<?= $idDir ?><?= $skillQuery ?>">ID</a></th>
-            <th><a href="?perPage=<?= $perPage ?>&sort=last_name&direction=<?= $nameDir ?><?= $skillQuery ?>">Name</a></th>
+            <th><a href="?perPage=<?= $perPage ?>&sort=employee_id&direction=<?= $idDir ?><?= $skillQuery ?><?= $searchQuery ?>">ID</a></th>
+            <th><a href="?perPage=<?= $perPage ?>&sort=last_name&direction=<?= $nameDir ?><?= $skillQuery ?><?= $searchQuery ?>">Name</a></th>
             <th>Email</th>
             <th>Phone</th>
             <th>Skills</th>
             <th>Availability</th>
             <th>Today</th>
-            <th><a href="?perPage=<?= $perPage ?>&sort=status&direction=<?= $statusDir ?><?= $skillQuery ?>">Status</a></th>
+            <th><a href="?perPage=<?= $perPage ?>&sort=status&direction=<?= $statusDir ?><?= $skillQuery ?><?= $searchQuery ?>">Status</a></th>
             <th>Info</th>
             <th>Edit</th>
           </tr>
@@ -203,15 +205,15 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
     <nav class="p-2">
       <ul class="pagination pagination-sm mb-0">
         <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
-          <a class="page-link" href="?page=<?= max(1, $page - 1) ?>&perPage=<?= $perPage ?>&sort=<?= s($sort) ?>&direction=<?= s($direction) ?><?= $skillQuery ?>">Previous</a>
+          <a class="page-link" href="?page=<?= max(1, $page - 1) ?>&perPage=<?= $perPage ?>&sort=<?= s($sort) ?>&direction=<?= s($direction) ?><?= $skillQuery ?><?= $searchQuery ?>">Previous</a>
         </li>
         <?php for ($i = 1; $i <= $totalPages; $i++): ?>
         <li class="page-item <?= $i === $page ? 'active' : '' ?>">
-          <a class="page-link" href="?page=<?= $i ?>&perPage=<?= $perPage ?>&sort=<?= s($sort) ?>&direction=<?= s($direction) ?><?= $skillQuery ?>"><?= $i ?></a>
+          <a class="page-link" href="?page=<?= $i ?>&perPage=<?= $perPage ?>&sort=<?= s($sort) ?>&direction=<?= s($direction) ?><?= $skillQuery ?><?= $searchQuery ?>"><?= $i ?></a>
         </li>
         <?php endfor; ?>
         <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">
-          <a class="page-link" href="?page=<?= min($totalPages, $page + 1) ?>&perPage=<?= $perPage ?>&sort=<?= s($sort) ?>&direction=<?= s($direction) ?><?= $skillQuery ?>">Next</a>
+          <a class="page-link" href="?page=<?= min($totalPages, $page + 1) ?>&perPage=<?= $perPage ?>&sort=<?= s($sort) ?>&direction=<?= s($direction) ?><?= $skillQuery ?><?= $searchQuery ?>">Next</a>
         </li>
       </ul>
     </nav>
@@ -229,13 +231,15 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 $(function(){
-  const search=document.getElementById('employee-search');
-  const rows=[...document.querySelectorAll('#employees-table tbody tr')];
-  function filter(){
-    const q=search.value.toLowerCase();
-    rows.forEach(row=>{row.style.display=row.textContent.toLowerCase().includes(q)?'':'none';});
-  }
-  search.addEventListener('input',filter);
+  const searchForm=document.getElementById('search-form');
+  const searchInput=document.getElementById('employee-search');
+  searchForm.addEventListener('submit',function(e){
+    e.preventDefault();
+    const params=new URLSearchParams(window.location.search);
+    const val=searchInput.value.trim();
+    if(val){params.set('search',val);}else{params.delete('search');}
+    window.location='?'+params.toString();
+  });
 
   const skillFilter=$('#skill-filter');
   skillFilter.select2({width:'100%'});
