@@ -4,6 +4,7 @@ require __DIR__ . '/_cli_guard.php';
 
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../models/Customer.php';
 require_once __DIR__ . '/_csrf.php';
 
 function wants_json(): bool {
@@ -43,6 +44,7 @@ $addr2   = trim((string)($_POST['address_line2'] ?? ''));
 $city    = trim((string)($_POST['city'] ?? ''));
 $state   = trim((string)($_POST['state'] ?? ''));
 $postal  = trim((string)($_POST['postal_code'] ?? ''));
+$country = trim((string)($_POST['country'] ?? ''));
 $placeId = trim((string)($_POST['google_place_id'] ?? ''));
 $lat     = ($_POST['latitude']  ?? '') !== '' ? (float)$_POST['latitude']  : null;
 $lon     = ($_POST['longitude'] ?? '') !== '' ? (float)$_POST['longitude'] : null;
@@ -53,32 +55,36 @@ if ($last === '')  $errors[] = 'Last name is required';
 
 if ($errors) { wants_json() ? json_out(['ok'=>false,'errors'=>$errors], 422) : redirect_back(); }
 
+$customer = new Customer($pdo);
+
+$data = [
+    'first_name'       => $first,
+    'last_name'        => $last,
+    'email'            => $email,
+    'phone'            => $phone,
+    'address_line1'    => $addr1,
+    'address_line2'    => $addr2,
+    'city'             => $city,
+    'state'            => $state,
+    'postal_code'      => $postal,
+    'country'          => $country,
+    'google_place_id'  => $placeId,
+    'latitude'         => $lat,
+    'longitude'        => $lon,
+];
+
 try {
     if ($id > 0) {
-        $up = $pdo->prepare("
-            UPDATE customers
-               SET first_name=:fn,last_name=:ln,email=:em,phone=:ph,
-                   address_line1=:a1,address_line2=:a2,city=:city,state=:st,postal_code=:pc,
-                   google_place_id=:pid, latitude=:lat, longitude=:lon
-             WHERE id=:id
-        ");
-        $up->execute([
-            ':fn'=>$first, ':ln'=>$last, ':em'=>$email, ':ph'=>$phone,
-            ':a1'=>$addr1, ':a2'=>$addr2, ':city'=>$city, ':st'=>$state, ':pc'=>$postal,
-            ':pid'=>$placeId, ':lat'=>$lat, ':lon'=>$lon, ':id'=>$id
-        ]);
+        $ok = $customer->update($id, $data);
+        if (!$ok) {
+            throw new RuntimeException('update failed');
+        }
         wants_json() ? json_out(['ok'=>true,'id'=>$id]) : redirect_back();
     } else {
-        $ins = $pdo->prepare("
-            INSERT INTO customers (first_name,last_name,email,phone,address_line1,address_line2,city,state,postal_code,google_place_id,latitude,longitude)
-            VALUES (:fn,:ln,:em,:ph,:a1,:a2,:city,:st,:pc,:pid,:lat,:lon)
-        ");
-        $ins->execute([
-            ':fn'=>$first, ':ln'=>$last, ':em'=>$email, ':ph'=>$phone,
-            ':a1'=>$addr1, ':a2'=>$addr2, ':city'=>$city, ':st'=>$state, ':pc'=>$postal,
-            ':pid'=>$placeId, ':lat'=>$lat, ':lon'=>$lon
-        ]);
-        $newId = (int)$pdo->lastInsertId();
+        $newId = $customer->create($data);
+        if ($newId === false) {
+            throw new RuntimeException('insert failed');
+        }
         wants_json() ? json_out(['ok'=>true,'id'=>$newId]) : redirect_back();
     }
 } catch (Throwable $e) {
