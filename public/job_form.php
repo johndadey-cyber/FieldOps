@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 require __DIR__ . '/_cli_guard.php';
@@ -9,158 +8,141 @@ require_once __DIR__ . '/../models/JobType.php';
 require_once __DIR__ . '/../models/Job.php';
 require_once __DIR__ . '/../models/Customer.php';
 
-$pdo       = getPDO();
+$pdo = getPDO();
+$__csrf = csrf_token();
+
+$mode        = $mode ?? 'add';
+$job         = $job ?? [];
+$jobTypeIds  = $jobTypeIds ?? [];
+$isEdit      = $mode === 'edit';
+
 $jobTypes  = JobType::all($pdo);
-$statuses  = array_intersect(['scheduled','draft'], Job::allowedStatuses());
+$statuses  = $isEdit ? Job::allowedStatuses() : array_intersect(['scheduled','draft'], Job::allowedStatuses());
 $customers = (new Customer($pdo))->getAll();
-$__csrf    = csrf_token();
 $today     = date('Y-m-d');
 
 /** HTML escape */
-function s(?string $v): string
-{
-    return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
+function s(?string $v): string { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
+
+/** Sticky helper */
+function sticky(string $name, ?string $default = null): string {
+    global $job;
+    $v = $_POST[$name] ?? $_GET[$name] ?? ($job[$name] ?? $default ?? '');
+    return is_string($v) ? $v : (string)$v;
+}
+
+/** Sticky helper for arrays */
+function stickyArr(string $name, array $default = []): array {
+    $v = $_POST[$name] ?? $default;
+    return is_array($v) ? $v : [];
 }
 ?>
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Add Job</title>
+  <title><?= $isEdit ? 'Edit Job' : 'Add Job' ?></title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body class="p-4">
-  <h1>Add Job</h1>
-  <form method="post" action="job_save.php" id="jobForm" autocomplete="off" class="needs-validation" novalidate>
-    <input type="hidden" name="csrf_token" value="<?= s($__csrf) ?>">
+<body>
+  <div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer"></div>
+  <div class="container mt-4">
+    <h1 class="mb-4"><?= $isEdit ? 'Edit Job' : 'Add Job' ?></h1>
+    <?php if ($isEdit && !$job): ?>
+      <p>Job not found.</p>
+    <?php else: ?>
+    <div id="form-errors" class="text-danger mb-3"></div>
+    <form id="jobForm" method="post" action="job_save.php" autocomplete="off" class="needs-validation" novalidate data-mode="<?= $isEdit ? 'edit' : 'add' ?>">
+      <input type="hidden" name="csrf_token" value="<?= s($__csrf) ?>">
+      <?php if ($isEdit): ?>
+        <input type="hidden" name="id" value="<?= s((string)($job['id'] ?? '')) ?>">
+      <?php endif; ?>
 
-    <!-- Section 1: Customer Information -->
-    <section class="mb-4">
-      <h2 class="h5">Customer Information</h2>
-      <div class="mb-3">
-        <label for="customerId" class="form-label">Customer</label>
-        <select name="customer_id" id="customerId" class="form-select" required>
-          <option value="" selected disabled>Select a customer</option>
-          <?php foreach ($customers as $c) : ?>
-            <option value="<?= (int)$c['id'] ?>">
-              <?= s(trim($c['first_name'] . ' ' . $c['last_name'] . ' — ' . ($c['address_line1'] ?? '') . ', ' . ($c['city'] ?? ''))) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
-        <div class="invalid-feedback">Select a customer.</div>
-      </div>
-    </section>
+      <fieldset class="mb-4">
+        <legend>Customer Information</legend>
+        <div class="mb-3">
+          <label for="customerId" class="form-label">Customer <span class="text-danger">*</span></label>
+          <?php $selCust = sticky('customer_id', isset($job['customer_id']) ? (string)$job['customer_id'] : ''); ?>
+          <select name="customer_id" id="customerId" class="form-select" required aria-required="true">
+            <option value="">-- Select --</option>
+            <?php foreach ($customers as $c): ?>
+              <?php $cid = (string)$c['id']; ?>
+              <option value="<?= s($cid) ?>" <?= $selCust === $cid ? 'selected' : '' ?>>
+                <?= s(trim(($c['first_name'] ?? '') . ' ' . ($c['last_name'] ?? '') . ' — ' . ($c['address_line1'] ?? '') . ', ' . ($c['city'] ?? ''))) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+          <div class="invalid-feedback">Customer is required.</div>
+        </div>
+      </fieldset>
 
-    <!-- Section 2: Job Details -->
-    <section class="mb-4">
-      <h2 class="h5">Job Details</h2>
-      <div class="mb-3">
-        <label for="description" class="form-label">Job Description</label>
-        <textarea id="description" name="description" class="form-control" minlength="5" maxlength="255" required></textarea>
-        <div class="invalid-feedback">Description must be between 5 and 255 characters.</div>
-      </div>
-      <div class="mb-3">
-        <span class="form-label d-block mb-2">Job Types</span>
-        <div class="row row-cols-2" id="jobTypes">
-        <?php foreach ($jobTypes as $jt) : ?>
-          <div class="col">
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" name="job_types[]" value="<?= (int)$jt['id'] ?>" id="jt<?= (int)$jt['id'] ?>">
-              <label class="form-check-label" for="jt<?= (int)$jt['id'] ?>"><?= s($jt['name']) ?></label>
-            </div>
+      <fieldset class="mb-4">
+        <legend>Job Details</legend>
+        <div class="mb-3">
+          <label for="description" class="form-label">Job Description <span class="text-danger">*</span></label>
+          <textarea id="description" name="description" class="form-control" minlength="5" maxlength="255" required aria-required="true"><?= s(sticky('description', $job['description'] ?? '')) ?></textarea>
+          <div class="invalid-feedback">Description must be between 5 and 255 characters.</div>
+        </div>
+        <div class="mb-3">
+          <span class="form-label d-block mb-2">Job Types</span>
+          <?php $selJt = stickyArr('job_types', array_map('strval', $jobTypeIds)); ?>
+          <div class="row row-cols-2" id="jobTypes">
+            <?php foreach ($jobTypes as $jt): ?>
+              <?php $jid = (string)$jt['id']; ?>
+              <div class="col">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="job_types[]" value="<?= s($jid) ?>" id="jt<?= s($jid) ?>" <?= in_array($jid, $selJt, true) ? 'checked' : '' ?>>
+                  <label class="form-check-label" for="jt<?= s($jid) ?>"><?= s($jt['name']) ?></label>
+                </div>
+              </div>
+            <?php endforeach; ?>
           </div>
-        <?php endforeach; ?>
+          <div class="invalid-feedback d-block" id="jobTypeError" style="display:none">Select at least one job type.</div>
         </div>
-        <div class="invalid-feedback d-block" id="jobTypeError" style="display:none">Select at least one job type.</div>
+        <div class="mb-3">
+          <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
+          <?php $selStatus = sticky('status', $isEdit ? ($job['status'] ?? 'draft') : 'scheduled'); ?>
+          <select name="status" id="status" class="form-select" required aria-required="true">
+            <option value="">-- Select --</option>
+            <?php foreach ($statuses as $st): ?>
+              <?php $label = ucwords(str_replace('_', ' ', $st)); ?>
+              <option value="<?= s($st) ?>" <?= $selStatus === $st ? 'selected' : '' ?>><?= s($label) ?></option>
+            <?php endforeach; ?>
+          </select>
+          <div class="invalid-feedback">Status is required.</div>
+        </div>
+      </fieldset>
+
+      <fieldset class="mb-4">
+        <legend>Scheduling</legend>
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label for="scheduled_date" class="form-label">Scheduled Date <span class="text-danger">*</span></label>
+            <input type="date" id="scheduled_date" name="scheduled_date" class="form-control" min="<?= s($today) ?>" max="9999-12-31" value="<?= s(sticky('scheduled_date', $job['scheduled_date'] ?? '')) ?>" required aria-required="true">
+            <div class="invalid-feedback">Enter a valid scheduled date.</div>
+          </div>
+          <div class="col-md-4">
+            <label for="scheduled_time" class="form-label">Scheduled Time <span class="text-danger">*</span></label>
+            <?php $timeVal = $job['scheduled_time'] ?? ''; if (is_string($timeVal)) { $timeVal = substr($timeVal,0,5); } ?>
+            <input type="time" id="scheduled_time" name="scheduled_time" class="form-control" value="<?= s(sticky('scheduled_time', $timeVal ?: '')) ?>" required aria-required="true">
+            <div class="invalid-feedback">Enter a valid scheduled time.</div>
+          </div>
+          <div class="col-md-4">
+            <label for="duration_minutes" class="form-label">Duration (minutes)</label>
+            <input type="number" id="duration_minutes" name="duration_minutes" class="form-control" min="1" step="1" value="<?= s(sticky('duration_minutes', isset($job['duration_minutes']) ? (string)$job['duration_minutes'] : '60')) ?>">
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="mt-3">
+        <button type="submit" class="btn btn-primary"><?= $isEdit ? 'Save Changes' : 'Save Job' ?></button>
+        <a href="jobs.php" class="btn btn-secondary">Cancel</a>
       </div>
-      <div class="mb-3">
-        <label for="status" class="form-label">Status</label>
-        <select name="status" id="status" class="form-select" required>
-          <?php foreach ($statuses as $st) : ?>
-            <?php $label = ucwords(str_replace('_', ' ', $st)); ?>
-            <option value="<?= s($st) ?>" <?= $st === 'scheduled' ? 'selected' : '' ?>><?= s($label) ?></option>
-          <?php endforeach; ?>
-        </select>
-        <div class="invalid-feedback">Select a status.</div>
-      </div>
-    </section>
-
-    <!-- Section 3: Scheduling -->
-    <section class="mb-4">
-      <h2 class="h5">Scheduling</h2>
-      <div class="row g-3 align-items-end">
-        <div class="col-md-4">
-          <label for="scheduled_date" class="form-label">Scheduled Date</label>
-          <input type="date" id="scheduled_date" name="scheduled_date" class="form-control" min="<?= s($today) ?>" max="9999-12-31" required>
-          <div class="invalid-feedback">Enter a valid scheduled date.</div>
-        </div>
-        <div class="col-md-4">
-          <label for="scheduled_time" class="form-label">Scheduled Time</label>
-          <input type="time" id="scheduled_time" name="scheduled_time" class="form-control" required>
-          <div class="invalid-feedback">Enter a valid scheduled time.</div>
-        </div>
-        <div class="col-md-4">
-          <label for="duration_minutes" class="form-label">Duration (minutes)</label>
-          <input type="number" id="duration_minutes" name="duration_minutes" class="form-control" min="1" step="1" value="60">
-        </div>
-      </div>
-    </section>
-
-
-
-    <!-- Section 5: Actions -->
-    <section class="mt-4">
-      <button type="submit" class="btn btn-primary">Save Job</button>
-      <a href="jobs.php" class="btn btn-secondary">Cancel</a>
-    </section>
-  </form>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-  const customerIdInput = document.getElementById('customerId');
-
-  document.getElementById('jobForm').addEventListener('submit', function(e) {
-    const jtChecks = document.querySelectorAll('input[name="job_types[]"]:checked');
-    const jobTypeError = document.getElementById('jobTypeError');
-    const dateInput = document.getElementById('scheduled_date');
-    const timeInput = document.getElementById('scheduled_time');
-    const timeVal = timeInput.value;
-    const dateVal = dateInput.value;
-    let valid = true;
-
-    if (!customerIdInput.value) {
-      customerIdInput.classList.add('is-invalid');
-      valid = false;
-    } else {
-      customerIdInput.classList.remove('is-invalid');
-    }
-
-    if (jtChecks.length === 0) {
-      jobTypeError.style.display = 'block';
-      valid = false;
-    } else {
-      jobTypeError.style.display = 'none';
-    }
-
-    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-    if (!datePattern.test(dateVal)) {
-      dateInput.classList.add('is-invalid');
-      valid = false;
-    } else {
-      dateInput.classList.remove('is-invalid');
-    }
-
-    const timePattern = /^\d{2}:\d{2}$/;
-    if (!timePattern.test(timeVal)) {
-      timeInput.classList.add('is-invalid');
-      valid = false;
-    } else {
-      timeInput.classList.remove('is-invalid');
-    }
-
-    if (!valid) e.preventDefault();
-  });
-  </script>
+    </form>
+    <?php endif; ?>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/job_form.js"></script>
 </body>
 </html>

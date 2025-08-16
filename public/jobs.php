@@ -43,7 +43,7 @@ $weekLater = date('Y-m-d', strtotime('+7 days'));
   <div class="d-flex align-items-center mb-3">
     <h1 class="h4 m-0 me-2">Jobs</h1>
     <div class="ms-auto">
-      <a href="job_form.php" class="btn btn-primary btn-sm">+ Add Job</a>
+      <a href="add_job.php" class="btn btn-primary btn-sm">+ Add Job</a>
     </div>
   </div>
   <div class="jobs-toolbar d-flex mb-3">
