@@ -45,7 +45,7 @@ final class EmployeeScheduleStatusProvider
         foreach ($employeeIds as $eid) {
             $intervals = $grouped[$eid] ?? [];
             if ($intervals === []) {
-                $statuses[$eid] = 'Available';
+                $statuses[$eid] = 'No Hours';
                 continue;
             }
             usort($intervals, static fn($a, $b) => $a[0] <=> $b[0]);

@@ -62,6 +62,7 @@ function scheduleBadge(string $status): string {
         'available' => '<span class="badge bg-success">Available</span>',
         'booked' => '<span class="badge bg-danger">Booked</span>',
         'partially booked' => '<span class="badge bg-warning text-dark">Partially Booked</span>',
+        'no hours' => '<span class="badge bg-secondary">No Hours</span>',
         default => '<span class="badge bg-secondary">'.s($status).'</span>',
     };
 }
@@ -80,7 +81,7 @@ $scheduleStatuses = EmployeeScheduleStatusProvider::forDate($pdo, $ids, date('Y-
 foreach ($rows as &$r) {
     $eid = (int)$r['employee_id'];
     $r['availability'] = $summaries[$eid] ?? '';
-    $r['schedule_status'] = $scheduleStatuses[$eid] ?? 'Available';
+    $r['schedule_status'] = $scheduleStatuses[$eid] ?? 'No Hours';
 }
 unset($r);
 $total = $data['total'];
@@ -220,6 +221,7 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
   <div class="mt-3 small">
     <strong>Legend:</strong>
     <span class="badge bg-success me-1">Available</span> Available
+    <span class="badge bg-secondary ms-3 me-1">No Hours</span> No Hours
     <span class="badge bg-danger ms-3 me-1">Booked</span> Booked
     <span class="badge bg-warning text-dark ms-3 me-1">Partially Booked</span> Partially Booked
   </div>
