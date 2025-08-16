@@ -44,7 +44,7 @@ curl -sS -c "$COOKIES" -b "$COOKIES" -H "Accept: application/json" \
   --data-urlencode "last_name=Test" \
   --data-urlencode "email=$EMAIL" \
   --data-urlencode "phone=$PHONE" \
-  "$BASE_URL/add_customer.php?__return=json" | tee "$ADD_JSON" >/dev/null
+  "$BASE_URL/customer_save.php?__return=json" | tee "$ADD_JSON" >/dev/null
 
 ADD_OK="$(php_json '$j=json_decode(file_get_contents("'"$ADD_JSON"'"),true); echo (isset($j["ok"])&&$j["ok"])?1:0;')"
 CID="$(php_json '$j=json_decode(file_get_contents("'"$ADD_JSON"'"),true); echo $j["id"]??"";')"
