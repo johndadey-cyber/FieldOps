@@ -79,7 +79,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
             <input type="hidden" id="employee_id" name="employee_id" value="<?= $selectedEmployeeId ?: '' ?>">
           </div>
           <div class="col-auto">
+
             <button type="button" class="btn btn-success" id="btnAdd">Add Window</button>
+
           </div>
         </form>
       </div>
@@ -180,6 +182,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     employeeInput.addEventListener('input', async () => {
       const q = employeeInput.value.trim();
       if (q.length < 2) { suggestionList.innerHTML = ''; return; }
+
       try {
         const res = await fetch(`api/employees/search.php?q=${encodeURIComponent(q)}`);
         if (!res.ok) throw new Error('bad response');
