@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../models/JobType.php';
+require_once __DIR__ . '/../models/Skill.php';
 require_once __DIR__ . '/../models/Role.php';
 require_once __DIR__ . '/_csrf.php';
 require_once __DIR__ . '/../config/api_keys.php';
@@ -16,7 +16,7 @@ $skillIds = $skillIds ?? [];
 $isEdit   = $mode === 'edit';
 
 /** @var list<array{id:int|string,name:string}> $skills */
-$skills = JobType::all($pdo);
+$skills = Skill::all($pdo);
 /** @var list<array{id:int|string,name:string}> $roles */
 $roles = Role::all($pdo);
 

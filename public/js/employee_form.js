@@ -21,10 +21,11 @@
         e.target.setCustomValidity(valid ? '' : 'Invalid phone number');
       });
     }
+    // Enhance the skills multi-select with Select2 for better UX
     if (typeof $ !== 'undefined' && $.fn.select2) {
-      var skillsEl = $('#skills');
-      if (skillsEl.length) {
-        skillsEl.select2({ width: '100%' });
+      var skillsSelect = $('#skills');
+      if (skillsSelect.length) {
+        skillsSelect.select2({ width: '100%' });
       }
     }
     var errBox = document.getElementById('form-errors');

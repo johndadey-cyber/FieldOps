@@ -4,7 +4,7 @@ require __DIR__ . '/_cli_guard.php';
 
 $mode     = 'add';
 $employee = [];
-$skillIds = [];
+$skillIds = []; // no preselected skills on add
 
 require __DIR__ . '/employee_form.php';
 
