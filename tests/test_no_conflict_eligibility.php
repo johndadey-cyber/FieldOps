@@ -83,28 +83,25 @@ try {
         ':end'   => '12:00:00',
     ]);
 
-    // 1e) If your system enforces job types/skills, set one up and link both
-    $requiredJobTypeIds = [];
-    $needTypes = false;
+    // 1e) If your system enforces skills, create/link one and grant to employee
+    $requiredSkillIds = [];
 
-    // Discover if job types are in play via presence of tables
-    $hasJobTypes = (bool)$pdo->query("SHOW TABLES LIKE 'job_types'")->fetchColumn();
+    $hasSkills         = (bool)$pdo->query("SHOW TABLES LIKE 'skills'")->fetchColumn();
     $hasEmployeeSkills = (bool)$pdo->query("SHOW TABLES LIKE 'employee_skills'")->fetchColumn();
 
-    if ($hasJobTypes && $hasEmployeeSkills) {
-        $needTypes = true;
-        // Create a job type if none exists
-        $typeId = (int)($pdo->query("SELECT id FROM job_types LIMIT 1")->fetchColumn() ?: 0);
-        if ($typeId === 0) {
-            $pdo->exec("INSERT INTO job_types (name) VALUES ('General')");
-            $typeId = (int)$pdo->lastInsertId();
+    if ($hasSkills && $hasEmployeeSkills) {
+        // Create a skill if none exists
+        $skillId = (int)($pdo->query("SELECT id FROM skills LIMIT 1")->fetchColumn() ?: 0);
+        if ($skillId === 0) {
+            $pdo->exec("INSERT INTO skills (name) VALUES ('General')");
+            $skillId = (int)$pdo->lastInsertId();
         }
 
         // Grant employee the skill
-        $stmt = $pdo->prepare("INSERT INTO employee_skills (employee_id, job_type_id) VALUES (:e,:t)");
-        $stmt->execute([':e' => $employeeId, ':t' => $typeId]);
+        $stmt = $pdo->prepare("INSERT INTO employee_skills (employee_id, skill_id) VALUES (:e,:s)");
+        $stmt->execute([':e' => $employeeId, ':s' => $skillId]);
 
-        $requiredJobTypeIds = [$typeId];
+        $requiredSkillIds = [$skillId];
     }
 
     // --- 2) Call canonical eligibility method ---
@@ -118,7 +115,7 @@ try {
 
     // Try common signatures defensively
     $attempts = [
-        fn() => Employee::getEmployeesWithAvailabilityAndSkills($pdo, $jobId, $dayOfWeek, $scheduledDate, $scheduledTime, $durationMinutes, $requiredJobTypeIds),
+        fn() => Employee::getEmployeesWithAvailabilityAndSkills($pdo, $jobId, $dayOfWeek, $scheduledDate, $scheduledTime, $durationMinutes, $requiredSkillIds),
         fn() => Employee::getEmployeesWithAvailabilityAndSkills($pdo, $jobId, $dayOfWeek, $scheduledDate, $scheduledTime, $durationMinutes),
         fn() => Employee::getEmployeesWithAvailabilityAndSkills($pdo, $jobId, $dayOfWeek, $scheduledDate, $scheduledTime),
         fn() => Employee::getEmployeesWithAvailabilityAndSkills($pdo, $jobId),
