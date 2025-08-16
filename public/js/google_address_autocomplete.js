@@ -34,7 +34,10 @@ function initializeAddressAutocomplete(inputId, fieldMap = {}) {
             if (field) field.value = value || '';
         };
 
-        assign('address_line1', input.value);
+        const street = [components.street_number, components.route]
+            .filter(Boolean)
+            .join(' ');
+        assign('address_line1', street.trim());
         assign('address_line2', ''); // Left for manual entry
         assign('city', components.locality || components.sublocality || '');
         assign('state', components.administrative_area_level_1 || '');
