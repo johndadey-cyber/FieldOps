@@ -77,11 +77,11 @@ $skills = array_values(array_filter(array_map('strval', (array)($_GET['skills'] 
 $data = EmployeeDataProvider::getFiltered($pdo, $skills, $page, $perPage, $sort, $direction, $search);
 $rows = $data['rows'];
 $ids = array_map(static fn(array $r): int => (int)$r['employee_id'], $rows);
-$summaries = Availability::summaryForEmployees($pdo, $ids);
+$summaries = Availability::summaryForEmployeesOnDate($pdo, $ids, date('Y-m-d'));
 $scheduleStatuses = EmployeeScheduleStatusProvider::forDate($pdo, $ids, date('Y-m-d'));
 foreach ($rows as &$r) {
     $eid = (int)$r['employee_id'];
-    $r['availability'] = $summaries[$eid] ?? '';
+    $r['availability'] = $summaries[$eid] ?? 'Off';
     $r['schedule_status'] = $scheduleStatuses[$eid] ?? 'No Hours';
 }
 unset($r);
