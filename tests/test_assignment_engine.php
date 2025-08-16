@@ -90,6 +90,40 @@ if (method_exists('Job', 'getJobTypeIds')) {
     }
 }
 
+// Seed skills/jobtype_skills and grant employees matching skills if needed
+$skillIds = [];
+$hasSkills         = (bool)$pdo->query("SHOW TABLES LIKE 'skills'")->fetchColumn();
+$hasJobtypeSkills  = (bool)$pdo->query("SHOW TABLES LIKE 'jobtype_skills'")->fetchColumn();
+$hasEmployeeSkills = (bool)$pdo->query("SHOW TABLES LIKE 'employee_skills'")->fetchColumn();
+if ($hasSkills && $hasJobtypeSkills && $hasEmployeeSkills && $requiredJobTypeIds) {
+    foreach ($requiredJobTypeIds as $jtId) {
+        $st = $pdo->prepare('SELECT skill_id FROM jobtype_skills WHERE job_type_id = :jt LIMIT 1');
+        $st->execute([':jt' => $jtId]);
+        $sid = (int)($st->fetchColumn() ?: 0);
+        if ($sid === 0) {
+            $pdo->prepare('INSERT INTO skills (name) VALUES (:n)')->execute([':n' => 'JT'.$jtId.' Skill']);
+            $sid = (int)$pdo->lastInsertId();
+            $pdo->prepare('INSERT INTO jobtype_skills (job_type_id, skill_id) VALUES (:jt,:sid)')
+                ->execute([':jt' => $jtId, ':sid' => $sid]);
+        }
+        $skillIds[] = $sid;
+    }
+
+    if ($skillIds) {
+        $empIds = $pdo->query('SELECT id FROM employees')->fetchAll(PDO::FETCH_COLUMN);
+        $chk = $pdo->prepare('SELECT 1 FROM employee_skills WHERE employee_id = :eid AND skill_id = :sid');
+        $ins = $pdo->prepare('INSERT INTO employee_skills (employee_id, skill_id) VALUES (:eid, :sid)');
+        foreach ($empIds as $eid) {
+            foreach ($skillIds as $sid) {
+                $chk->execute([':eid' => $eid, ':sid' => $sid]);
+                if (!$chk->fetchColumn()) {
+                    $ins->execute([':eid' => $eid, ':sid' => $sid]);
+                }
+            }
+        }
+    }
+}
+
 out("Testing eligibility for Job #{$jobId} on {$scheduledDate} {$scheduledTime} (duration {$durationMinutes}m, DOW={$dayOfWeek})");
 
 // 2) Verify target method exists
