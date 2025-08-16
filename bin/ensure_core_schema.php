@@ -194,16 +194,56 @@ if (!tableExists($pdo, 'employee_availability_overrides')) {
     out('[OK] employee_availability_overrides created');
 }
 
-// Ensure employee_skills.proficiency column exists
-if (tableExists($pdo, 'employee_skills')) {
+if (!tableExists($pdo, 'skills')) {
+    out('[..] Creating table skills ...');
+    $pdo->exec(
+        "CREATE TABLE `skills` (
+            `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            `name` VARCHAR(100) NOT NULL,
+            `description` VARCHAR(255) NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+    );
+    out('[OK] skills created');
+}
+
+// Ensure employee_skills structure (employee_id, skill_id, proficiency)
+if (!tableExists($pdo, 'employee_skills')) {
+    out('[..] Creating table employee_skills ...');
+    $pdo->exec(
+        "CREATE TABLE `employee_skills` (
+            `employee_id` INT NOT NULL,
+            `skill_id` INT NOT NULL,
+            `proficiency` VARCHAR(20) NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+    );
+    out('[OK] employee_skills created');
+} else {
     $cols = columns($pdo, 'employee_skills');
+    if (array_key_exists('job_type_id', $cols)) {
+        out('[..] Dropping obsolete column employee_skills.job_type_id ...');
+        $pdo->exec("ALTER TABLE `employee_skills` DROP COLUMN `job_type_id`");
+        $cols = columns($pdo, 'employee_skills');
+    }
+    if (!array_key_exists('skill_id', $cols)) {
+        out('[..] Adding `skill_id` column to employee_skills ...');
+        $pdo->exec("ALTER TABLE `employee_skills` ADD COLUMN `skill_id` INT NOT NULL");
+    }
     if (!array_key_exists('proficiency', $cols)) {
         out('[..] Adding `proficiency` column to employee_skills ...');
         $pdo->exec("ALTER TABLE `employee_skills` ADD COLUMN `proficiency` VARCHAR(20) NULL");
-        out('[OK] employee_skills.proficiency added');
-    } else {
-        out('[OK] employee_skills.proficiency present');
     }
+}
+
+// Ensure jobtype_skills table
+if (!tableExists($pdo, 'jobtype_skills')) {
+    out('[..] Creating table jobtype_skills ...');
+    $pdo->exec(
+        "CREATE TABLE `jobtype_skills` (
+            `job_type_id` INT NOT NULL,
+            `skill_id` INT NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+    );
+    out('[OK] jobtype_skills created');
 }
 
 out("== Ensuring PRIMARY KEYS ==");
@@ -216,7 +256,10 @@ ensureFk($pdo, 'employees', 'person_id', 'people', 'id', 'fk_employees_person', 
 ensureFk($pdo, 'jobs',      'customer_id', 'customers', 'id', 'fk_jobs_customer', 'RESTRICT', 'CASCADE');
 
 ensureFk($pdo, 'employee_skills', 'employee_id', 'employees', 'id', 'fk_skills_employee', 'RESTRICT', 'CASCADE');
-ensureFk($pdo, 'employee_skills', 'job_type_id', 'job_types', 'id', 'fk_skills_jobtype', 'RESTRICT', 'CASCADE');
+ensureFk($pdo, 'employee_skills', 'skill_id', 'skills', 'id', 'fk_skills_skill', 'RESTRICT', 'CASCADE');
+
+ensureFk($pdo, 'jobtype_skills', 'job_type_id', 'job_types', 'id', 'fk_jobtype_skills_jobtype', 'RESTRICT', 'CASCADE');
+ensureFk($pdo, 'jobtype_skills', 'skill_id', 'skills', 'id', 'fk_jobtype_skills_skill', 'RESTRICT', 'CASCADE');
 
 ensureFk($pdo, 'job_employee_assignment', 'job_id', 'jobs', 'id', 'fk_jea_job', 'CASCADE', 'RESTRICT');
 ensureFk($pdo, 'job_employee_assignment', 'employee_id', 'employees', 'id', 'fk_jea_employee', 'RESTRICT', 'RESTRICT');
@@ -225,6 +268,8 @@ ensureFk($pdo, 'employee_availability_overrides', 'employee_id', 'employees', 'i
 
 out(PHP_EOL . "== Ensuring UNIQUE indexes ==");
 ensureUnique($pdo, 'employee_availability', ['employee_id','day_of_week','start_time','end_time'], 'uq_availability_window');
+ensureUnique($pdo, 'employee_skills', ['employee_id','skill_id'], 'uq_employee_skill');
+ensureUnique($pdo, 'jobtype_skills', ['job_type_id','skill_id'], 'uq_jobtype_skill');
 
 out(PHP_EOL . "== Cleaning obvious orphan rows (dev only) ==");
 try {

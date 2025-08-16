@@ -120,7 +120,9 @@ $required = [
   'customers' => ['id','first_name','last_name'],
   'jobs' => ['id','customer_id','description','status','scheduled_date','scheduled_time','duration_minutes'],
   'job_types' => ['id','name'],
-  'employee_skills' => ['employee_id','job_type_id','proficiency'],
+  'skills' => ['id','name','description'],
+  'employee_skills' => ['employee_id','skill_id','proficiency'],
+  'jobtype_skills' => ['job_type_id','skill_id'],
   'employee_availability' => ['id','employee_id','day_of_week','start_time','end_time'],
   'job_employee_assignment' => ['id','job_id','employee_id','assigned_at'],
 ];
@@ -134,7 +136,7 @@ foreach ($required as $t => $colsNeed) {
 }
 
 // AUTO_INCREMENT PKs
-foreach (['people','employees','customers','jobs','job_types','employee_availability','job_employee_assignment'] as $t) {
+foreach (['people','employees','customers','jobs','job_types','skills','employee_availability','job_employee_assignment'] as $t) {
     if (!tableExists($pdo, $t)) continue;
     if (!hasAutoPk(columns($pdo, $t), 'id')) {
         $issues[] = "Primary key AUTO_INCREMENT missing or not primary on $t.id";
@@ -147,7 +149,11 @@ $fkExpect = [
   'jobs'      => [['cols'=>['customer_id'], 'ref'=>'customers', 'refcols'=>['id']]],
   'employee_skills' => [
       ['cols'=>['employee_id'],'ref'=>'employees','refcols'=>['id']],
-      ['cols'=>['job_type_id'], 'ref'=>'job_types','refcols'=>['id']],
+      ['cols'=>['skill_id'], 'ref'=>'skills','refcols'=>['id']],
+  ],
+  'jobtype_skills' => [
+      ['cols'=>['job_type_id'],'ref'=>'job_types','refcols'=>['id']],
+      ['cols'=>['skill_id'],'ref'=>'skills','refcols'=>['id']],
   ],
   'job_employee_assignment' => [
       ['cols'=>['job_id'],'ref'=>'jobs','refcols'=>['id']],
@@ -177,6 +183,14 @@ if (tableExists($pdo,'employee_availability') &&
 if (tableExists($pdo,'job_employee_assignment') &&
     !hasUniqueIndex($pdo,'job_employee_assignment',['job_id','employee_id'],'uniq_assignment_job_emp')) {
     $issues[] = "Missing UNIQUE index on job_employee_assignment(job_id, employee_id)";
+}
+if (tableExists($pdo,'employee_skills') &&
+    !hasUniqueIndex($pdo,'employee_skills',['employee_id','skill_id'],'uq_employee_skill')) {
+    $issues[] = "Missing UNIQUE index on employee_skills(employee_id, skill_id)";
+}
+if (tableExists($pdo,'jobtype_skills') &&
+    !hasUniqueIndex($pdo,'jobtype_skills',['job_type_id','skill_id'],'uq_jobtype_skill')) {
+    $issues[] = "Missing UNIQUE index on jobtype_skills(job_type_id, skill_id)";
 }
 
 // Data health
