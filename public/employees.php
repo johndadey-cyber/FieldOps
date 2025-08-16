@@ -143,6 +143,7 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
             <th>Today</th>
             <th><a href="?perPage=<?= $perPage ?>&sort=status&direction=<?= $statusDir ?><?= $skillQuery ?>">Status</a></th>
             <th>Info</th>
+            <th>Edit</th>
           </tr>
         </thead>
         <tbody>
@@ -188,6 +189,9 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
               <?php if ($info !== ''): ?>
                 <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-html="true" title="<?= $info ?>"></i>
               <?php endif; ?>
+            </td>
+            <td class="text-nowrap">
+              <a class="btn btn-sm btn-outline-secondary" href="edit_employee.php?id=<?= (int)$r['employee_id'] ?>">Edit</a>
             </td>
           </tr>
         <?php endforeach; ?>
