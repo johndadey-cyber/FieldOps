@@ -108,6 +108,7 @@ function sticky(string $name, ?string $default = null): string {
         latitude: 'latitude',
         longitude: 'longitude'
       });
+
       const phoneEl = document.getElementById('phone');
       if (phoneEl) {
         phoneEl.addEventListener('input', function (e) {
@@ -126,19 +127,46 @@ function sticky(string $name, ?string $default = null): string {
           e.target.setCustomValidity(valid ? '' : 'Invalid phone number');
         });
       }
-    });
-    (function () {
-      const forms = document.querySelectorAll('.needs-validation');
-      Array.prototype.slice.call(forms).forEach(form => {
-        form.addEventListener('submit', event => {
+
+      const form = document.getElementById('customerForm');
+      if (form) {
+        form.addEventListener('submit', async function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+
           if (!form.checkValidity()) {
-            event.preventDefault();
-            event.stopPropagation();
+            form.classList.add('was-validated');
+            return;
           }
+
           form.classList.add('was-validated');
-        }, false);
-      });
-    })();
+
+          const formData = new FormData(form);
+          try {
+            const res = await fetch(form.action, {
+              method: 'POST',
+              body: formData,
+              headers: { 'Accept': 'application/json' }
+            });
+
+            if (!res.ok) throw new Error('Network response was not ok');
+
+            const data = await res.json();
+            if (data.ok) {
+              window.location.href = 'customers.php?ts=' + Date.now();
+            } else if (data.errors) {
+              document.getElementById('form-errors').textContent = data.errors.join(', ');
+            } else if (data.error) {
+              document.getElementById('form-errors').textContent = data.error;
+            } else {
+              document.getElementById('form-errors').textContent = 'Save failed';
+            }
+          } catch (err) {
+            document.getElementById('form-errors').textContent = 'Save failed';
+          }
+        });
+      }
+    });
   </script>
 </body>
 </html>
