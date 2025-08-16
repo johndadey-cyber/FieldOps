@@ -259,6 +259,7 @@ ensureFk($pdo, 'jobs',      'customer_id', 'customers', 'id', 'fk_jobs_customer'
 ensureFk($pdo, 'employee_skills', 'employee_id', 'employees', 'id', 'fk_es_employee', 'RESTRICT', 'CASCADE');
 ensureFk($pdo, 'employee_skills', 'skill_id', 'skills', 'id', 'fk_es_skill', 'RESTRICT', 'CASCADE');
 
+
 ensureFk($pdo, 'jobtype_skills', 'job_type_id', 'job_types', 'id', 'fk_jobtype_skills_jobtype', 'RESTRICT', 'CASCADE');
 ensureFk($pdo, 'jobtype_skills', 'skill_id', 'skills', 'id', 'fk_jobtype_skills_skill', 'RESTRICT', 'CASCADE');
 
