@@ -26,8 +26,9 @@ if ($eid <= 0 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $weekStart)) {
 $ws = new DateTimeImmutable($weekStart);
 $we = $ws->modify('+6 days')->format('Y-m-d');
 
-// Recurring availability
-$st = $pdo->prepare("SELECT id, day_of_week, DATE_FORMAT(start_time,'%H:%i') AS start_time, DATE_FORMAT(end_time,'%H:%i') AS end_time FROM employee_availability WHERE employee_id = :eid ORDER BY day_of_week, start_time");
+// Recurring availability ordered Monday→Sunday then by start time
+$dayOrderSql = "FIELD(day_of_week,'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday')";
+$st = $pdo->prepare("SELECT id, day_of_week, DATE_FORMAT(start_time,'%H:%i') AS start_time, DATE_FORMAT(end_time,'%H:%i') AS end_time FROM employee_availability WHERE employee_id = :eid ORDER BY {$dayOrderSql}, start_time");
 $st->execute([':eid' => $eid]);
 $avail = $st->fetchAll(PDO::FETCH_ASSOC);
 

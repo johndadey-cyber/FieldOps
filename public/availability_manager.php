@@ -294,6 +294,12 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       const items = (data && data.availability) ? data.availability : [];
       const overrides = (data && data.overrides) ? data.overrides : [];
 
+      // Ensure items are ordered Monday→Sunday using daysOrder then by start time
+      items.sort((a,b) => {
+        const dayDiff = daysOrder.indexOf(a.day_of_week) - daysOrder.indexOf(b.day_of_week);
+        return dayDiff !== 0 ? dayDiff : (a.start_time || '').localeCompare(b.start_time || '');
+      });
+
       if (!items.length) {
         emptyState.classList.remove('d-none');
       } else {
