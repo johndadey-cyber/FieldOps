@@ -288,19 +288,22 @@ foreach ($emps as $eRow) {
 
   $empSkillsMap = $skillsByEmp[$empId] ?? [];
   ksort($empSkillsMap);
-  $skillsList = array_values($empSkillsMap);
+  $skillsList = [];
+  foreach ($empSkillsMap as $sid => $sname) {
+    $skillsList[] = ['id' => $sid, 'name' => $sname];
+  }
 
   // Required → missing
-  $missing = [];
+  $missingSkills = [];
   if (!empty($reqIds)) {
     foreach ($reqIds as $rid) {
       if (!isset($empSkillsMap[$rid])) {
-        $missing[] = $reqNamesById[$rid] ?? ('Skill '.$rid);
+        $missingSkills[] = ['id' => $rid, 'name' => $reqNamesById[$rid] ?? ('Skill ' . $rid)];
       }
     }
   }
   $flags = [];
-  if (!empty($missing)) $flags[] = 'missing_required_skills';
+  if (!empty($missingSkills)) $flags[] = 'missing_required_skills';
 
   // Availability vs job window
   $status = 'none'; $coverStart = null; $coverEnd = null;
@@ -351,7 +354,7 @@ foreach ($emps as $eRow) {
 
   // Qualified (relaxed role test + Alex’s other rules)
   $isTech     = isTechnicianRole($role);
-  $skillsOK   = empty($reqIds) || empty($missing);
+  $skillsOK   = empty($reqIds) || empty($missingSkills);
   $hasConflict= !empty($conflicts);
   $isQualified= $isActive && $isTech && $skillsOK && ($status === 'full') && !$hasConflict;
 
@@ -361,7 +364,7 @@ foreach ($emps as $eRow) {
     'last_name'     => $last,
     'qualified'     => $isQualified,
     'skills'        => $skillsList,
-    'missing_required_skills' => $missing,
+    'missingSkills' => $missingSkills,
     'flags'        => $flags,
     'availability'  => [ 'status'=>$status, 'window'=>$windowOut ],
     'conflicts'     => $conflicts,
