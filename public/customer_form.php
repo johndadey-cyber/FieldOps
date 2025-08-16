@@ -108,6 +108,24 @@ function sticky(string $name, ?string $default = null): string {
         latitude: 'latitude',
         longitude: 'longitude'
       });
+      const phoneEl = document.getElementById('phone');
+      if (phoneEl) {
+        phoneEl.addEventListener('input', function (e) {
+          const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+          let formatted = digits;
+          if (digits.length > 6) {
+            formatted = '(' + digits.slice(0, 3) + ') ' + digits.slice(3, 6) + '-' + digits.slice(6);
+          } else if (digits.length > 3) {
+            formatted = '(' + digits.slice(0, 3) + ') ' + digits.slice(3);
+          } else if (digits.length > 0) {
+            formatted = '(' + digits;
+          }
+          e.target.value = formatted;
+          const valid = digits.length === 10;
+          e.target.classList.toggle('is-invalid', !valid);
+          e.target.setCustomValidity(valid ? '' : 'Invalid phone number');
+        });
+      }
     });
     (function () {
       const forms = document.querySelectorAll('.needs-validation');
