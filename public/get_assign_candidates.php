@@ -50,8 +50,8 @@ $params = [];
 if ($skill !== '') {
     $whereSkill = "AND EXISTS (
         SELECT 1 FROM employee_skills es
-        JOIN job_types jt ON jt.id = es.job_type_id
-        WHERE es.employee_id = e.id AND jt.name = :skill
+        JOIN skills s ON s.id = es.skill_id
+        WHERE es.employee_id = e.id AND s.name = :skill
     )";
     $params[':skill'] = $skill;
 }
@@ -60,11 +60,11 @@ $e = $pdo->prepare("
   SELECT e.id AS employee_id,
          p.first_name, p.last_name,
          p.latitude AS emp_lat, p.longitude AS emp_lon,
-         COALESCE(GROUP_CONCAT(DISTINCT jt.name ORDER BY jt.name SEPARATOR ', '), '') AS skills
+         COALESCE(GROUP_CONCAT(DISTINCT s.name ORDER BY s.name SEPARATOR ', '), '') AS skills
   FROM employees e
   JOIN people p ON p.id = e.person_id
   LEFT JOIN employee_skills es ON es.employee_id = e.id
-  LEFT JOIN job_types jt ON jt.id = es.job_type_id
+  LEFT JOIN skills s ON s.id = es.skill_id
   WHERE e.is_active = 1
   $whereSkill
   GROUP BY e.id, p.first_name, p.last_name, p.latitude, p.longitude
