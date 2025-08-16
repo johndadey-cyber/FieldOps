@@ -42,7 +42,7 @@ $hire_date       = trim((string)($_POST['hire_date'] ?? ''));
 $status          = trim((string)($_POST['status'] ?? 'Active'));
 $role_id         = (string)($_POST['role_id'] ?? '') !== '' ? (int)$_POST['role_id'] : null;
 $is_active       = $status === 'Active' ? 1 : 0;
-$skills          = $_POST['skills'] ?? [];           // array of job_type_id
+$skills          = $_POST['skills'] ?? [];           // array of skill_id
 
 $errors = [];
 if ($first_name === '') $errors[] = 'First name is required.';
@@ -63,6 +63,28 @@ if ($role_id !== null) {
     if (!$st->fetchColumn()) {
         $errors[] = 'Role invalid.';
     }
+}
+
+// Validate skill ids
+$validSkillIds = [];
+if (is_array($skills) && count($skills) > 0) {
+    $skills = array_map('intval', $skills);
+    $placeholders = implode(',', array_fill(0, count($skills), '?'));
+    try {
+        $st = $pdo->prepare('SELECT id FROM skills WHERE id IN (' . $placeholders . ')');
+        $st->execute($skills);
+        $validSkillIds = array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN));
+    } catch (Throwable $e) {
+        $validSkillIds = [];
+    }
+    foreach ($skills as $sid) {
+        if (!in_array($sid, $validSkillIds, true)) {
+            $errors[] = 'Invalid skill selected.';
+            break;
+        }
+    }
+} else {
+    $skills = [];
 }
 
 if ($errors) {
@@ -97,10 +119,10 @@ try {
 
         // Skills
         if (is_array($skills) && !empty($skills)) {
-            $ins = $pdo->prepare("INSERT INTO employee_skills (employee_id, job_type_id) VALUES (:eid, :jt)");
-            foreach ($skills as $jt) {
-                $jt = (int)$jt;
-                if ($jt > 0) $ins->execute([':eid' => $employeeId, ':jt' => $jt]);
+            $ins = $pdo->prepare("INSERT INTO employee_skills (employee_id, skill_id) VALUES (:eid, :sid)");
+            foreach ($skills as $sid) {
+                $sid = (int)$sid;
+                if ($sid > 0) $ins->execute([':eid' => $employeeId, ':sid' => $sid]);
             }
         }
 
@@ -136,10 +158,10 @@ try {
         // Replace skills
         $pdo->prepare("DELETE FROM employee_skills WHERE employee_id = :eid")->execute([':eid' => $id]);
         if (is_array($skills) && !empty($skills)) {
-            $ins = $pdo->prepare("INSERT INTO employee_skills (employee_id, job_type_id) VALUES (:eid, :jt)");
-            foreach ($skills as $jt) {
-                $jt = (int)$jt;
-                if ($jt > 0) $ins->execute([':eid' => $id, ':jt' => $jt]);
+            $ins = $pdo->prepare("INSERT INTO employee_skills (employee_id, skill_id) VALUES (:eid, :sid)");
+            foreach ($skills as $sid) {
+                $sid = (int)$sid;
+                if ($sid > 0) $ins->execute([':eid' => $id, ':sid' => $sid]);
             }
         }
     }
