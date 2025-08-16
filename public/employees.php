@@ -104,6 +104,7 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
 <div class="container py-3">
   <div class="d-flex align-items-center mb-3">
     <h1 class="h4 m-0 me-2">Employees</h1>
+    <a href="add_employee.php" class="btn btn-sm btn-primary ms-auto">Add New</a>
   </div>
   <div class="mb-3">
     <select id="skill-filter" class="form-select" multiple>
