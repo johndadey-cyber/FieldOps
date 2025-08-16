@@ -13,8 +13,11 @@ final class CustomerDataProvider
      *   email:?string,
      *   phone:?string,
      *   address_line1:?string,
+     *   address_line2:?string,
      *   city:?string,
-     *   state:?string
+     *   state:?string,
+     *   postal_code:?string,
+     *   country:?string
      * }>
      */
     public static function getFiltered(
@@ -26,7 +29,7 @@ final class CustomerDataProvider
         ?string $sort = 'id',
         string $order = 'asc'
     ): array {
-        $sql = "SELECT id, first_name, last_name, email, phone, address_line1, city, state
+        $sql = "SELECT id, first_name, last_name, email, phone, address_line1, address_line2, city, state, postal_code, country
                 FROM customers
                 WHERE 1=1";
         $params = [];
@@ -38,7 +41,11 @@ final class CustomerDataProvider
                 'last_name',
                 'email',
                 'address_line1',
+                'address_line2',
                 'city',
+                'state',
+                'postal_code',
+                'country',
             ];
             $like = "%{$search}%";
             foreach ($searchFields as $i => $field) {
@@ -62,11 +69,13 @@ final class CustomerDataProvider
 
         // Determine sort column and direction
         $allowedSorts = [
-            'id'    => 'id',
-            'email' => 'email',
-            'phone' => 'phone',
-            'city'  => 'city',
-            'state' => 'state',
+            'id'          => 'id',
+            'email'       => 'email',
+            'phone'       => 'phone',
+            'city'        => 'city',
+            'state'       => 'state',
+            'postal_code' => 'postal_code',
+            'country'     => 'country',
         ];
         $sort = strtolower((string)$sort);
         $order = strtolower($order) === 'desc' ? 'DESC' : 'ASC';
@@ -90,8 +99,9 @@ final class CustomerDataProvider
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
 
-        /** @var array<int, array{id:int, first_name:string, last_name:string, email:?string, phone:?string, address_line1:?string, city:?string, state:?string}> */
+        /** @var array<int, array{id:int, first_name:string, last_name:string, email:?string, phone:?string, address_line1:?string, address_line2:?string, city:?string, state:?string, postal_code:?string, country:?string}> */
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         return $rows;
     }
 }
+

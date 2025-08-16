@@ -18,8 +18,11 @@ final class CustomerDataProviderSortTest extends TestCase
             email TEXT,
             phone TEXT,
             address_line1 TEXT,
+            address_line2 TEXT,
             city TEXT,
-            state TEXT
+            state TEXT,
+            postal_code TEXT,
+            country TEXT
         )');
         $pdo->exec("INSERT INTO customers (id, first_name, last_name) VALUES
             (1,'John','Zulu'),
