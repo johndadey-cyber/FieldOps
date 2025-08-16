@@ -160,8 +160,8 @@
 
   function buildSkillFilter(data) {
     const skillNames = new Map(); // id -> name
-    (data.job?.requiredJobTypeIds || []).forEach((id, i) => {
-      const name = (data.job?.requiredJobTypeNames || [])[i] || `Skill ${id}`;
+    (data.job?.requiredSkillIds || []).forEach((id, i) => {
+      const name = (data.job?.requiredSkillNames || [])[i] || `Skill ${id}`;
       if (id != null) skillNames.set(id, name);
     });
     (data.employees || []).forEach(emp => {
