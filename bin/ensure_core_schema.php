@@ -255,8 +255,10 @@ out(PHP_EOL . "== Ensuring FOREIGN KEYS ==");
 ensureFk($pdo, 'employees', 'person_id', 'people', 'id', 'fk_employees_person', 'RESTRICT', 'CASCADE');
 ensureFk($pdo, 'jobs',      'customer_id', 'customers', 'id', 'fk_jobs_customer', 'RESTRICT', 'CASCADE');
 
-ensureFk($pdo, 'employee_skills', 'employee_id', 'employees', 'id', 'fk_skills_employee', 'RESTRICT', 'CASCADE');
-ensureFk($pdo, 'employee_skills', 'skill_id', 'skills', 'id', 'fk_skills_skill', 'RESTRICT', 'CASCADE');
+// Use unique, stable FK names to avoid cross-table conflicts
+ensureFk($pdo, 'employee_skills', 'employee_id', 'employees', 'id', 'fk_es_employee', 'RESTRICT', 'CASCADE');
+ensureFk($pdo, 'employee_skills', 'skill_id', 'skills', 'id', 'fk_es_skill', 'RESTRICT', 'CASCADE');
+
 
 ensureFk($pdo, 'jobtype_skills', 'job_type_id', 'job_types', 'id', 'fk_jobtype_skills_jobtype', 'RESTRICT', 'CASCADE');
 ensureFk($pdo, 'jobtype_skills', 'skill_id', 'skills', 'id', 'fk_jobtype_skills_skill', 'RESTRICT', 'CASCADE');
