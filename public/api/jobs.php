@@ -143,7 +143,6 @@ try {
                 'city' => (string)$r['city'],
             ],
             'job_skills' => $skills,
-            // 'job_types' => $types, // deprecated
             'assigned_employees' => $emps,
             'status' => (string)$r['status'],
         ];

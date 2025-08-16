@@ -73,6 +73,9 @@ $schema = [
   'employee_availability_overrides' => tableExists($pdo, 'employee_availability_overrides'),
   'employee_skills'         => tableExists($pdo,'employee_skills'),
   'job_types'               => tableExists($pdo,'job_types'),
+  'skills'                  => tableExists($pdo,'skills'),
+  'job_jobtype'             => tableExists($pdo,'job_jobtype'),
+  'jobtype_skills'          => tableExists($pdo,'jobtype_skills'),
   'job_employee_assignment' => tableExists($pdo,'job_employee_assignment'),
   'job_employee'            => tableExists($pdo,'job_employee'),
 ];
@@ -120,8 +123,25 @@ $dtUtc       = (clone $dtLocal)->setTimezone(new DateTimeZone('UTC'));
 $dtUtcEnd    = (clone $dtLocalEnd)->setTimezone(new DateTimeZone('UTC'));
 $jobWindowLabel = sprintf('%s, %s—%s', $dtLocal->format('Y-m-d'), $dtLocal->format('H:i'), $dtLocalEnd->format('H:i'));
 
-/* -------------- Required job types removed -------------- */
+/* -------------- Required skills for job -------------- */
 $reqIds = []; $reqNamesById = [];
+if ($schema['job_jobtype'] && $schema['jobtype_skills'] && $schema['skills']) {
+  $stReq = $pdo->prepare(
+    "SELECT DISTINCT s.id, s.name
+       FROM job_jobtype jj
+       JOIN jobtype_skills jts ON jts.job_type_id = jj.job_type_id
+       JOIN skills s ON s.id = jts.skill_id
+       WHERE jj.job_id = :jid
+       ORDER BY s.name"
+  );
+  $stReq->execute([':jid' => $jobId]);
+  $reqRows = $stReq->fetchAll(PDO::FETCH_ASSOC);
+  foreach ($reqRows as $r) {
+    $sid = (int)$r['id'];
+    $reqIds[] = $sid;
+    $reqNamesById[$sid] = (string)$r['name'];
+  }
+}
 
 /* -------------- Helpers -------------- */
 function haversineKm(?float $lat1, ?float $lon1, ?float $lat2, ?float $lon2): ?float {
@@ -134,7 +154,6 @@ function toMinutes(string $hhmmss): int {
   [$h,$m] = array_map('intval', explode(':', $hhmmss) + [0,0,0]);
   return $h*60 + $m;
 }
-function listToLabel(array $map): array { $out=[]; foreach($map as $sid=>$nm){ $out[]=['id'=>(int)$sid,'name'=>(string)$nm]; } return $out; }
 /** RELAXED role test: default-allow unless clearly non-tech */
 function isTechnicianRole(?string $role): bool {
   $r = strtolower(trim((string)$role));
@@ -179,13 +198,15 @@ $emps = $pdo->query($sqlEmps)->fetchAll(PDO::FETCH_ASSOC);
 
 /* -------------- Skills -------------- */
 $skillsByEmp = [];
-if ($schema['employee_skills'] && $schema['job_types']) {
-  $skillRows = $pdo->query("
-    SELECT es.employee_id, jt.id AS job_type_id, jt.name
-    FROM employee_skills es
-    JOIN job_types jt ON jt.id = es.job_type_id
-  ")->fetchAll(PDO::FETCH_ASSOC);
-  foreach ($skillRows as $s) { $skillsByEmp[(int)$s['employee_id']][(int)$s['job_type_id']] = (string)$s['name']; }
+if ($schema['employee_skills'] && $schema['skills']) {
+  $skillRows = $pdo->query(
+    "SELECT es.employee_id, s.id AS skill_id, s.name
+       FROM employee_skills es
+       JOIN skills s ON s.id = es.skill_id"
+  )->fetchAll(PDO::FETCH_ASSOC);
+  foreach ($skillRows as $s) {
+    $skillsByEmp[(int)$s['employee_id']][(int)$s['skill_id']] = (string)$s['name'];
+  }
 }
 
 /* -------------- Availability -------------- */
@@ -266,17 +287,20 @@ foreach ($emps as $eRow) {
   $empLon  = isset($eRow['emp_lon']) ? (float)$eRow['emp_lon'] : null;
 
   $empSkillsMap = $skillsByEmp[$empId] ?? [];
-  $skillsList   = listToLabel($empSkillsMap);
+  ksort($empSkillsMap);
+  $skillsList = array_values($empSkillsMap);
 
   // Required → missing
   $missing = [];
   if (!empty($reqIds)) {
     foreach ($reqIds as $rid) {
       if (!isset($empSkillsMap[$rid])) {
-        $missing[] = ['id'=>$rid,'name'=>$reqNamesById[$rid] ?? ('Skill '.$rid)];
+        $missing[] = $reqNamesById[$rid] ?? ('Skill '.$rid);
       }
     }
   }
+  $flags = [];
+  if (!empty($missing)) $flags[] = 'missing_required_skills';
 
   // Availability vs job window
   $status = 'none'; $coverStart = null; $coverEnd = null;
@@ -337,7 +361,8 @@ foreach ($emps as $eRow) {
     'last_name'     => $last,
     'qualified'     => $isQualified,
     'skills'        => $skillsList,
-    'missingSkills' => $missing,
+    'missing_required_skills' => $missing,
+    'flags'        => $flags,
     'availability'  => [ 'status'=>$status, 'window'=>$windowOut ],
     'conflicts'     => $conflicts,
     'dayLoad'       => $dayLoad,
@@ -381,8 +406,8 @@ $jobOut = [
   'start_local'          => $dtLocal->format(DateTimeInterface::ATOM),
   'end_local'            => $dtLocalEnd->format(DateTimeInterface::ATOM),
   'windowLabel'          => $jobWindowLabel,
-  'requiredJobTypeIds'   => array_values($reqIds),
-  'requiredJobTypeNames' => array_values(array_map(fn($id)=>$reqNamesById[$id] ?? ('Skill '.$id), $reqIds)),
+  'requiredSkillIds'   => array_values($reqIds),
+  'requiredSkillNames' => array_values(array_map(fn($id)=>$reqNamesById[$id] ?? ('Skill '.$id), $reqIds)),
 ];
 
 $out = [
