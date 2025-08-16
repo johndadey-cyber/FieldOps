@@ -42,7 +42,7 @@ if ($duration_min < 0)      $errors[] = 'Duration must be zero or more.';
 if ($status === '')         $errors[] = 'Status is required.';
 
 if ($errors) {
-    redirectWithFlash(($action === 'create' ? 'job_form.php' : "edit_job.php?id={$id}"), 'danger', implode(' ', $errors));
+    redirectWithFlash(($action === 'create' ? 'add_job.php' : "edit_job.php?id={$id}"), 'danger', implode(' ', $errors));
 }
 
 try {

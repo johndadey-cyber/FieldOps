@@ -29,6 +29,7 @@ if (!$csrf || !isset($_SESSION['csrf_token']) || !hash_equals((string)$_SESSION[
 }
 
 // Inputs
+$id             = isset($_POST['job_id']) ? (int)$_POST['job_id'] : (isset($_POST['id']) ? (int)$_POST['id'] : 0);
 $customerId      = isset($_POST['customer_id']) ? (int)$_POST['customer_id'] : 0;
 $description     = trim((string)($_POST['description'] ?? ''));
 $scheduledDate   = trim((string)($_POST['scheduled_date'] ?? ''));
@@ -89,14 +90,27 @@ try {
 
   $pdo->beginTransaction();
 
-  $sql = "INSERT INTO jobs (customer_id, description, status, scheduled_date, scheduled_time, duration_minutes)
-          VALUES (:cid,:desc,:status,:sdate,:stime,:dur)";
-  $st  = $pdo->prepare($sql);
-  $st->execute([
-    ':cid'=>$customerId, ':desc'=>$description, ':status'=>$canonical,
-    ':sdate'=>$scheduledDate, ':stime'=>$scheduledTime, ':dur'=>$durationMinutes,
-  ]);
-  $jobId = (int)$pdo->lastInsertId();
+  if ($id > 0) {
+    $sql = "UPDATE jobs SET customer_id=:cid, description=:desc, status=:status,"
+         . " scheduled_date=:sdate, scheduled_time=:stime, duration_minutes=:dur"
+         . " WHERE id=:id";
+    $st = $pdo->prepare($sql);
+    $st->execute([
+      ':cid'=>$customerId, ':desc'=>$description, ':status'=>$canonical,
+      ':sdate'=>$scheduledDate, ':stime'=>$scheduledTime, ':dur'=>$durationMinutes,
+      ':id'=>$id,
+    ]);
+    $jobId = $id;
+  } else {
+    $sql = "INSERT INTO jobs (customer_id, description, status, scheduled_date, scheduled_time, duration_minutes)"
+         . " VALUES (:cid,:desc,:status,:sdate,:stime,:dur)";
+    $st  = $pdo->prepare($sql);
+    $st->execute([
+      ':cid'=>$customerId, ':desc'=>$description, ':status'=>$canonical,
+      ':sdate'=>$scheduledDate, ':stime'=>$scheduledTime, ':dur'=>$durationMinutes,
+    ]);
+    $jobId = (int)$pdo->lastInsertId();
+  }
 
   $pdo->commit();
   json_out(['ok'=>true,'id'=>$jobId,'customer_id'=>$customerId,'status'=>$canonical], 200);
