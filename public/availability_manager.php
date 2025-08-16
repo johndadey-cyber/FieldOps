@@ -93,7 +93,16 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody></tbody>
+            <tbody>
+              <?php foreach (['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] as $d): ?>
+                <tr class="day-row" data-day="<?= s($d) ?>">
+                  <td><span class="badge bg-light text-dark day-badge"><?= s($d) ?></span></td>
+                  <td class="start"></td>
+                  <td class="end"></td>
+                  <td class="actions"></td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
           </table>
         </div>
         <div id="emptyState" class="text-muted d-none">No availability windows yet.</div>
@@ -136,18 +145,20 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     </div>
   </div>
 
-  <template id="rowTpl">
-    <tr data-id="">
-      <td><span class="badge bg-light text-dark day-badge"></span></td>
+  <template id="subRowTpl">
+    <tr class="sub-row" data-id="">
+      <td></td>
       <td class="start"></td>
       <td class="end"></td>
-      <td>
-        <div class="btn-group btn-group-sm">
-          <button class="btn btn-outline-primary btn-edit">Edit</button>
-          <button class="btn btn-outline-danger btn-del">Delete</button>
-        </div>
-      </td>
+      <td class="actions"></td>
     </tr>
+  </template>
+
+  <template id="actionTpl">
+    <div class="btn-group btn-group-sm">
+      <button class="btn btn-outline-primary btn-edit">Edit</button>
+      <button class="btn btn-outline-danger btn-del">Delete</button>
+    </div>
   </template>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
@@ -157,7 +168,10 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     const tableBody = document.querySelector('#availabilityTable tbody');
     const emptyState = document.getElementById('emptyState');
     const alertBox = document.getElementById('alertBox');
-    const rowTpl = document.getElementById('rowTpl');
+    const subRowTpl = document.getElementById('subRowTpl');
+    const actionTpl = document.getElementById('actionTpl');
+    const dayRows = {};
+    tableBody.querySelectorAll('tr.day-row').forEach(tr => { dayRows[tr.dataset.day] = tr; });
 
     const employeeInput = document.getElementById('employeeSearch');
     const employeeIdField = document.getElementById('employee_id');
@@ -207,38 +221,92 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       return parseInt(employeeIdField.value || '0', 10) || 0;
     }
 
+    function currentWeekStart() {
+      const d = new Date();
+      const day = d.getDay(); // 0 Sun - 6 Sat
+      const diff = (day === 0 ? -6 : 1) - day;
+      d.setDate(d.getDate() + diff);
+      return d.toISOString().slice(0, 10);
+    }
+
+    function clearRows() {
+      tableBody.querySelectorAll('.sub-row').forEach(r => r.remove());
+      for (const d of daysOrder) {
+        const row = dayRows[d];
+        row.dataset.id = '';
+        row.querySelector('.start').textContent = '';
+        row.querySelector('.end').textContent = '';
+        row.querySelector('.actions').innerHTML = '';
+        const badge = row.querySelector('.day-badge');
+        badge.className = 'badge bg-light text-dark day-badge';
+      }
+    }
+
+    function fillRow(tr, it) {
+      tr.dataset.id = it.id;
+      tr.querySelector('.start').textContent = it.start_time;
+      tr.querySelector('.end').textContent = it.end_time;
+      const actions = actionTpl.content.firstElementChild.cloneNode(true);
+      actions.querySelector('.btn-edit').addEventListener('click', () => openEdit(it));
+      actions.querySelector('.btn-del').addEventListener('click', () => delRow(it));
+      tr.querySelector('.actions').appendChild(actions);
+    }
+
+    function flagOverrides(overrides) {
+      const ovDays = new Set();
+      for (const o of overrides) {
+        const dt = new Date(o.date + 'T00:00:00');
+        const idx = dt.getDay();
+        const dayName = daysOrder[(idx + 6) % 7];
+        ovDays.add(dayName);
+      }
+      for (const d of daysOrder) {
+        const badge = dayRows[d].querySelector('.day-badge');
+        if (ovDays.has(d)) {
+          badge.className = 'badge bg-warning text-dark day-badge';
+        }
+      }
+    }
+
     async function loadAvailability() {
       const eid = currentEmployeeId();
-      if (!eid) { tableBody.innerHTML=''; emptyState.classList.remove('d-none'); return; }
-      const url = `availability_manager.php?action=list&employee_id=${encodeURIComponent(eid)}`;
+      clearRows();
+      if (!eid) { emptyState.classList.remove('d-none'); return; }
+      const ws = currentWeekStart();
+      const url = `api/availability/index.php?employee_id=${encodeURIComponent(eid)}&week_start=${ws}`;
       const res = await fetch(url, { headers: { 'Accept': 'application/json' }});
       const data = await res.json();
 
-      tableBody.innerHTML = '';
-      const items = (data && data.items) ? data.items : [];
+      const items = (data && data.availability) ? data.availability : [];
+      const overrides = (data && data.overrides) ? data.overrides : [];
+
       if (!items.length) {
         emptyState.classList.remove('d-none');
-        return;
+      } else {
+        emptyState.classList.add('d-none');
       }
-      emptyState.classList.add('d-none');
 
-      items.sort((a,b) => {
-        const da = daysOrder.indexOf(a.day_of_week), db = daysOrder.indexOf(b.day_of_week);
-        if (da !== db) return da - db;
-        return (a.start_time || '').localeCompare(b.start_time || '');
-      });
-
+      const groups = {};
+      for (const d of daysOrder) groups[d] = [];
       for (const it of items) {
-        const tr = rowTpl.content.firstElementChild.cloneNode(true);
-        tr.dataset.id = it.id;
-        tr.querySelector('.day-badge').textContent = it.day_of_week;
-        tr.querySelector('.start').textContent = it.start_time;
-        tr.querySelector('.end').textContent = it.end_time;
-
-        tr.querySelector('.btn-edit').addEventListener('click', () => openEdit(it));
-        tr.querySelector('.btn-del').addEventListener('click', () => delRow(it));
-        tableBody.appendChild(tr);
+        if (groups[it.day_of_week]) groups[it.day_of_week].push(it);
       }
+
+      for (const d of daysOrder) {
+        const arr = groups[d];
+        arr.sort((a,b) => (a.start_time || '').localeCompare(b.start_time || ''));
+        if (!arr.length) continue;
+        fillRow(dayRows[d], arr[0]);
+        let prev = dayRows[d];
+        for (const it of arr.slice(1)) {
+          const sub = subRowTpl.content.firstElementChild.cloneNode(true);
+          fillRow(sub, it);
+          tableBody.insertBefore(sub, prev.nextSibling);
+          prev = sub;
+        }
+      }
+
+      if (overrides.length) flagOverrides(overrides);
     }
 
     function openAdd() {
