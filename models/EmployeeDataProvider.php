@@ -7,6 +7,7 @@ final class EmployeeDataProvider
 {
     /**
      * @param ?list<string> $skills
+     * @param ?string $search
      * @return array{rows:array<int, array{
      *   employee_id:int,
      *   first_name:string,
@@ -24,7 +25,8 @@ final class EmployeeDataProvider
         int $page = 1,
         int $perPage = 25,
         ?string $sort = null,
-        ?string $direction = null
+        ?string $direction = null,
+        ?string $search = null
     ): array
     {
         $where = "WHERE 1=1";
@@ -51,7 +53,16 @@ final class EmployeeDataProvider
             }
         }
 
-        $countSql = "SELECT COUNT(*) FROM employees e $where";
+        if ($search !== null && $search !== '') {
+            $where .= " AND (p.first_name LIKE :search1 OR p.last_name LIKE :search2 OR p.email LIKE :search3 OR p.phone LIKE :search4)";
+            $value = '%' . $search . '%';
+            $params[':search1'] = $value;
+            $params[':search2'] = $value;
+            $params[':search3'] = $value;
+            $params[':search4'] = $value;
+        }
+
+        $countSql = "SELECT COUNT(*) FROM employees e JOIN people p ON p.id = e.person_id $where";
         $countStmt = $pdo->prepare($countSql);
         $countStmt->execute($params);
         $total = (int)$countStmt->fetchColumn();
