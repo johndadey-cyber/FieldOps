@@ -54,8 +54,14 @@ final class EmployeeDataProvider
         }
 
         if ($search !== null && $search !== '') {
-            $where .= " AND (p.first_name LIKE :search OR p.last_name LIKE :search OR p.email LIKE :search OR p.phone LIKE :search)";
-            $params[':search'] = '%' . $search . '%';
+
+            $where .= " AND (p.first_name LIKE :search1 OR p.last_name LIKE :search2 OR p.email LIKE :search3 OR p.phone LIKE :search4)";
+            $value = '%' . $search . '%';
+            $params[':search1'] = $value;
+            $params[':search2'] = $value;
+            $params[':search3'] = $value;
+            $params[':search4'] = $value;
+
         }
 
         $countSql = "SELECT COUNT(*) FROM employees e JOIN people p ON p.id = e.person_id $where";
