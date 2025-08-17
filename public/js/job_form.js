@@ -6,6 +6,7 @@
     var errBox = document.getElementById('form-errors');
     var customerSelect = document.getElementById('customerId');
     var skillError = document.getElementById('jobSkillError');
+    var jobTypeError = document.getElementById('jobTypeError');
 
     function showErrors(list){
       if(!errBox) return;
@@ -32,8 +33,10 @@
       e.preventDefault();
       showErrors([]);
       var skillChecks = form.querySelectorAll('input[name="skills[]"]:checked');
+      var typeChecks = form.querySelectorAll('input[name="job_types[]"]:checked');
       var valid = form.checkValidity();
       if(skillChecks.length===0){ if(skillError){skillError.style.display='block';} valid=false; } else { if(skillError){skillError.style.display='none';} }
+      if(typeChecks.length===0){ if(jobTypeError){jobTypeError.style.display='block';} valid=false; } else { if(jobTypeError){jobTypeError.style.display='none';} }
       if(!valid){ form.classList.add('was-validated'); return; }
       var submitBtn=form.querySelector('button[type="submit"]');
       var originalHTML = submitBtn ? submitBtn.innerHTML : '';
