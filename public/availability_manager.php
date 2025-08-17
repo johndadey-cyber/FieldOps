@@ -121,7 +121,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       <form class="modal-content" id="winForm">
         <div class="modal-header">
           <h5 class="modal-title" id="winTitle">Add Window</h5>
-          <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body row g-3">
           <input type="hidden" name="id" id="win_id">
@@ -215,6 +215,14 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     const winEndDate = document.getElementById('win_end_date');
     const btnWeekdays = document.getElementById('btnWeekdays');
     const btnClearWeek = document.getElementById('btnClearWeek');
+
+    // Clear focus inside the modal before it is hidden to avoid accessibility warnings
+    winModalEl.addEventListener('hide.bs.modal', () => {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && winModalEl.contains(active)) {
+        active.blur();
+      }
+    });
 
     function toggleRecurring() {
       const hide = winRecurring.checked;
