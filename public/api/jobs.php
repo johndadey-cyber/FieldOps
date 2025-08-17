@@ -25,13 +25,7 @@ try {
     $statusList = array_filter(array_map('trim', explode(',', $statusParam)));
     $mappedStatuses = [];
     foreach ($statusList as $s) {
-        $key = str_replace(' ', '_', strtolower($s));
-        if ($key === 'scheduled') {
-            $mappedStatuses[] = 'scheduled';
-            $mappedStatuses[] = 'assigned';
-        } else {
-            $mappedStatuses[] = $key;
-        }
+        $mappedStatuses[] = str_replace(' ', '_', strtolower($s));
     }
     if (!$mappedStatuses) {
         $mappedStatuses = ['scheduled', 'assigned', 'in_progress'];
@@ -55,11 +49,12 @@ try {
 
     if ($search !== '') {
         $needle = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search);
-        $args[':q1'] = "%{$needle}%";
-        $args[':q2'] = "%{$needle}%";
-        $args[':q3'] = "%{$needle}%";
-        $args[':q4'] = "%{$needle}%";
-        $where[] = "(c.first_name LIKE :q1 ESCAPE '\\' OR c.last_name LIKE :q2 ESCAPE '\\' OR c.address_line1 LIKE :q3 ESCAPE '\\' OR c.city LIKE :q4 ESCAPE '\\')";
+        $like = "%{$needle}%";
+        $args[':q1'] = $like;
+        $args[':q2'] = $like;
+        $args[':q3'] = $like;
+        $args[':q4'] = $like;
+        $where[] = '(c.first_name LIKE :q1 OR c.last_name LIKE :q2 OR c.address_line1 LIKE :q3 OR c.city LIKE :q4)';
     }
 
     $sql = "SELECT j.id, j.scheduled_date, j.scheduled_time, j.status, COALESCE(j.duration_minutes,60) AS duration_minutes,
