@@ -11,6 +11,7 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../../config/database.php';
 if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 require_once __DIR__ . '/../../_csrf.php';
+require_once __DIR__ . '/../../../helpers/availability_error_logger.php';
 
 $pdo = getPDO();
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -116,6 +117,7 @@ try {
     $pdo->commit();
 } catch (Throwable $e) {
     $pdo->rollBack();
+    availability_log_error($pdo, $eid, $data, $e);
     http_response_code(500);
     echo json_encode(['ok'=>false,'error'=>'db_error','message'=>'Failed to save availability.']);
     exit;
