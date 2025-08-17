@@ -5,6 +5,26 @@ require __DIR__ . '/_cli_guard.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/_csrf.php';
 
+// Centralized logging so deploys can inspect failures.
+$__availabilityLogFile = __DIR__ . '/../logs/availability_error.log';
+$logException = static function (Throwable $e) use ($__availabilityLogFile): void {
+    $msg = sprintf(
+        "[%s] %s in %s:%d\n%s\n",
+        date('c'),
+        $e->getMessage(),
+        $e->getFile(),
+        $e->getLine(),
+        $e->getTraceAsString()
+    );
+    error_log($msg, 3, $__availabilityLogFile);
+};
+register_shutdown_function(function () use ($logException) {
+    $err = error_get_last();
+    if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+        $logException(new ErrorException($err['message'], 0, $err['type'], $err['file'], $err['line']));
+    }
+});
+
 function wants_json(): bool {
     $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
     $xhr    = $_SERVER['HTTP_X_REQUESTED_WITH'] ?? '';
@@ -52,47 +72,46 @@ function has_overlap(PDO $pdo, int $employeeId, array $days, string $start, stri
     return ((int)($row['cnt'] ?? 0)) > 0;
 }
 
-$pdo = getPDO();
-
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-if ($method !== 'POST') { json_out(['ok'=>false,'error'=>'Method not allowed'], 405); }
-
-$token = (string)($_POST['csrf_token'] ?? '');
-if (!csrf_verify($token)) { json_out(['ok'=>false,'error'=>'Invalid CSRF token'], 422); }
-
-$employeeId = isset($_POST['employee_id']) ? (int)$_POST['employee_id'] : 0;
-$dayInput   = $_POST['day_of_week'] ?? [];
-$days       = is_array($dayInput) ? $dayInput : [(string)$dayInput];
-$start      = norm_time((string)($_POST['start_time'] ?? ''));
-$end        = norm_time((string)($_POST['end_time'] ?? ''));
-
-$validDays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-$errors = [];
-if ($employeeId <= 0) $errors[] = 'employee_id is required';
-if ($days === []) $errors[] = 'day_of_week invalid';
-foreach ($days as $d) {
-    if (!in_array($d, $validDays, true)) { $errors[] = 'day_of_week invalid'; break; }
-}
-if ($start >= $end) $errors[] = 'end_time must be after start_time';
-
-if (!$errors && has_overlap($pdo, $employeeId, $days, $start, $end, null)) {
-    $errors[] = 'Window overlaps an existing window for selected day(s). Overrides take precedence.';
-}
-
-if ($errors) { json_out(['ok'=>false,'errors'=>$errors], 422); }
-
 try {
-    $ins = $pdo->prepare("
-        INSERT INTO employee_availability (employee_id, day_of_week, start_time, end_time)
-        VALUES (:eid, :dow, :st, :et)
-    ");
+    $pdo = getPDO();
+
+    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+    if ($method !== 'POST') { json_out(['ok'=>false,'error'=>'Method not allowed'], 405); }
+
+    $token = (string)($_POST['csrf_token'] ?? '');
+    if (!csrf_verify($token)) { json_out(['ok'=>false,'error'=>'Invalid CSRF token'], 422); }
+
+    $employeeId = isset($_POST['employee_id']) ? (int)$_POST['employee_id'] : 0;
+    $dayInput   = $_POST['day_of_week'] ?? [];
+    $days       = is_array($dayInput) ? $dayInput : [(string)$dayInput];
+    $start      = norm_time((string)($_POST['start_time'] ?? ''));
+    $end        = norm_time((string)($_POST['end_time'] ?? ''));
+
+    $validDays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    $errors = [];
+    if ($employeeId <= 0) $errors[] = 'employee_id is required';
+    if ($days === []) $errors[] = 'day_of_week invalid';
+    foreach ($days as $d) {
+        if (!in_array($d, $validDays, true)) { $errors[] = 'day_of_week invalid'; break; }
+    }
+    if ($start >= $end) $errors[] = 'end_time must be after start_time';
+
+    if (!$errors && has_overlap($pdo, $employeeId, $days, $start, $end, null)) {
+        $errors[] = 'Window overlaps an existing window for selected day(s). Overrides take precedence.';
+    }
+
+    if ($errors) { json_out(['ok'=>false,'errors'=>$errors], 422); }
+
+    $ins = $pdo->prepare(
+        "INSERT INTO employee_availability (employee_id, day_of_week, start_time, end_time) VALUES (:eid, :dow, :st, :et)"
+    );
     foreach ($days as $d) {
         $ins->execute([':eid'=>$employeeId, ':dow'=>$d, ':st'=>$start, ':et'=>$end]);
     }
     $newId = (int)$pdo->lastInsertId();
     try {
         $uid = $_SESSION['user']['id'] ?? null;
-        $det = json_encode(['id'=>$newId,'day'=>$day,'start'=>$start,'end'=>$end], JSON_UNESCAPED_UNICODE);
+        $det = json_encode(['id'=>$newId,'days'=>$days,'start'=>$start,'end'=>$end], JSON_UNESCAPED_UNICODE);
         $pdo->prepare('INSERT INTO availability_audit (employee_id, user_id, action, details) VALUES (:eid,:uid,:act,:det)')
             ->execute([':eid'=>$employeeId, ':uid'=>$uid, ':act'=>'create', ':det'=>$det]);
     } catch (Throwable $e) {
@@ -100,6 +119,6 @@ try {
     }
     json_out(['ok'=>true,'id'=>$newId]);
 } catch (Throwable $e) {
-    error_log('[availability_save] ' . $e->getMessage());
+    $logException($e);
     json_out(['ok'=>false,'error'=>'Save failed'], 500);
 }
