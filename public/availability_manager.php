@@ -809,37 +809,41 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       const days = Array.from(winDays.options).filter(o => o.selected).map(o => o.value);
       if (!days.length) { showAlert('warning', 'Select at least one day.'); return; }
 
-      const base = {
+      const payload = {
         csrf_token: CSRF,
         employee_id: eid,
+        day_of_week: days,
         start_time: winStart.value,
         end_time: winEnd.value
       };
       if (!winRecurring.checked) {
-        if (winStartDate.value) base.start_date = winStartDate.value;
-        if (winEndDate.value) base.end_date = winEndDate.value;
+        if (winStartDate.value) payload.start_date = winStartDate.value;
+        if (winEndDate.value) payload.end_date = winEndDate.value;
       }
-      if (id) base.id = id;
+      if (id) payload.id = id;
 
-      let ok = true;
-      const targetDays = id ? [days[0]] : days;
-      for (const day of targetDays) {
-        const payload = { ...base, day_of_week: day };
+      let ok = false;
+      try {
         const res = await fetch('api/availability/create.php', {
           method: 'POST',
+          credentials: 'same-origin',
           headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
         const data = await res.json();
-        if (!data || !data.ok) { ok = false; break; }
+        ok = data && data.ok;
+        if (!ok) {
+          const msg = (data && (data.message || data.error || (Array.isArray(data.errors) ? data.errors.join(', ') : data.errors))) || 'Save failed';
+          showAlert('danger', msg);
+        }
+      } catch (err) {
+        showAlert('danger', 'Save failed');
       }
 
       if (ok) {
         showAlert('success', 'Saved.');
         winModal.hide();
         loadAvailability();
-      } else {
-        showAlert('danger', 'Save failed');
       }
     });
 
