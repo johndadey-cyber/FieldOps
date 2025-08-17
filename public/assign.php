@@ -120,7 +120,7 @@ function rowHTML(emp, prechecked) {
     ? `<div class="text-muted small">Skills: ${emp.skills.map(s=>s.name||s).join(', ')}</div>`
     : '';
   const dist = (typeof emp.distanceKm === 'number')
-    ? `<span class="ms-2 badge text-bg-light border">${emp.distanceKm.toFixed(1)} km</span>`
+    ? `<span class="ms-2 badge text-bg-light border">${(emp.distanceKm * 0.621371).toFixed(1)} mi</span>`
     : '';
   const checked = prechecked ? 'checked' : '';
   const win = emp.availability && emp.availability.window ? emp.availability.window : '';
