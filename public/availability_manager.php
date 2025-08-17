@@ -233,6 +233,13 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       return parseInt(employeeIdField.value || '0', 10) || 0;
     }
 
+    function currentWeekStart() {
+      const d = new Date();
+      const diff = (d.getDay() + 6) % 7; // days since Monday
+      d.setDate(d.getDate() - diff);
+      return d.toISOString().slice(0,10);
+    }
+
     function clearRows() {
       tableBody.querySelectorAll('.sub-row').forEach(r => r.remove());
       for (const d of daysOrder) {
@@ -261,11 +268,12 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
 
       clearRows();
       if (!eid) { emptyState.classList.remove('d-none'); return; }
-      const url = `availability_manager.php?action=list&employee_id=${encodeURIComponent(eid)}`;
+      const ws = currentWeekStart();
+      const url = `api/availability/index.php?employee_id=${encodeURIComponent(eid)}&week_start=${ws}`;
       const res = await fetch(url, { headers: { 'Accept': 'application/json' }});
       const data = await res.json();
 
-      const items = (data && data.items) ? data.items : [];
+      const items = Array.isArray(data.availability) ? data.availability : [];
 
       // Ensure items are ordered Monday→Sunday using daysOrder then by start time
       items.sort((a,b) => {
@@ -296,6 +304,20 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           fillRow(sub, it);
           tableBody.insertBefore(sub, prev.nextSibling);
           prev = sub;
+        }
+      }
+
+      const overrides = Array.isArray(data.overrides) ? data.overrides : [];
+      for (const ov of overrides) {
+        let day = ov.day_of_week;
+        if (!day && ov.date) {
+          const dt = new Date(ov.date + 'T00:00:00');
+          day = daysOrder[(dt.getDay() + 6) % 7];
+        }
+        const row = dayRows[day];
+        if (row) {
+          const badge = row.querySelector('.day-badge');
+          badge.className = 'badge bg-warning text-dark day-badge';
         }
       }
     }
