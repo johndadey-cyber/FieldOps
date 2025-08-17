@@ -34,6 +34,15 @@ try {
     // Remove existing
     $pdo->prepare("DELETE FROM availability WHERE person_id = :pid")->execute([':pid' => $personId]);
 
+    try {
+        $uid = $_SESSION['user']['id'] ?? null;
+        $det = json_encode(['person_id'=>$personId], JSON_UNESCAPED_UNICODE);
+        $pdo->prepare('INSERT INTO availability_audit (employee_id, user_id, action, details) VALUES (:eid,:uid,:act,:det)')
+            ->execute([':eid'=>$employeeId, ':uid'=>$uid, ':act'=>'delete_all', ':det'=>$det]);
+    } catch (Throwable $e) {
+        // ignore audit errors
+    }
+
     // Insert new rows
     $ins = $pdo->prepare("
         INSERT INTO availability (person_id, day_of_week, start_time, end_time)
@@ -56,6 +65,14 @@ try {
             ':st'  => strlen($st) === 5 ? $st.':00' : $st,
             ':et'  => strlen($et) === 5 ? $et.':00' : $et,
         ]);
+        try {
+            $uid = $_SESSION['user']['id'] ?? null;
+            $det = json_encode(['day'=>$dow,'start'=>$st,'end'=>$et], JSON_UNESCAPED_UNICODE);
+            $pdo->prepare('INSERT INTO availability_audit (employee_id, user_id, action, details) VALUES (:eid,:uid,:act,:det)')
+                ->execute([':eid'=>$employeeId, ':uid'=>$uid, ':act'=>'create', ':det'=>$det]);
+        } catch (Throwable $e) {
+            // ignore audit errors
+        }
     }
 
     $pdo->commit();

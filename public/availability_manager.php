@@ -5,7 +5,7 @@ require __DIR__ . '/_cli_guard.php';
 require_once __DIR__ . '/_csrf.php';
 
 // Only include DB helpers when needed (AJAX list action)
-if (($_GET['action'] ?? '') === 'list') {
+if (in_array($_GET['action'] ?? '', ['list','log'], true)) {
     require_once __DIR__ . '/../config/database.php';
 }
 
@@ -38,6 +38,16 @@ if (($_GET['action'] ?? '') === 'list') {
         WHERE employee_id = :eid
         ORDER BY {$daysOrder}, start_time
     ");
+    $st->execute([':eid'=>$eid]);
+    $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+    json_out(['ok'=>true,'items'=>$rows]);
+}
+
+if (($_GET['action'] ?? '') === 'log') {
+    $pdo = getPDO();
+    $eid = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 0;
+    if ($eid <= 0) { json_out(['ok'=>true,'items'=>[]]); }
+    $st = $pdo->prepare("SELECT action, details, created_at FROM availability_audit WHERE employee_id = :eid ORDER BY created_at DESC LIMIT 20");
     $st->execute([':eid'=>$eid]);
     $rows = $st->fetchAll(PDO::FETCH_ASSOC);
     json_out(['ok'=>true,'items'=>$rows]);
@@ -84,6 +94,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           <div class="col-auto">
             <button type="button" class="btn btn-success" id="btnAdd">Add Window</button>
             <button type="button" class="btn btn-warning ms-2" id="btnAddOverride">Add Override</button>
+            <button type="button" class="btn btn-outline-info ms-2" id="btnShowLog">Change Log</button>
           </div>
         </form>
       </div>
@@ -247,6 +258,20 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     </div>
   </div>
 
+  <div class="modal fade" id="logModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Change Log</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="logContent" class="small"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <template id="subRowTpl">
     <tr class="sub-row" data-id="">
       <td></td>
@@ -291,6 +316,10 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     const resultSelect = document.getElementById('employeeResults');
     const btnAdd = document.getElementById('btnAdd');
     const btnAddOverride = document.getElementById('btnAddOverride');
+    const btnLog = document.getElementById('btnShowLog');
+    const logModalEl = document.getElementById('logModal');
+    const logModal = new bootstrap.Modal(logModalEl);
+    const logContent = document.getElementById('logContent');
 
     const winModalEl = document.getElementById('winModal');
     const winModal = new bootstrap.Modal(winModalEl);
@@ -671,8 +700,32 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       }
     });
 
+    async function showLog() {
+      const eid = currentEmployeeId();
+      if (!eid) { return; }
+      try {
+        const res = await fetch(`availability_manager.php?action=log&employee_id=${encodeURIComponent(eid)}`, { headers: { 'Accept':'application/json' }});
+        const data = await res.json();
+        logContent.innerHTML = '';
+        const items = Array.isArray(data.items) ? data.items : [];
+        if (!items.length) {
+          logContent.textContent = 'No recent changes.';
+        } else {
+          for (const row of items) {
+            const div = document.createElement('div');
+            div.textContent = `[${row.created_at}] ${row.action} ${row.details || ''}`;
+            logContent.appendChild(div);
+          }
+        }
+        logModal.show();
+      } catch (err) {
+        showAlert('danger', 'Failed to load change log');
+      }
+    }
+
     document.getElementById('btnAdd').addEventListener('click', openAdd);
     btnAddOverride.addEventListener('click', openOvAdd);
+    btnLog.addEventListener('click', showLog);
 
     const initId = currentEmployeeId();
     if (initId) {
