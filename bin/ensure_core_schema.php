@@ -194,6 +194,22 @@ if (!tableExists($pdo, 'employee_availability_overrides')) {
     out('[OK] employee_availability_overrides created');
 }
 
+
+if (!tableExists($pdo, 'availability_audit')) {
+    out('[..] Creating table availability_audit ...');
+    $pdo->exec(
+        "CREATE TABLE `availability_audit` (
+            `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            `employee_id` INT NOT NULL,
+            `user_id` INT NULL,
+            `action` VARCHAR(50) NOT NULL,
+            `details` TEXT NULL,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+    );
+    out('[OK] availability_audit created');
+}
+
 if (!tableExists($pdo, 'skills')) {
     out('[..] Creating table skills ...');
     $pdo->exec(
@@ -260,7 +276,7 @@ if (tableExists($pdo, 'customers')) {
 }
 
 out("== Ensuring PRIMARY KEYS ==");
-foreach (['people','employees','job_types','employee_availability_overrides'] as $t) {
+foreach (['people','employees','job_types','employee_availability_overrides','availability_audit'] as $t) {
     ensureAutoPk($pdo, $t);
 }
 
@@ -280,6 +296,7 @@ ensureFk($pdo, 'job_employee_assignment', 'job_id', 'jobs', 'id', 'fk_jea_job', 
 ensureFk($pdo, 'job_employee_assignment', 'employee_id', 'employees', 'id', 'fk_jea_employee', 'RESTRICT', 'RESTRICT');
 
 ensureFk($pdo, 'employee_availability_overrides', 'employee_id', 'employees', 'id', 'fk_eao_employee', 'CASCADE', 'CASCADE');
+ensureFk($pdo, 'availability_audit', 'employee_id', 'employees', 'id', 'fk_avail_audit_employee', 'CASCADE', 'CASCADE');
 
 out(PHP_EOL . "== Ensuring UNIQUE indexes ==");
 ensureUnique($pdo, 'employee_availability', ['employee_id','day_of_week','start_time','end_time'], 'uq_availability_window');

@@ -92,6 +92,14 @@ try {
     $ok = $up->execute([
         ':eid'=>$employeeId, ':dow'=>$day, ':st'=>$start, ':et'=>$end, ':id'=>$id
     ]);
+    try {
+        $uid = $_SESSION['user']['id'] ?? null;
+        $det = json_encode(['id'=>$id,'day'=>$day,'start'=>$start,'end'=>$end], JSON_UNESCAPED_UNICODE);
+        $pdo->prepare('INSERT INTO availability_audit (employee_id, user_id, action, details) VALUES (:eid,:uid,:act,:det)')
+            ->execute([':eid'=>$employeeId, ':uid'=>$uid, ':act'=>'update', ':det'=>$det]);
+    } catch (Throwable $e) {
+        // ignore audit errors
+    }
     json_out(['ok'=> (bool)$ok, 'id'=>$id]);
 } catch (Throwable $e) {
     error_log('[availability_update] ' . $e->getMessage());

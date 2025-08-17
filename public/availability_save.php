@@ -90,6 +90,14 @@ try {
         $ins->execute([':eid'=>$employeeId, ':dow'=>$d, ':st'=>$start, ':et'=>$end]);
     }
     $newId = (int)$pdo->lastInsertId();
+    try {
+        $uid = $_SESSION['user']['id'] ?? null;
+        $det = json_encode(['id'=>$newId,'day'=>$day,'start'=>$start,'end'=>$end], JSON_UNESCAPED_UNICODE);
+        $pdo->prepare('INSERT INTO availability_audit (employee_id, user_id, action, details) VALUES (:eid,:uid,:act,:det)')
+            ->execute([':eid'=>$employeeId, ':uid'=>$uid, ':act'=>'create', ':det'=>$det]);
+    } catch (Throwable $e) {
+        // ignore audit errors
+    }
     json_out(['ok'=>true,'id'=>$newId]);
 } catch (Throwable $e) {
     error_log('[availability_save] ' . $e->getMessage());

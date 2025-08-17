@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../../config/database.php';
+if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
 $pdo = getPDO();
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -90,5 +91,15 @@ if ($id > 0) {
     $id = (int)$pdo->lastInsertId();
 }
 
+
+try {
+    $uid = $_SESSION['user']['id'] ?? null;
+    $det = json_encode(['id'=>$id,'day'=>$day,'start'=>$start,'end'=>$end], JSON_UNESCAPED_UNICODE);
+    $act = $id > 0 ? 'update' : 'create';
+    $pdo->prepare('INSERT INTO availability_audit (employee_id, user_id, action, details) VALUES (:eid,:uid,:act,:det)')
+        ->execute([':eid'=>$eid, ':uid'=>$uid, ':act'=>$act, ':det'=>$det]);
+} catch (Throwable $e) {
+    // ignore audit errors
+}
 echo json_encode(['ok'=>true,'id'=>$id]);
 
