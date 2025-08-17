@@ -127,20 +127,38 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           <input type="hidden" name="id" id="win_id">
           <input type="hidden" name="csrf_token" id="csrf_token" value="<?= s($__csrf) ?>">
           <div class="col-12">
-            <label class="form-label">Day of Week</label>
-            <select class="form-select" name="day_of_week" id="win_day" required>
+            <label class="form-label">Days of Week</label>
+            <select class="form-select" id="win_days" multiple required>
               <?php foreach (['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] as $d): ?>
                 <option value="<?= s($d) ?>"><?= s($d) ?></option>
               <?php endforeach; ?>
             </select>
+            <div class="mt-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="btnWeekdays">Copy to all weekdays</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="btnClearWeek">Clear week</button>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="win_recurring" checked>
+              <label class="form-check-label" for="win_recurring">Recurring?</label>
+            </div>
+          </div>
+          <div class="col-6 date-range d-none">
+            <label class="form-label">Start Date</label>
+            <input type="date" class="form-control" id="win_start_date">
+          </div>
+          <div class="col-6 date-range d-none">
+            <label class="form-label">End Date</label>
+            <input type="date" class="form-control" id="win_end_date">
           </div>
           <div class="col-6">
             <label class="form-label">Start</label>
-            <input type="time" class="form-control" name="start_time" id="win_start" required>
+            <input type="time" class="form-control" id="win_start" required>
           </div>
           <div class="col-6">
             <label class="form-label">End</label>
-            <input type="time" class="form-control" name="end_time" id="win_end" required>
+            <input type="time" class="form-control" id="win_end" required>
           </div>
         </div>
         <div class="modal-footer">
@@ -189,9 +207,29 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     const winForm = document.getElementById('winForm');
     const winTitle = document.getElementById('winTitle');
     const winId = document.getElementById('win_id');
-    const winDay = document.getElementById('win_day');
+    const winDays = document.getElementById('win_days');
     const winStart = document.getElementById('win_start');
     const winEnd = document.getElementById('win_end');
+    const winRecurring = document.getElementById('win_recurring');
+    const winStartDate = document.getElementById('win_start_date');
+    const winEndDate = document.getElementById('win_end_date');
+    const btnWeekdays = document.getElementById('btnWeekdays');
+    const btnClearWeek = document.getElementById('btnClearWeek');
+
+    function toggleRecurring() {
+      const hide = winRecurring.checked;
+      document.querySelectorAll('.date-range').forEach(el => el.classList.toggle('d-none', hide));
+    }
+    winRecurring.addEventListener('change', toggleRecurring);
+    toggleRecurring();
+
+    btnWeekdays.addEventListener('click', () => {
+      const weekdays = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+      Array.from(winDays.options).forEach(o => o.selected = weekdays.includes(o.value));
+    });
+    btnClearWeek.addEventListener('click', () => {
+      Array.from(winDays.options).forEach(o => { o.selected = false; });
+    });
 
     employeeInput.addEventListener('input', async () => {
       const q = employeeInput.value.trim();
@@ -325,18 +363,26 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     function openAdd() {
       winTitle.textContent = 'Add Window';
       winId.value = '';
-      winDay.value = 'Monday';
+      Array.from(winDays.options).forEach(o => { o.selected = o.value === 'Monday'; });
       winStart.value = '09:00';
       winEnd.value = '17:00';
+      winRecurring.checked = true;
+      winStartDate.value = '';
+      winEndDate.value = '';
+      toggleRecurring();
       winModal.show();
     }
 
     function openEdit(it) {
       winTitle.textContent = 'Edit Window';
       winId.value = it.id;
-      winDay.value = it.day_of_week;
+      Array.from(winDays.options).forEach(o => { o.selected = o.value === it.day_of_week; });
       winStart.value = it.start_time;
       winEnd.value = it.end_time;
+      winRecurring.checked = true;
+      winStartDate.value = '';
+      winEndDate.value = '';
+      toggleRecurring();
       winModal.show();
     }
 
@@ -365,29 +411,40 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       if (!eid) { showAlert('warning', 'Select an employee first.'); return; }
 
       const id = winId.value.trim();
-      const form = new URLSearchParams();
-      form.set('csrf_token', CSRF);
-      form.set('employee_id', String(eid));
-      form.set('day_of_week', winDay.value);
-      form.set('start_time', winStart.value);
-      form.set('end_time', winEnd.value);
+      const days = Array.from(winDays.options).filter(o => o.selected).map(o => o.value);
+      if (!days.length) { showAlert('warning', 'Select at least one day.'); return; }
 
-      const endpoint = id ? 'availability_update.php' : 'availability_save.php';
-      if (id) form.set('id', id);
+      const base = {
+        csrf_token: CSRF,
+        employee_id: eid,
+        start_time: winStart.value,
+        end_time: winEnd.value
+      };
+      if (!winRecurring.checked) {
+        if (winStartDate.value) base.start_date = winStartDate.value;
+        if (winEndDate.value) base.end_date = winEndDate.value;
+      }
+      if (id) base.id = id;
 
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Accept': 'application/json' },
-        body: form
-      });
-      const data = await res.json();
-      if (data && data.ok) {
+      let ok = true;
+      const targetDays = id ? [days[0]] : days;
+      for (const day of targetDays) {
+        const payload = { ...base, day_of_week: day };
+        const res = await fetch('api/availability/create.php', {
+          method: 'POST',
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!data || !data.ok) { ok = false; break; }
+      }
+
+      if (ok) {
         showAlert('success', 'Saved.');
         winModal.hide();
         loadAvailability();
       } else {
-        const msg = (data && (data.error || (data.errors||[]).join(', '))) || 'Save failed';
-        showAlert('danger', msg);
+        showAlert('danger', 'Save failed');
       }
     });
 
