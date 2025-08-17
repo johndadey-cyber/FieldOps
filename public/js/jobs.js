@@ -7,7 +7,6 @@
     const $start=document.getElementById('filter-start');
     const $end=document.getElementById('filter-end');
     const $status=document.getElementById('filter-status');
-    const $jobType=document.getElementById('filter-job-type');
     const $search=document.getElementById('filter-search');
     const $showPast=document.getElementById('filter-show-past');
 
@@ -18,7 +17,6 @@
       if($start?.value) params.set('start',$start.value);
       if($end?.value) params.set('end',$end.value);
       const sts=selectedValues($status); if(sts.length) params.set('status',sts.join(','));
-      const jts=selectedValues($jobType); if(jts.length) params.set('job_type',jts.join(','));
       if($search?.value.trim()) params.set('search',$search.value.trim());
       if($showPast?.checked) params.set('show_past','1');
       try{
@@ -108,7 +106,7 @@
 
     function debounce(fn,ms){let t;return (...args)=>{clearTimeout(t);t=setTimeout(()=>fn.apply(this,args),ms);};}
     const trigger=debounce(loadJobs,300);
-    [$start,$end,$status,$jobType,$showPast].forEach(el=>{el&&el.addEventListener('change',trigger);});
+    [$start,$end,$status,$showPast].forEach(el=>{el&&el.addEventListener('change',trigger);});
     $search&&$search.addEventListener('input',trigger);
     window.addEventListener('assignments:updated', loadJobs);
     loadJobs();

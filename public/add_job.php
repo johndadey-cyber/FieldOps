@@ -8,6 +8,5 @@ if ($role !== 'dispatcher') { http_response_code(403); echo "Forbidden"; exit; }
 $mode       = 'add';
 $job        = [];
 $jobSkillIds = [];
-$jobTypeIds  = [];
 
 require __DIR__ . '/job_form.php';

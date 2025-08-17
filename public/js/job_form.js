@@ -4,9 +4,14 @@
     if(!form) return;
     var mode = form.getAttribute('data-mode') || 'add';
     var errBox = document.getElementById('form-errors');
-    var customerSelect = document.getElementById('customerId');
     var skillError = document.getElementById('jobSkillError');
-    var jobTypeError = document.getElementById('jobTypeError');
+
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+      var skillsSelect = $('#skills');
+      if (skillsSelect.length) {
+        skillsSelect.select2({ width: '100%' });
+      }
+    }
 
     function showErrors(list){
       if(!errBox) return;
@@ -32,11 +37,10 @@
     form.addEventListener('submit', function(e){
       e.preventDefault();
       showErrors([]);
-      var skillChecks = form.querySelectorAll('input[name="skills[]"]:checked');
-      var typeChecks = form.querySelectorAll('input[name="job_types[]"]:checked');
+      var skillSelect = form.querySelector('#skills');
+      var selectedSkills = Array.from(skillSelect?.selectedOptions || []);
       var valid = form.checkValidity();
-      if(skillChecks.length===0){ if(skillError){skillError.style.display='block';} valid=false; } else { if(skillError){skillError.style.display='none';} }
-      if(typeChecks.length===0){ if(jobTypeError){jobTypeError.style.display='block';} valid=false; } else { if(jobTypeError){jobTypeError.style.display='none';} }
+      if(selectedSkills.length===0){ if(skillError){skillError.style.display='block';} valid=false; } else { if(skillError){skillError.style.display='none';} }
       if(!valid){ form.classList.add('was-validated'); return; }
       var submitBtn=form.querySelector('button[type="submit"]');
       var originalHTML = submitBtn ? submitBtn.innerHTML : '';

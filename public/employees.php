@@ -8,7 +8,7 @@ $CSRF = $_SESSION['csrf_token'];
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/EmployeeDataProvider.php';
-require_once __DIR__ . '/../models/JobType.php';
+require_once __DIR__ . '/../models/Skill.php';
 require_once __DIR__ . '/../models/Availability.php';
 require_once __DIR__ . '/../models/EmployeeScheduleStatusProvider.php';
 
@@ -87,7 +87,7 @@ foreach ($rows as &$r) {
 unset($r);
 $total = $data['total'];
 $totalPages = (int)ceil($total / $perPage);
-$allSkills = array_map(static fn(array $r): string => (string)$r['name'], JobType::all($pdo));
+$allSkills = array_map(static fn(array $r): string => (string)$r['name'], Skill::all($pdo));
 $skillQuery = '';
 foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
 $searchQuery = $search !== null && $search !== '' ? '&search=' . urlencode($search) : '';
