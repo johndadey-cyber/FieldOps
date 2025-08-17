@@ -18,6 +18,21 @@ function log_error(string $msg): void {
   error_log(date('[Y-m-d H:i:s] ').$msg.PHP_EOL, 3, __DIR__ . '/../logs/job_errors.log');
 }
 
+/**
+ * Attempt to normalize various time formats to HH:MM.
+ */
+function normalize_time(string $time): ?string {
+  $formats = ['H:i', 'H:i:s', 'g:i A', 'g:i a', 'h:i A', 'h:i a'];
+  foreach ($formats as $fmt) {
+    $dt = DateTime::createFromFormat($fmt, $time);
+    $errs = DateTime::getLastErrors() ?: ['warning_count' => 0, 'error_count' => 0];
+    if ($dt && $errs['warning_count'] === 0 && $errs['error_count'] === 0) {
+      return $dt->format('H:i');
+    }
+  }
+  return null;
+}
+
 // RBAC
 $role = ($_SESSION['role'] ?? '') ?: ($_SESSION['user']['role'] ?? '');
 if ($role !== 'dispatcher') { json_out(['ok'=>false,'error'=>'Forbidden','code'=>403], 403); }
@@ -67,11 +82,12 @@ else {
 }
 if ($scheduledTime==='') { $errors['scheduled_time']='Scheduled time is required'; }
 else {
-  $tt = DateTime::createFromFormat('H:i', $scheduledTime);
-  $errs = DateTime::getLastErrors() ?: ['warning_count' => 0, 'error_count' => 0];
-  if (!$tt || $tt->format('H:i') !== $scheduledTime || $errs['warning_count'] || $errs['error_count']) {
+  $normalized = normalize_time($scheduledTime);
+  if ($normalized === null) {
     $errors['scheduled_time']='Scheduled time is invalid';
     log_error("Invalid scheduled_time: $scheduledTime");
+  } else {
+    $scheduledTime = $normalized;
   }
 }
 if ($durationMinutes<=0) { $errors['duration_minutes']='Duration minutes must be > 0'; }
