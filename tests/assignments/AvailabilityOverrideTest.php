@@ -4,6 +4,7 @@ declare(strict_types=1);
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/../support/TestDataFactory.php';
+require_once __DIR__ . '/../support/TestPdo.php';
 require_once __DIR__ . '/../../models/AssignmentEngine.php';
 
 #[Group('assignments')]
@@ -18,14 +19,7 @@ final class AvailabilityOverrideTest extends TestCase
     {
         parent::setUp();
 
-        $dsn  = getenv('FIELDOPS_TEST_DSN')  ?: 'mysql:host=127.0.0.1;port=8889;dbname=fieldops_test;charset=utf8mb4';
-        $user = getenv('FIELDOPS_TEST_USER') ?: 'root';
-        $pass = getenv('FIELDOPS_TEST_PASS') ?: 'root';
-
-        $this->pdo = new PDO($dsn, $user, $pass, [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ]);
+        $this->pdo = createTestPdo();
 
         // Ensure overrides table exists for tests
         $this->pdo->exec("CREATE TABLE IF NOT EXISTS employee_availability_overrides (

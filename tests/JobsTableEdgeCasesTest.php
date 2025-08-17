@@ -5,6 +5,7 @@ use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/../support/Http.php';
 require_once __DIR__ . '/../support/TestDataFactory.php';
+require_once __DIR__ . '/support/TestPdo.php';
 
 #[Group('jobs')]
 final class JobsTableEdgeCasesTest extends TestCase
@@ -18,13 +19,7 @@ final class JobsTableEdgeCasesTest extends TestCase
 
         $this->baseUrl = rtrim(getenv('FIELDOPS_BASE_URL') ?: 'http://127.0.0.1:8010', '/');
 
-        $dsn  = getenv('FIELDOPS_TEST_DSN')  ?: 'mysql:host=127.0.0.1;dbname=fieldops_test;charset=utf8mb4';
-        $user = getenv('FIELDOPS_TEST_USER') ?: 'root';
-        $pass = getenv('FIELDOPS_TEST_PASS') ?: 'root';
-        $this->pdo = new PDO($dsn, $user, $pass, [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ]);
+        $this->pdo = createTestPdo();
 
         // Clean DB
         $this->pdo->exec('DELETE FROM job_employee_assignment');

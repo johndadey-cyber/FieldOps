@@ -16,7 +16,7 @@ configure a database and seed it with minimal data so an active employee exists.
    return [
        'DB_HOST' => '127.0.0.1',
        'DB_PORT' => '3306',
-       'DB_NAME' => 'fieldops_test',
+       'DB_NAME' => 'fieldops_integration',
        'DB_USER' => 'root',
        'DB_PASS' => 'root',
    ];
@@ -25,9 +25,9 @@ configure a database and seed it with minimal data so an active employee exists.
 2. **Create the database schema**:
 
    ```bash
-   mysql -u root -p -e 'CREATE DATABASE fieldops_test;'
+   mysql -u root -p -e 'CREATE DATABASE fieldops_integration;'
    # Load your schema if necessary
-   mysql -u root -p fieldops_test < path/to/schema.sql
+   mysql -u root -p fieldops_integration < path/to/schema.sql
    ```
 
 3. **Seed an active employee** – many scripts (e.g. `tests/smoke.sh`) expect at least

@@ -10,20 +10,8 @@ final class AssignmentsDataTest extends TestCase
     protected function setUp(): void
     {
         // Build PDO from env (phpunit.xml)
-        $this->pdo = new PDO(
-            sprintf(
-                'mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4',
-                getenv('DB_HOST') ?: '127.0.0.1',
-                getenv('DB_PORT') ?: '8889',
-                getenv('DB_NAME') ?: 'fieldops_test'
-            ),
-            getenv('DB_USER') ?: 'root',
-            getenv('DB_PASS') ?: 'root',
-            [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            ]
-        );
+        require_once __DIR__ . '/../support/TestPdo.php';
+        $this->pdo = createTestPdo();
 
         // Start a transaction so we leave no residue
         $this->pdo->beginTransaction();

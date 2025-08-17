@@ -4,7 +4,7 @@ declare(strict_types=1);
 // Reset only the test DB
 $host = getenv('DB_HOST') ?: '127.0.0.1';
 $port = getenv('DB_PORT') ?: '8889';
-$db   = getenv('DB_NAME') ?: 'fieldops_test';
+$db   = getenv('DB_NAME') ?: 'fieldops_integration';
 $user = getenv('DB_USER') ?: 'root';
 $pass = getenv('DB_PASS') ?: 'root';
 
