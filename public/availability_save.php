@@ -72,6 +72,48 @@ function has_overlap(PDO $pdo, int $employeeId, array $days, string $start, stri
     return ((int)($row['cnt'] ?? 0)) > 0;
 }
 
+/** Determine if employee_availability.day_of_week is numeric. */
+function dow_is_int(PDO $pdo): bool {
+    static $isInt = null;
+    if ($isInt !== null) return $isInt;
+    try {
+        $row = $pdo->query("SHOW COLUMNS FROM employee_availability LIKE 'day_of_week'")
+            ->fetch(PDO::FETCH_ASSOC);
+        $type = strtolower((string)($row['Type'] ?? ''));
+        $isInt = str_contains($type, 'int');
+    } catch (Throwable $e) {
+        $isInt = false;
+    }
+    return $isInt;
+}
+
+/**
+ * @param list<string> $days
+ * @return list<string>
+ */
+function normalize_days(PDO $pdo, array $days): array {
+    if ($days === []) return $days;
+    if (!dow_is_int($pdo)) return array_map('strval', $days);
+    $map = [
+        'Sunday'=>0,
+        'Monday'=>1,
+        'Tuesday'=>2,
+        'Wednesday'=>3,
+        'Thursday'=>4,
+        'Friday'=>5,
+        'Saturday'=>6,
+    ];
+    $out = [];
+    foreach ($days as $d) {
+        if (isset($map[$d])) {
+            $out[] = (string)$map[$d];
+        } elseif (is_numeric($d)) {
+            $out[] = (string)((int)$d);
+        }
+    }
+    return $out;
+}
+
 try {
     $pdo = getPDO();
 
@@ -95,6 +137,9 @@ try {
         if (!in_array($d, $validDays, true)) { $errors[] = 'day_of_week invalid'; break; }
     }
     if ($start >= $end) $errors[] = 'end_time must be after start_time';
+
+    // Normalize days for DB column type
+    $days = normalize_days($pdo, $days);
 
     if (!$errors && has_overlap($pdo, $employeeId, $days, $start, $end, null)) {
         $errors[] = 'Window overlaps an existing window for selected day(s). Overrides take precedence.';
