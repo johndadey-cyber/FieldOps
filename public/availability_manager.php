@@ -339,6 +339,10 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     const btnExport = document.getElementById('btnExport');
     const btnPrint = document.getElementById('btnPrint');
 
+    let alertTimer;
+    let searchTimer;
+    let searchAbortController;
+
 
     const winModalEl = document.getElementById('winModal');
     const winModal = new bootstrap.Modal(winModalEl);
@@ -490,12 +494,15 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     }
 
     async function searchEmployees() {
+      hideAlert();
       const q = employeeInput.value.trim();
       resultSelect.innerHTML = '';
       employeeIdField.value = '';
       if (q.length < 2) { return; }
       try {
-        const res = await fetch(`api/employees/search.php?q=${encodeURIComponent(q)}`);
+        if (searchAbortController) { searchAbortController.abort(); }
+        searchAbortController = new AbortController();
+        const res = await fetch(`api/employees/search.php?q=${encodeURIComponent(q)}`, { signal: searchAbortController.signal });
         if (!res.ok) throw new Error('bad response');
         const data = await res.json();
         if (!data.ok) {
@@ -513,7 +520,19 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           resultSelect.appendChild(opt);
         }
       } catch (err) {
-        showAlert('danger', 'Error fetching employees');
+        if (err.name === 'AbortError') { return; }
+        console.error(err);
+        resultSelect.innerHTML = '<option disabled value="">Search failed - retry.</option>';
+        showAlert('danger', 'Error fetching employees. Please retry.', false);
+        const hideOnInteraction = () => {
+          hideAlert();
+          document.removeEventListener('click', hideOnInteraction);
+          document.removeEventListener('keydown', hideOnInteraction);
+          document.removeEventListener('input', hideOnInteraction);
+        };
+        document.addEventListener('click', hideOnInteraction, { once: true });
+        document.addEventListener('keydown', hideOnInteraction, { once: true });
+        document.addEventListener('input', hideOnInteraction, { once: true });
       }
     }
 
@@ -525,8 +544,10 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       }
     });
     employeeInput.addEventListener('input', () => {
-      if (employeeInput.value.trim().length >= 2) {
-        searchEmployees();
+      const q = employeeInput.value.trim();
+      if (searchTimer) { clearTimeout(searchTimer); }
+      if (q.length >= 2) {
+        searchTimer = setTimeout(searchEmployees, 300);
       }
     });
     resultSelect.addEventListener('change', () => {
@@ -537,11 +558,19 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       }
     });
 
-    function showAlert(kind, msg) {
+    function showAlert(kind, msg, autoHide = true) {
       alertBox.className = 'alert alert-' + kind;
       alertBox.textContent = msg;
       alertBox.classList.remove('d-none');
-      setTimeout(() => alertBox.classList.add('d-none'), 3000);
+      if (alertTimer) { clearTimeout(alertTimer); }
+      if (autoHide) {
+        alertTimer = setTimeout(() => alertBox.classList.add('d-none'), 3000);
+      }
+    }
+
+    function hideAlert() {
+      if (alertTimer) { clearTimeout(alertTimer); }
+      alertBox.classList.add('d-none');
     }
 
     function currentEmployeeId() {
