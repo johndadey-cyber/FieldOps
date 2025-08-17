@@ -19,7 +19,8 @@ final class CustomerDataProvider
      *   city:?string,
      *   state:?string,
      *   postal_code:?string,
-     *   country:?string
+     *   country:?string,
+     *   created_at:string
      * }>
      */
     public static function getFiltered(
@@ -31,7 +32,7 @@ final class CustomerDataProvider
         ?string $sort = 'id',
         string $order = 'asc'
     ): array {
-        $sql = "SELECT id, first_name, last_name, company, notes, email, phone, address_line1, address_line2, city, state, postal_code, country
+        $sql = "SELECT id, first_name, last_name, company, notes, email, phone, address_line1, address_line2, city, state, postal_code, country, created_at
                 FROM customers
                 WHERE 1=1";
         $params = [];
@@ -81,6 +82,7 @@ final class CustomerDataProvider
             'state'       => 'state',
             'postal_code' => 'postal_code',
             'country'     => 'country',
+            'created_at'  => 'created_at',
         ];
         $sort = strtolower((string)$sort);
         $order = strtolower($order) === 'desc' ? 'DESC' : 'ASC';
@@ -104,7 +106,7 @@ final class CustomerDataProvider
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
 
-        /** @var array<int, array{id:int, first_name:string, last_name:string, company:?string, notes:?string, email:?string, phone:?string, address_line1:?string, address_line2:?string, city:?string, state:?string, postal_code:?string, country:?string}> */
+        /** @var array<int, array{id:int, first_name:string, last_name:string, company:?string, notes:?string, email:?string, phone:?string, address_line1:?string, address_line2:?string, city:?string, state:?string, postal_code:?string, country:?string, created_at:string}> */
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         return $rows;
     }
