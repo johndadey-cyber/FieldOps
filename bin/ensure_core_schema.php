@@ -74,16 +74,18 @@ function ensureAutoPk(PDO $pdo, string $table): void {
 
     // Case B: id column missing -> add id first
     if (!$hasId) {
-        out("[..] Adding `id INT NOT NULL` to {$table} (first column) ...");
-        $pdo->exec("ALTER TABLE `{$table}` ADD COLUMN `id` INT NOT NULL FIRST");
+        out("[..] Adding `id INT UNSIGNED NOT NULL` to {$table} (first column) ...");
+        $pdo->exec("ALTER TABLE `{$table}` ADD COLUMN `id` INT UNSIGNED NOT NULL FIRST");
         $cols = columns($pdo,$table);
         $hasId = true;
     }
 
-    // Ensure id is NOT NULL INT
-    if (stripos((string)$cols['id']['COLUMN_TYPE'], 'int') === false || strtoupper((string)$cols['id']['IS_NULLABLE']) === 'YES') {
-        out("[..] Normalizing {$table}.id to INT NOT NULL ...");
-        $pdo->exec("ALTER TABLE `{$table}` MODIFY `id` INT NOT NULL");
+    // Ensure id is NOT NULL INT UNSIGNED
+    if (stripos((string)$cols['id']['COLUMN_TYPE'], 'int') === false
+        || stripos((string)$cols['id']['COLUMN_TYPE'], 'unsigned') === false
+        || strtoupper((string)$cols['id']['IS_NULLABLE']) === 'YES') {
+        out("[..] Normalizing {$table}.id to INT UNSIGNED NOT NULL ...");
+        $pdo->exec("ALTER TABLE `{$table}` MODIFY `id` INT UNSIGNED NOT NULL");
         $cols = columns($pdo,$table);
     }
 
@@ -104,7 +106,7 @@ function ensureAutoPk(PDO $pdo, string $table): void {
     $cols = columns($pdo,$table);
     if (!hasAutoPk($cols,'id')) {
         out("[..] Adding AUTO_INCREMENT to {$table}.id ...");
-        $pdo->exec("ALTER TABLE `{$table}` MODIFY `id` INT NOT NULL AUTO_INCREMENT");
+        $pdo->exec("ALTER TABLE `{$table}` MODIFY `id` INT UNSIGNED NOT NULL AUTO_INCREMENT");
     }
 
     out("[OK] {$table}.id set to AUTO_INCREMENT PRIMARY KEY");
@@ -337,7 +339,8 @@ foreach (['people','employees','job_types','employee_availability_overrides','av
 }
 
 out(PHP_EOL . "== Ensuring FOREIGN KEYS ==");
-ensureFk($pdo, 'employees', 'person_id', 'people', 'id', 'fk_employees_person', 'RESTRICT', 'CASCADE');
+ensureFk($pdo, 'employees', 'person_id', 'people', 'id', 'fk_employees_person', 'CASCADE', 'CASCADE');
+ensureIndex($pdo, 'employees', ['person_id'], 'idx_employees_person_id');
 ensureFk($pdo, 'jobs',      'customer_id', 'customers', 'id', 'fk_jobs_customer', 'RESTRICT', 'CASCADE');
 
 // Use unique, stable FK names to avoid cross-table conflicts
