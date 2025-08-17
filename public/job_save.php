@@ -39,6 +39,9 @@ $statusIn        = trim((string)($_POST['status'] ?? ''));
 $skillIds        = isset($_POST['skills']) && is_array($_POST['skills'])
     ? array_values(array_filter(array_map('intval', $_POST['skills']), static fn($v) => $v > 0))
     : [];
+$typeIds         = isset($_POST['job_types']) && is_array($_POST['job_types'])
+    ? array_values(array_filter(array_map('intval', $_POST['job_types']), static fn($v) => $v > 0))
+    : [];
 
 // Normalize status to canonical ENUM values (lowercase)
 $map = [
@@ -76,6 +79,7 @@ else {
 }
 if ($durationMinutes<=0) { $errors['duration_minutes']='Duration minutes must be > 0'; }
 if (!$skillIds) { $errors['skills']='Select at least one skill'; }
+if (!$typeIds) { $errors['job_types']='Select at least one job type'; }
 if ($errors) {
   log_error('Validation failed: '.json_encode($errors));
   json_out(['ok'=>false,'errors'=>$errors,'code'=>422], 422);
@@ -116,19 +120,24 @@ try {
     $jobId = (int)$pdo->lastInsertId();
   }
 
-  // Refresh job skills (ignore if mapping table absent)
-  try {
-      $pdo->prepare('DELETE FROM job_skill WHERE job_id = :jid')
-          ->execute([':jid' => $jobId]);
-
-      if (!empty($skillIds)) {
-          $ins = $pdo->prepare('INSERT INTO job_skill (job_id, skill_id) VALUES (:jid, :sid)');
-          foreach ($skillIds as $sid) {
-              $ins->execute([':jid' => $jobId, ':sid' => $sid]);
-          }
+  // Refresh job types
+  $pdo->prepare('DELETE FROM job_jobtype WHERE job_id = :jid')
+      ->execute([':jid' => $jobId]);
+  if (!empty($typeIds)) {
+      $insType = $pdo->prepare('INSERT INTO job_jobtype (job_id, job_type_id) VALUES (:jid, :tid)');
+      foreach ($typeIds as $tid) {
+          $insType->execute([':jid' => $jobId, ':tid' => $tid]);
       }
-  } catch (Throwable $e) {
-      // no-op
+  }
+
+  // Refresh job skills
+  $pdo->prepare('DELETE FROM job_skill WHERE job_id = :jid')
+      ->execute([':jid' => $jobId]);
+  if (!empty($skillIds)) {
+      $ins = $pdo->prepare('INSERT INTO job_skill (job_id, skill_id) VALUES (:jid, :sid)');
+      foreach ($skillIds as $sid) {
+          $ins->execute([':jid' => $jobId, ':sid' => $sid]);
+      }
   }
 
   $pdo->commit();

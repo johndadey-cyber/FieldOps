@@ -7,6 +7,7 @@ require_once __DIR__ . '/_csrf.php';
 require_once __DIR__ . '/../models/Skill.php';
 require_once __DIR__ . '/../models/Job.php';
 require_once __DIR__ . '/../models/Customer.php';
+require_once __DIR__ . '/../models/JobType.php';
 
 $pdo = getPDO();
 $__csrf = csrf_token();
@@ -14,9 +15,11 @@ $__csrf = csrf_token();
 $mode        = $mode ?? 'add';
 $job         = $job ?? [];
 $jobSkillIds = $jobSkillIds ?? [];
+$jobTypeIds  = $jobTypeIds  ?? [];
 $isEdit      = $mode === 'edit';
 
-$skills   = Skill::all($pdo);
+$skills    = Skill::all($pdo);
+$jobTypes  = JobType::all($pdo);
 $statuses  = $isEdit ? Job::allowedStatuses() : array_intersect(['scheduled','draft'], Job::allowedStatuses());
 $customers = (new Customer($pdo))->getAll();
 $today     = date('Y-m-d');
@@ -83,6 +86,22 @@ function stickyArr(string $name, array $default = []): array {
           <label for="description" class="form-label">Job Description <span class="text-danger">*</span></label>
           <textarea id="description" name="description" class="form-control" minlength="5" maxlength="255" required aria-required="true"><?= s(sticky('description', $job['description'] ?? '')) ?></textarea>
           <div class="invalid-feedback">Description must be between 5 and 255 characters.</div>
+        </div>
+        <div class="mb-3">
+          <span class="form-label d-block mb-2">Job Types</span>
+          <?php $selTypes = stickyArr('job_types', array_map('strval', $jobTypeIds)); ?>
+          <div class="row row-cols-2" id="jobTypes">
+            <?php foreach ($jobTypes as $jt): ?>
+              <?php $tid = (string)$jt['id']; ?>
+              <div class="col">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="job_types[]" value="<?= s($tid) ?>" id="jt<?= s($tid) ?>" <?= in_array($tid, $selTypes, true) ? 'checked' : '' ?>>
+                  <label class="form-check-label" for="jt<?= s($tid) ?>"><?= s($jt['name']) ?></label>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+          <div class="invalid-feedback d-block" id="jobTypeError" style="display:none">Select at least one job type.</div>
         </div>
         <div class="mb-3">
           <span class="form-label d-block mb-2">Skills</span>
