@@ -39,4 +39,29 @@ final class JobWriteValidationTest extends TestCase
         $this->assertArrayHasKey('scheduled_date', $res['errors']);
         $this->assertArrayHasKey('scheduled_time', $res['errors']);
     }
+
+    public function testTimeWithSecondsAndAmPmFormatsAreAccepted(): void
+    {
+        $customerId = (int)$this->pdo->query("SELECT id FROM customers LIMIT 1")->fetchColumn();
+
+        $withSeconds = EndpointHarness::run(__DIR__ . '/../../public/job_save.php', [
+            'customer_id'    => $customerId,
+            'description'    => 'Job with seconds',
+            'scheduled_date' => '2025-08-23',
+            'scheduled_time' => '09:00:00',
+            'status'         => 'scheduled',
+            'skills'         => [1],
+        ], ['role' => 'dispatcher']);
+        $this->assertTrue($withSeconds['ok'] ?? false, 'HH:MM:SS time rejected');
+
+        $withAmPm = EndpointHarness::run(__DIR__ . '/../../public/job_save.php', [
+            'customer_id'    => $customerId,
+            'description'    => 'Job with AM/PM',
+            'scheduled_date' => '2025-08-24',
+            'scheduled_time' => '02:15 PM',
+            'status'         => 'scheduled',
+            'skills'         => [1],
+        ], ['role' => 'dispatcher']);
+        $this->assertTrue($withAmPm['ok'] ?? false, 'AM/PM time rejected');
+    }
 }
