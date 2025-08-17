@@ -35,11 +35,15 @@ try {
         exit;
     }
 
-    $params = [':q' => '%'.$q.'%'];
+    $params = [
+        ':q1' => "%{$q}%",
+        ':q2' => "%{$q}%",
+        ':q3' => "%{$q}%",
+    ];
     $coll   = 'utf8mb4_unicode_ci';
-    $where  = "p.first_name COLLATE {$coll} LIKE :q"
-            . " OR p.last_name COLLATE {$coll} LIKE :q"
-            . " OR CONCAT(p.first_name,' ',p.last_name) COLLATE {$coll} LIKE :q";
+    $where  = "p.first_name COLLATE {$coll} LIKE :q1"
+            . " OR p.last_name COLLATE {$coll} LIKE :q2"
+            . " OR CONCAT(p.first_name,' ',p.last_name) COLLATE {$coll} LIKE :q3";
     if (ctype_digit($q)) {
         $where .= " OR e.id = :eid";
         $params[':eid'] = (int)$q;
