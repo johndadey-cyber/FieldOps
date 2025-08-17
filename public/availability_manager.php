@@ -637,6 +637,10 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       const data = await res.json();
 
       const items = Array.isArray(data.availability) ? data.availability : [];
+      const wsDate = new Date(ws + 'T00:00:00');
+      const weDate = new Date(wsDate);
+      weDate.setDate(weDate.getDate() + 6);
+      const we = weDate.toISOString().slice(0,10);
 
       // Ensure items are ordered Monday→Sunday using daysOrder then by start time
       items.sort((a,b) => {
@@ -688,7 +692,6 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         }
       }
       calendar.removeAllEvents();
-      const wsDate = new Date(ws + 'T00:00:00');
       for (const it of items) {
         const idx = daysOrder.indexOf(it.day_of_week);
         if (idx >= 0) {
@@ -720,6 +723,32 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           editable: true,
           extendedProps: { type: 'override', raw: ov }
         });
+      }
+      try {
+        const jobRes = await fetch(`api/jobs.php?start=${ws}&end=${we}`, { headers: { 'Accept': 'application/json' }});
+        const jobs = await jobRes.json();
+        for (const job of Array.isArray(jobs) ? jobs : []) {
+          const emps = Array.isArray(job.assigned_employees) ? job.assigned_employees : [];
+          if (!emps.some(e => e.id === eid)) continue;
+          if (!job.scheduled_time) continue;
+          const start = `${job.scheduled_date}T${job.scheduled_time}`;
+          const dur = job.duration_minutes || 60;
+          const endDt = new Date(start);
+          endDt.setMinutes(endDt.getMinutes() + dur);
+          const end = endDt.toISOString().slice(0,16);
+          calendar.addEvent({
+            id: 'job-' + job.job_id,
+            title: `Job #${job.job_id}`,
+            start,
+            end,
+            backgroundColor: '#0d6efd',
+            borderColor: '#0d6efd',
+            editable: false,
+            extendedProps: { type: 'job', raw: job }
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load jobs', err);
       }
 
       for (const ov of overrides) {
