@@ -18,6 +18,10 @@ $pdo = new PDO(
     ]
 );
 
+// Ensure schema is up to date before clearing data
+require_once __DIR__ . '/../scripts/migrate_test_db.php';
+migrateTestDb($pdo);
+
 // Wrap in a transaction for speed/safety
 $pdo->beginTransaction();
 
