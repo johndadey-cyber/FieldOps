@@ -1,3 +1,4 @@
+
 # Test Suite
 
 This directory contains unit, integration, and smoke tests for the FieldOps application.
@@ -48,3 +49,21 @@ configure a database and seed it with minimal data so an active employee exists.
 
 With these steps completed, scripts and tests should be able to locate an active employee
 record and execute successfully.
+=======
+# Tests
+
+## Availability add window script
+
+Run the availability window script either by executing it directly if it is marked as executable, or by passing it to Bash:
+
+```bash
+./availability_add_window.sh
+```
+
+or
+
+```bash
+bash availability_add_window.sh
+```
+
+
