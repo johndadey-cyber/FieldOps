@@ -119,9 +119,9 @@ function rowHTML(emp, prechecked) {
   const skills = Array.isArray(emp.skills) && emp.skills.length
     ? `<div class="text-muted small">Skills: ${emp.skills.map(s=>s.name||s).join(', ')}</div>`
     : '';
-  const dist = (typeof emp.distanceKm === 'number')
-    ? `<span class="ms-2 badge text-bg-light border">${emp.distanceKm.toFixed(1)} km</span>`
-    : '';
+    const dist = (typeof emp.distanceKm === 'number')
+      ? `<span class="ms-2 badge text-bg-light border">${(emp.distanceKm * 0.621371).toFixed(1)} mi</span>`
+      : '<span class="ms-2 badge text-bg-light border">NA</span>';
   const checked = prechecked ? 'checked' : '';
   const win = emp.availability && emp.availability.window ? emp.availability.window : '';
   const conflict = (emp.conflicts && emp.conflicts.length) ? true : false;

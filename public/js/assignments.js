@@ -304,8 +304,9 @@
         load: ${Number(e.dayLoad || 0)}
       </span>`;
 
-    const km = e.distanceKm != null ? `${e.distanceKm} km` : '—';
-    const rightMeta = `<span class="text-muted">${km}</span>${dl}`;
+    const miles =
+      e.distanceKm != null ? (e.distanceKm * 0.621371).toFixed(1) + ' mi' : 'NA';
+    const rightMeta = `<span class="text-muted">${miles}</span>${dl}`;
 
     // checkbox rules
     const hasRisk = (!e.qualified) || av.status !== 'full' || conflicts.length > 0;
