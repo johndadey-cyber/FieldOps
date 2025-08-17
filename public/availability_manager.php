@@ -54,10 +54,12 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
   <style>
     body { padding: 24px; }
     .day-badge { min-width: 90px; display: inline-block; }
     .table thead th { position: sticky; top: 0; background: #fff; z-index: 1; }
+    #calendar { max-width: 100%; }
   </style>
 </head>
 <body>
@@ -88,54 +90,68 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         </form>
       </div>
     </div>
-
-    <div class="card">
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table align-middle" id="availabilityTable">
-            <thead>
-              <tr>
-                <th style="width: 160px;">Day</th>
-                <th style="width: 160px;">Start</th>
-                <th style="width: 160px;">End</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach (['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] as $d): ?>
-                <tr class="day-row" data-day="<?= s($d) ?>">
-                  <td><span class="badge bg-light text-dark day-badge"><?= s($d) ?></span></td>
-                  <td class="start"></td>
-                  <td class="end"></td>
-                  <td class="actions"></td>
-                </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
+    <ul class="nav nav-tabs mb-3" id="viewTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="list-tab" data-bs-toggle="tab" data-bs-target="#listView" type="button" role="tab">List</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="calendar-tab" data-bs-toggle="tab" data-bs-target="#calendarView" type="button" role="tab">Calendar</button>
+      </li>
+    </ul>
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="listView" role="tabpanel">
+        <div class="card">
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table align-middle" id="availabilityTable">
+                <thead>
+                  <tr>
+                    <th style="width: 160px;">Day</th>
+                    <th style="width: 160px;">Start</th>
+                    <th style="width: 160px;">End</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php foreach (['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] as $d): ?>
+                    <tr class="day-row" data-day="<?= s($d) ?>">
+                      <td><span class="badge bg-light text-dark day-badge"><?= s($d) ?></span></td>
+                      <td class="start"></td>
+                      <td class="end"></td>
+                      <td class="actions"></td>
+                    </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
+            </div>
+            <div id="emptyState" class="text-muted d-none">No availability windows yet.</div>
+          </div>
         </div>
-        <div id="emptyState" class="text-muted d-none">No availability windows yet.</div>
+
+        <div class="card mt-4">
+          <div class="card-body">
+            <h2 class="h5 mb-3">Overrides</h2>
+            <div class="table-responsive">
+              <table class="table align-middle" id="overrideTable">
+                <thead>
+                  <tr>
+                    <th style="width: 160px;">Date</th>
+                    <th style="width: 160px;">Start</th>
+                    <th style="width: 160px;">End</th>
+                    <th style="width: 160px;">Status</th>
+                    <th>Reason</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <div id="overrideEmpty" class="text-muted d-none">No overrides yet.</div>
+          </div>
+        </div>
       </div>
-    </div>
-
-    <div class="card mt-4">
-      <div class="card-body">
-        <h2 class="h5 mb-3">Overrides</h2>
-        <div class="table-responsive">
-          <table class="table align-middle" id="overrideTable">
-            <thead>
-              <tr>
-                <th style="width: 160px;">Date</th>
-                <th style="width: 160px;">Start</th>
-                <th style="width: 160px;">End</th>
-                <th style="width: 160px;">Status</th>
-                <th>Reason</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <div id="overrideEmpty" class="text-muted d-none">No overrides yet.</div>
+      <div class="tab-pane fade" id="calendarView" role="tabpanel">
+        <div id="calendar" class="mt-3"></div>
       </div>
     </div>
   </div>
@@ -271,6 +287,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
   </template>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
   <script>
     const CSRF = <?= json_encode($__csrf) ?>;
     const daysOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
@@ -291,6 +308,21 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     const resultSelect = document.getElementById('employeeResults');
     const btnAdd = document.getElementById('btnAdd');
     const btnAddOverride = document.getElementById('btnAddOverride');
+
+    const calendarEl = document.getElementById('calendar');
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'timeGridWeek',
+      allDaySlot: false,
+      height: 'auto',
+      selectable: true,
+      editable: true,
+      select: handleSelect,
+      eventClick: info => handleEventEdit(info.event),
+      eventDrop: info => handleEventEdit(info.event),
+      eventResize: info => handleEventEdit(info.event)
+    });
+    document.getElementById('calendar-tab').addEventListener('shown.bs.tab', () => calendar.render());
+    calendar.render();
 
     const winModalEl = document.getElementById('winModal');
     const winModal = new bootstrap.Modal(winModalEl);
@@ -395,6 +427,51 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         showAlert('danger', 'Clear failed');
       }
     });
+
+    function handleSelect(info) {
+      const eid = currentEmployeeId();
+      if (!eid) { showAlert('warning', 'Select an employee first.'); calendar.unselect(); return; }
+      const start = info.start;
+      const end = info.end;
+      const dayName = daysOrder[(start.getDay() + 6) % 7];
+      const startTime = start.toISOString().slice(11,16);
+      const endTime = end.toISOString().slice(11,16);
+      if (info.jsEvent && info.jsEvent.altKey) {
+        openOvAdd();
+        ovStartDate.value = start.toISOString().slice(0,10);
+        ovEndDate.value = start.toISOString().slice(0,10);
+        Array.from(ovDays.options).forEach(o => { o.selected = o.value === dayName; });
+        ovStartTime.value = startTime;
+        ovEndTime.value = endTime;
+      } else {
+        openAdd();
+        Array.from(winDays.options).forEach(o => { o.selected = o.value === dayName; });
+        winStart.value = startTime;
+        winEnd.value = endTime;
+      }
+      calendar.unselect();
+    }
+
+    function handleEventEdit(ev) {
+      const type = ev.extendedProps.type;
+      if (type === 'window') {
+        const raw = { ...ev.extendedProps.raw };
+        const s = ev.start;
+        const e = ev.end || s;
+        raw.day_of_week = daysOrder[(s.getDay() + 6) % 7];
+        raw.start_time = s.toISOString().slice(11,16);
+        raw.end_time = e.toISOString().slice(11,16);
+        openEdit(raw);
+      } else if (type === 'override') {
+        const raw = { ...ev.extendedProps.raw };
+        const s = ev.start;
+        const e = ev.end || s;
+        raw.date = s.toISOString().slice(0,10);
+        raw.start_time = s.toISOString().slice(11,16);
+        raw.end_time = e.toISOString().slice(11,16);
+        openOvEdit(raw);
+      }
+    }
 
     async function searchEmployees() {
       const q = employeeInput.value.trim();
@@ -526,6 +603,40 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           tr.querySelector('.actions').appendChild(actions);
           overrideBody.appendChild(tr);
         }
+      }
+      calendar.removeAllEvents();
+      const wsDate = new Date(ws + 'T00:00:00');
+      for (const it of items) {
+        const idx = daysOrder.indexOf(it.day_of_week);
+        if (idx >= 0) {
+          const d = new Date(wsDate);
+          d.setDate(d.getDate() + idx);
+          const start = d.toISOString().slice(0,10) + 'T' + it.start_time;
+          const end = d.toISOString().slice(0,10) + 'T' + it.end_time;
+          calendar.addEvent({
+            id: 'win-' + it.id,
+            start,
+            end,
+            backgroundColor: '#198754',
+            borderColor: '#198754',
+            editable: true,
+            extendedProps: { type: 'window', raw: it }
+          });
+        }
+      }
+
+      for (const ov of overrides) {
+        const start = `${ov.date}T${ov.start_time || '00:00'}`;
+        const end = `${ov.date}T${ov.end_time || ov.start_time || '00:00'}`;
+        calendar.addEvent({
+          id: 'ov-' + ov.id,
+          start,
+          end,
+          backgroundColor: '#ffc107',
+          borderColor: '#ffc107',
+          editable: true,
+          extendedProps: { type: 'override', raw: ov }
+        });
       }
 
       for (const ov of overrides) {
