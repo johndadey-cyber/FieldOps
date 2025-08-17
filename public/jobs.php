@@ -14,11 +14,9 @@ if (!isset($_SESSION['csrf_token'])) {
 $CSRF = $_SESSION['csrf_token'];
 
 require __DIR__ . '/../config/database.php';
-require __DIR__ . '/../models/JobType.php';
 require __DIR__ . '/../models/Job.php';
 
 $pdo = getPDO();
-$jobTypes = JobType::all($pdo);
 $statuses = Job::allowedStatuses();
 $today = date('Y-m-d');
 $weekLater = date('Y-m-d', strtotime('+7 days'));
@@ -63,14 +61,6 @@ $weekLater = date('Y-m-d', strtotime('+7 days'));
             <option value="<?=htmlspecialchars($s)?>"
                 <?=in_array($s, ['scheduled', 'in_progress'], true) ? 'selected' : ''?>>
                 <?=htmlspecialchars($label)?></option>
-        <?php endforeach; ?>
-      </select>
-    </div>
-    <div>
-      <label for="filter-job-type" class="form-label small mb-0">Job Type</label>
-      <select id="filter-job-type" class="form-select form-select-sm" multiple>
-        <?php foreach ($jobTypes as $jt) : ?>
-          <option value="<?=htmlspecialchars((string)$jt['id'])?>"><?=htmlspecialchars((string)$jt['name'])?></option>
         <?php endforeach; ?>
       </select>
     </div>

@@ -24,7 +24,6 @@ class JobTest extends TestCase
                 'city' => 'Austin',
                 'state' => 'TX',
                 'postal_code' => '78704',
-                'job_type_ids' => '1,2'
             ]
         ]);
 
@@ -39,6 +38,5 @@ class JobTest extends TestCase
         $this->assertCount(1, $results);
         $this->assertEquals('Mock Job', $results[0]['description']);
         $this->assertEquals('Jane', $results[0]['first_name']);
-        $this->assertEquals('1,2', $results[0]['job_type_ids']);
     }
 }

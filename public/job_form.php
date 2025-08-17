@@ -7,7 +7,6 @@ require_once __DIR__ . '/_csrf.php';
 require_once __DIR__ . '/../models/Skill.php';
 require_once __DIR__ . '/../models/Job.php';
 require_once __DIR__ . '/../models/Customer.php';
-require_once __DIR__ . '/../models/JobType.php';
 
 $pdo = getPDO();
 $__csrf = csrf_token();
@@ -15,11 +14,9 @@ $__csrf = csrf_token();
 $mode        = $mode ?? 'add';
 $job         = $job ?? [];
 $jobSkillIds = $jobSkillIds ?? [];
-$jobTypeIds  = $jobTypeIds  ?? [];
 $isEdit      = $mode === 'edit';
 
 $skills    = Skill::all($pdo);
-$jobTypes  = JobType::all($pdo);
 $statuses  = $isEdit ? Job::allowedStatuses() : array_intersect(['scheduled','draft'], Job::allowedStatuses());
 $customers = (new Customer($pdo))->getAll();
 $today     = date('Y-m-d');
@@ -47,6 +44,7 @@ function stickyArr(string $name, array $default = []): array {
   <title><?= $isEdit ? 'Edit Job' : 'Add Job' ?></title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 </head>
 <body>
   <div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer"></div>
@@ -88,35 +86,14 @@ function stickyArr(string $name, array $default = []): array {
           <div class="invalid-feedback">Description must be between 5 and 255 characters.</div>
         </div>
         <div class="mb-3">
-          <span class="form-label d-block mb-2">Job Types</span>
-          <?php $selTypes = stickyArr('job_types', array_map('strval', $jobTypeIds)); ?>
-          <div class="row row-cols-2" id="jobTypes">
-            <?php foreach ($jobTypes as $jt): ?>
-              <?php $tid = (string)$jt['id']; ?>
-              <div class="col">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="job_types[]" value="<?= s($tid) ?>" id="jt<?= s($tid) ?>" <?= in_array($tid, $selTypes, true) ? 'checked' : '' ?>>
-                  <label class="form-check-label" for="jt<?= s($tid) ?>"><?= s($jt['name']) ?></label>
-                </div>
-              </div>
-            <?php endforeach; ?>
-          </div>
-          <div class="invalid-feedback d-block" id="jobTypeError" style="display:none">Select at least one job type.</div>
-        </div>
-        <div class="mb-3">
-          <span class="form-label d-block mb-2">Skills</span>
+          <label for="skills" class="form-label">Skills</label>
           <?php $selSkills = stickyArr('skills', array_map('strval', $jobSkillIds)); ?>
-          <div class="row row-cols-2" id="skills">
+          <select id="skills" name="skills[]" class="form-select" multiple>
             <?php foreach ($skills as $sk): ?>
               <?php $sid = (string)$sk['id']; ?>
-              <div class="col">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="skills[]" value="<?= s($sid) ?>" id="sk<?= s($sid) ?>" <?= in_array($sid, $selSkills, true) ? 'checked' : '' ?>>
-                  <label class="form-check-label" for="sk<?= s($sid) ?>"><?= s($sk['name']) ?></label>
-                </div>
-              </div>
+              <option value="<?= s($sid) ?>" <?= in_array($sid, $selSkills, true) ? 'selected' : '' ?>><?= s($sk['name']) ?></option>
             <?php endforeach; ?>
-          </div>
+          </select>
           <div class="invalid-feedback d-block" id="jobSkillError" style="display:none">Select at least one skill.</div>
         </div>
         <div class="mb-3">
@@ -162,6 +139,8 @@ function stickyArr(string $name, array $default = []): array {
     <?php endif; ?>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
   <script src="js/job_form.js"></script>
 </body>
 </html>

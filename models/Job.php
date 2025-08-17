@@ -58,36 +58,6 @@ final class Job
         $st->execute([':id' => $jobId]);
         return $st->rowCount();
     }
-
-    /**
-     * (Optional convenience) Get job types for a job (id + name).
-     * @return list<array{id:int, name:string}>
-     */
-    public static function getJobTypesForJob(PDO $pdo, int $jobId): array
-    {
-        try {
-            $st = $pdo->prepare("
-                SELECT jt.id, jt.name
-                FROM job_jobtype jj
-                JOIN job_types jt ON jt.id = jj.job_type_id
-                WHERE jj.job_id = :job_id
-                ORDER BY jt.name, jt.id
-            ");
-            if ($st === false) {
-                return [];
-            }
-            $st->execute([':job_id' => $jobId]);
-            /** @var list<array{id:int|string, name:string}> $rows */
-            $rows = $st->fetchAll(PDO::FETCH_ASSOC);
-            return array_map(
-                static fn(array $r): array => ['id' => (int)$r['id'], 'name' => (string)$r['name']],
-                $rows
-            );
-        } catch (Throwable $e) {
-            return [];
-        }
-    }
-
     /**
      * Fetch skills linked to a job (id + name).
      *

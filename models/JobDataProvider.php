@@ -34,7 +34,6 @@ class JobDataProvider
     /**
      * @param int|null $days
      * @param string|null $status
-     * @param int|null $jobType
      * @param string|null $search
      * @return array<int, array<string, mixed>>
      */
@@ -42,7 +41,6 @@ class JobDataProvider
         PDO $pdo,
         ?int $days = null,
         ?string $status = null,
-        ?int $jobType = null,
         ?string $search = null
     ): array {
         $where = [];
