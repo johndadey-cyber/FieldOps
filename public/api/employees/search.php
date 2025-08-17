@@ -46,10 +46,9 @@ try {
     }
     echo json_encode($rows, JSON_UNESCAPED_SLASHES);
 } catch (Throwable $e) {
+    // On any DB error return an empty result set instead of a 500 error
     error_log($e->getMessage());
-    http_response_code(500);
-    echo json_encode(['error' => 'Database unavailable']);
-
+    http_response_code(200);
+    echo json_encode($id > 0 ? new stdClass() : []);
     exit;
-
 }
