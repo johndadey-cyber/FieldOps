@@ -3,6 +3,41 @@
 
 This directory contains unit, integration, and smoke tests for the FieldOps application.
 
+
+## Persistence Integration Tests
+
+Every feature that touches persistent data must include or update integration tests. These tests verify database interactions and guard against regressions.
+
+Typical patterns include:
+
+- **Using `EndpointHarness`** to exercise endpoints through real request/response flows.
+- **Resetting data in `setUp`** by clearing or seeding tables (e.g. invoking `tests/reset_test_data.php`).
+- **Seeding required records** so each test runs in isolation.
+
+```php
+class ExamplePersistenceTest extends TestCase
+{
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Ensure a clean database state
+        // e.g. exec("php tests/reset_test_data.php");
+    }
+
+    public function testCreatesRecord(): void
+    {
+        $harness = new EndpointHarness('/api/items', 'POST');
+        $harness->withJson(['name' => 'demo'])->exec();
+
+        $this->assertSame('demo', $harness->json()['name'] ?? null);
+    }
+}
+```
+
+Team members should review these guidelines together to ensure consistent test coverage for persistence features.
+
+
+
 ## Database Configuration and Seeding
 
 Several tests and helper scripts interact with a MySQL database. Before running them,
