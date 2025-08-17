@@ -1,5 +1,20 @@
 <?php declare(strict_types=1);
 
+/**
+ * Utilities for querying employee availability and deriving schedule details.
+ *
+ * Status and summary information are computed by loading an employee's
+ * availability blocks for a given day and subtracting any jobs scheduled for
+ * that same period. The remaining free time determines both values:
+ *
+ * - "No Hours"         when no availability is defined.
+ * - "Booked"           when jobs consume all available time.
+ * - "Available"        when availability exists with no overlapping jobs.
+ * - "Partially Booked" when some, but not all, availability remains.
+ *
+ * The summary is a human-readable list of the free time ranges or "Off" when
+ * none are left.
+ */
 final class Availability
 {
     /**
