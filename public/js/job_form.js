@@ -48,7 +48,10 @@
             return;
           }
           var errs=[];
-          if(data && data.errors){ errs=data.errors; }
+          if(data && data.errors){
+            if(Array.isArray(data.errors)){ errs=data.errors; }
+            else if(typeof data.errors==='object'){ errs=Object.values(data.errors); }
+          }
           else if(data && data.error){ errs=[data.error]; }
           else { errs=['Unknown error']; }
           showErrors(errs);

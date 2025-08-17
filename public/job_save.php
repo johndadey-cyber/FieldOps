@@ -51,30 +51,30 @@ $canonical = $map[$statusIn] ?? $map[str_replace('_',' ', $statusIn)] ?? 'draft'
 
 // Validate
 $errors=[];
-if ($customerId<=0)      { $errors[]='customer_id required'; }
-if ($description==='')   { $errors[]='description required'; }
-if ($scheduledDate==='') { $errors[]='scheduled_date required'; }
+if ($customerId<=0)      { $errors['customer_id']='Customer is required'; }
+if ($description==='')   { $errors['description']='Description is required'; }
+if ($scheduledDate==='') { $errors['scheduled_date']='Scheduled date is required'; }
 else {
   $dt = DateTime::createFromFormat('Y-m-d', $scheduledDate);
   $errs = DateTime::getLastErrors() ?: ['warning_count' => 0, 'error_count' => 0];
   if (!$dt || $dt->format('Y-m-d') !== $scheduledDate || $errs['warning_count'] || $errs['error_count']) {
-    $errors[]='scheduled_date invalid';
+    $errors['scheduled_date']='Scheduled date is invalid';
     log_error("Invalid scheduled_date: $scheduledDate");
   }
 }
-if ($scheduledTime==='') { $errors[]='scheduled_time required'; }
+if ($scheduledTime==='') { $errors['scheduled_time']='Scheduled time is required'; }
 else {
   $tt = DateTime::createFromFormat('H:i', $scheduledTime);
   $errs = DateTime::getLastErrors() ?: ['warning_count' => 0, 'error_count' => 0];
   if (!$tt || $tt->format('H:i') !== $scheduledTime || $errs['warning_count'] || $errs['error_count']) {
-    $errors[]='scheduled_time invalid';
+    $errors['scheduled_time']='Scheduled time is invalid';
     log_error("Invalid scheduled_time: $scheduledTime");
   }
 }
-if ($durationMinutes<=0) { $errors[]='duration_minutes must be > 0'; }
+if ($durationMinutes<=0) { $errors['duration_minutes']='Duration minutes must be > 0'; }
 if ($errors) {
   log_error('Validation failed: '.json_encode($errors));
-  json_out(['ok'=>false,'error'=>'Validation','code'=>422,'fields'=>$errors], 422);
+  json_out(['ok'=>false,'errors'=>$errors,'code'=>422], 422);
 }
 
 require_once __DIR__ . '/../config/database.php';
@@ -113,7 +113,8 @@ try {
   }
 
   $pdo->commit();
-  json_out(['ok'=>true,'id'=>$jobId,'customer_id'=>$customerId,'status'=>$canonical], 200);
+  $action = $id > 0 ? 'updated' : 'created';
+  json_out(['ok'=>true,'id'=>$jobId,'customer_id'=>$customerId,'status'=>$canonical,'action'=>$action], 200);
 
 } catch (Throwable $e) {
   if (isset($pdo) && $pdo->inTransaction()) { $pdo->rollBack(); }
