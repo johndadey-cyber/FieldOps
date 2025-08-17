@@ -680,13 +680,13 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     btnExport.addEventListener('click', () => {
       const eid = currentEmployeeId();
       if (!eid) { showAlert('warning', 'Select an employee first.'); return; }
-      const ws = currentWeekStart();
+      const ws = encodeURIComponent(currentWeekStart());
       window.location.href = `api/availability/export.php?employee_id=${encodeURIComponent(eid)}&week_start=${ws}`;
     });
     btnPrint.addEventListener('click', () => {
       const eid = currentEmployeeId();
       if (!eid) { showAlert('warning', 'Select an employee first.'); return; }
-      const ws = currentWeekStart();
+      const ws = encodeURIComponent(currentWeekStart());
       window.open(`availability_print.php?employee_id=${encodeURIComponent(eid)}&week_start=${ws}`, '_blank');
     });
 
