@@ -51,6 +51,38 @@ function has_overlap(PDO $pdo, int $employeeId, string $day, string $start, stri
     return ((int)($row['cnt'] ?? 0)) > 0;
 }
 
+/** Determine if employee_availability.day_of_week is numeric. */
+function dow_is_int(PDO $pdo): bool {
+    static $isInt = null;
+    if ($isInt !== null) return $isInt;
+    try {
+        $row = $pdo->query("SHOW COLUMNS FROM employee_availability LIKE 'day_of_week'")
+            ->fetch(PDO::FETCH_ASSOC);
+        $type = strtolower((string)($row['Type'] ?? ''));
+        $isInt = str_contains($type, 'int');
+    } catch (Throwable $e) {
+        $isInt = false;
+    }
+    return $isInt;
+}
+
+/** Normalize a day value based on column type. */
+function normalize_day(PDO $pdo, string $day): string {
+    if (!dow_is_int($pdo)) return $day;
+    $map = [
+        'Sunday'=>0,
+        'Monday'=>1,
+        'Tuesday'=>2,
+        'Wednesday'=>3,
+        'Thursday'=>4,
+        'Friday'=>5,
+        'Saturday'=>6,
+    ];
+    if (isset($map[$day])) return (string)$map[$day];
+    if (is_numeric($day)) return (string)((int)$day);
+    return $day;
+}
+
 $pdo = getPDO();
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -74,7 +106,9 @@ if ($employeeId <= 0) $errors[] = 'employee_id is required';
 if (!in_array($day, $validDays, true)) $errors[] = 'day_of_week invalid';
 if ($start >= $end) $errors[] = 'end_time must be after start_time';
 
-if (!$errors && has_overlap($pdo, $employeeId, $day, $start, $end, $id)) {
+// Normalize day according to column type
+$dayNorm = normalize_day($pdo, $day);
+if (!$errors && has_overlap($pdo, $employeeId, $dayNorm, $start, $end, $id)) {
     $errors[] = 'Window overlaps an existing window for this day.';
 }
 
@@ -90,7 +124,7 @@ try {
          WHERE id = :id
     ");
     $ok = $up->execute([
-        ':eid'=>$employeeId, ':dow'=>$day, ':st'=>$start, ':et'=>$end, ':id'=>$id
+        ':eid'=>$employeeId, ':dow'=>$dayNorm, ':st'=>$start, ':et'=>$end, ':id'=>$id
     ]);
     try {
         $uid = $_SESSION['user']['id'] ?? null;

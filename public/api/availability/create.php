@@ -40,6 +40,50 @@ function has_overlap(PDO $pdo, int $eid, array $days, string $start, string $end
     return ((int)($row['cnt'] ?? 0)) > 0;
 }
 
+/**
+ * Determine if employee_availability.day_of_week column is numeric.
+ */
+function dow_is_int(PDO $pdo): bool {
+    static $isInt = null;
+    if ($isInt !== null) return $isInt;
+    try {
+        $row = $pdo->query("SHOW COLUMNS FROM employee_availability LIKE 'day_of_week'")
+            ->fetch(PDO::FETCH_ASSOC);
+        $type = strtolower((string)($row['Type'] ?? ''));
+        $isInt = str_contains($type, 'int');
+    } catch (Throwable $e) {
+        $isInt = false;
+    }
+    return $isInt;
+}
+
+/**
+ * @param list<string> $days
+ * @return list<string>
+ */
+function normalize_days(PDO $pdo, array $days): array {
+    if ($days === []) return $days;
+    if (!dow_is_int($pdo)) return array_map('strval', $days);
+    $map = [
+        'Sunday'=>0,
+        'Monday'=>1,
+        'Tuesday'=>2,
+        'Wednesday'=>3,
+        'Thursday'=>4,
+        'Friday'=>5,
+        'Saturday'=>6,
+    ];
+    $out = [];
+    foreach ($days as $d) {
+        if (isset($map[$d])) {
+            $out[] = (string)$map[$d];
+        } elseif (is_numeric($d)) {
+            $out[] = (string)((int)$d);
+        }
+    }
+    return $out;
+}
+
 $raw = file_get_contents('php://input');
 $data = json_decode($raw ?: '[]', true);
 if (!is_array($data)) {
@@ -80,6 +124,9 @@ if ($err) {
 
 $startUtc = $start . ':00';
 $endUtc   = $end . ':00';
+
+// Normalize day values depending on column type
+$days = normalize_days($pdo, $days);
 
 if (has_overlap($pdo, $eid, $days, $startUtc, $endUtc, $id > 0 ? $id : null)) {
     http_response_code(409);
