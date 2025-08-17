@@ -49,6 +49,22 @@ configure a database and seed it with minimal data so an active employee exists.
 
 With these steps completed, scripts and tests should be able to locate an active employee
 record and execute successfully.
+
+## Resetting the test database
+
+Run the reset script to apply any pending schema migrations and clear out transient test
+data:
+
+```bash
+php tests/reset_test_data.php
+```
+
+The reset script calls `scripts/migrate_test_db.php` internally. If you need to run
+migrations without clearing data, invoke the migration script directly:
+
+```bash
+php scripts/migrate_test_db.php
+```
 =======
 # Tests
 
