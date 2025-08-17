@@ -334,12 +334,66 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     winRecurring.addEventListener('change', toggleRecurring);
     toggleRecurring();
 
-    btnWeekdays.addEventListener('click', () => {
+    btnWeekdays.addEventListener('click', async () => {
+      if (!confirm('Copy this window to all weekdays?')) return;
+      const eid = currentEmployeeId();
+      if (!eid) { showAlert('warning', 'Select an employee first.'); return; }
+      const start = winStart.value;
+      const end = winEnd.value;
+      const srcDay = Array.from(winDays.options).find(o => o.selected)?.value;
       const weekdays = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
-      Array.from(winDays.options).forEach(o => o.selected = weekdays.includes(o.value));
+      let ok = true;
+      for (const day of weekdays) {
+        if (day === srcDay) continue;
+        const payload = {
+          csrf_token: CSRF,
+          employee_id: eid,
+          day_of_week: day,
+          start_time: start,
+          end_time: end
+        };
+        const res = await fetch('api/availability/create.php', {
+          method: 'POST',
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!data || !data.ok) { ok = false; break; }
+      }
+      if (ok) {
+        showAlert('success', 'Copied.');
+        winModal.hide();
+        loadAvailability();
+      } else {
+        showAlert('danger', 'Copy failed');
+      }
     });
-    btnClearWeek.addEventListener('click', () => {
-      Array.from(winDays.options).forEach(o => { o.selected = false; });
+    btnClearWeek.addEventListener('click', async () => {
+      if (!confirm('Clear all availability windows for this employee?')) return;
+      const eid = currentEmployeeId();
+      if (!eid) { showAlert('warning', 'Select an employee first.'); return; }
+      const ids = Array.from(tableBody.querySelectorAll('tr[data-id]'))
+        .map(r => r.dataset.id)
+        .filter(Boolean);
+      let ok = true;
+      for (const id of ids) {
+        const form = new URLSearchParams();
+        form.set('csrf_token', CSRF);
+        form.set('id', id);
+        const res = await fetch('availability_delete.php', {
+          method: 'POST',
+          headers: { 'Accept': 'application/json' },
+          body: form
+        });
+        const data = await res.json();
+        if (!data || !data.ok) { ok = false; break; }
+      }
+      if (ok) {
+        showAlert('success', 'Week cleared.');
+        loadAvailability();
+      } else {
+        showAlert('danger', 'Clear failed');
+      }
     });
 
     async function searchEmployees() {
