@@ -10,6 +10,7 @@ declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../../config/database.php';
 if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
+require_once __DIR__ . '/../../_csrf.php';
 
 $pdo = getPDO();
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -46,6 +47,12 @@ if (!is_array($data)) {
     exit;
 }
 
+if (!csrf_verify($data['csrf_token'] ?? null)) {
+    http_response_code(422);
+    echo json_encode(['ok'=>false,'error'=>'invalid_csrf']);
+    exit;
+}
+
 $eid  = (int)($data['employee_id'] ?? 0);
 $dayInput = $data['day_of_week'] ?? [];
 $days = is_array($dayInput) ? $dayInput : [(string)$dayInput];
@@ -66,7 +73,7 @@ if ($start >= $end) $err[] = 'range';
 
 if ($err) {
     http_response_code(422);
-    echo json_encode(['ok'=>false,'errors'=>$err]);
+    echo json_encode(['ok'=>false,'error'=>'validation','errors'=>$err,'message'=>'Invalid input.']);
     exit;
 }
 
@@ -75,31 +82,54 @@ $endUtc   = $end . ':00';
 
 if (has_overlap($pdo, $eid, $days, $startUtc, $endUtc, $id > 0 ? $id : null)) {
     http_response_code(409);
-    echo json_encode(['ok'=>false,'error'=>'overlap','message'=>'Window overlaps existing recurring availability for selected day(s). Overrides take precedence.']);
+    echo json_encode(['ok'=>false,'error'=>'overlap','message'=>'Window overlaps existing recurring availability for selected day(s). Overrides take precedence.','days'=>$days]);
     exit;
 }
 
-if ($id > 0) {
-    $day = $days[0] ?? '';
-    $st = $pdo->prepare("UPDATE employee_availability SET day_of_week=:dow, start_time=:st, end_time=:et WHERE id=:id AND employee_id=:eid");
-    $st->execute([':dow'=>$day,':st'=>$startUtc,':et'=>$endUtc,':id'=>$id,':eid'=>$eid]);
-} else {
-    $st = $pdo->prepare("INSERT INTO employee_availability (employee_id, day_of_week, start_time, end_time) VALUES (:eid,:dow,:st,:et)");
-    foreach ($days as $d) {
-        $st->execute([':eid'=>$eid,':dow'=>$d,':st'=>$startUtc,':et'=>$endUtc]);
+
+$day = $days[0] ?? null;
+$ids = [];
+$isUpdate = $id > 0;
+
+try {
+    $pdo->beginTransaction();
+    if ($isUpdate) {
+        $stUpd = $pdo->prepare("UPDATE employee_availability SET day_of_week=:dow, start_time=:st, end_time=:et WHERE id=:id AND employee_id=:eid");
+        $stUpd->execute([':dow'=>$day,':st'=>$startUtc,':et'=>$endUtc,':id'=>$id,':eid'=>$eid]);
+        $ids[] = $id;
+        $remaining = array_slice($days, 1);
+        if ($remaining) {
+            $stIns = $pdo->prepare("INSERT INTO employee_availability (employee_id, day_of_week, start_time, end_time) VALUES (:eid,:dow,:st,:et)");
+            foreach ($remaining as $d) {
+                $stIns->execute([':eid'=>$eid,':dow'=>$d,':st'=>$startUtc,':et'=>$endUtc]);
+                $ids[] = (int)$pdo->lastInsertId();
+            }
+        }
+    } else {
+        $stIns = $pdo->prepare("INSERT INTO employee_availability (employee_id, day_of_week, start_time, end_time) VALUES (:eid,:dow,:st,:et)");
+        foreach ($days as $d) {
+            $stIns->execute([':eid'=>$eid,':dow'=>$d,':st'=>$startUtc,':et'=>$endUtc]);
+            $ids[] = (int)$pdo->lastInsertId();
+        }
+        $id = $ids[0] ?? 0;
     }
-    $id = (int)$pdo->lastInsertId();
+    $pdo->commit();
+} catch (Throwable $e) {
+    $pdo->rollBack();
+    http_response_code(500);
+    echo json_encode(['ok'=>false,'error'=>'db_error','message'=>'Failed to save availability.']);
+    exit;
 }
 
 
 try {
     $uid = $_SESSION['user']['id'] ?? null;
-    $det = json_encode(['id'=>$id,'day'=>$day,'start'=>$start,'end'=>$end], JSON_UNESCAPED_UNICODE);
-    $act = $id > 0 ? 'update' : 'create';
+    $det = json_encode(['ids'=>$ids,'days'=>$days,'start'=>$start,'end'=>$end], JSON_UNESCAPED_UNICODE);
+    $act = $isUpdate ? 'update' : 'create';
     $pdo->prepare('INSERT INTO availability_audit (employee_id, user_id, action, details) VALUES (:eid,:uid,:act,:det)')
         ->execute([':eid'=>$eid, ':uid'=>$uid, ':act'=>$act, ':det'=>$det]);
 } catch (Throwable $e) {
     // ignore audit errors
 }
-echo json_encode(['ok'=>true,'id'=>$id]);
+echo json_encode(['ok'=>true,'id'=>$id,'ids'=>$ids]);
 
