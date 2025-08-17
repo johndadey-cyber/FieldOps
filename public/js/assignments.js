@@ -305,7 +305,9 @@
       </span>`;
 
     const miles =
+
       e.distanceKm != null ? (e.distanceKm * 0.621371).toFixed(1) + ' mi' : 'NA';
+
     const rightMeta = `<span class="text-muted">${miles}</span>${dl}`;
 
     // checkbox rules
