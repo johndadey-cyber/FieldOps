@@ -11,6 +11,7 @@ declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../../config/database.php';
 if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
+require_once __DIR__ . '/../../../helpers/availability_error_logger.php';
 
 $pdo = getPDO();
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -84,13 +85,20 @@ if ($jobs) {
     $warning = 'assignment_conflict';
 }
 
-if ($id > 0) {
-    $st = $pdo->prepare("UPDATE employee_availability_overrides SET employee_id=:eid, date=:d, status=:s, start_time=:st, end_time=:et, reason=:r WHERE id=:id");
-    $st->execute([':eid'=>$eid,':d'=>$date,':s'=>$status,':st'=>$startUtc,':et'=>$endUtc,':r'=>$reason,':id'=>$id]);
-} else {
-    $st = $pdo->prepare("INSERT INTO employee_availability_overrides (employee_id, date, status, start_time, end_time, reason) VALUES (:eid,:d,:s,:st,:et,:r)");
-    $st->execute([':eid'=>$eid,':d'=>$date,':s'=>$status,':st'=>$startUtc,':et'=>$endUtc,':r'=>$reason]);
-    $id = (int)$pdo->lastInsertId();
+try {
+    if ($id > 0) {
+        $st = $pdo->prepare("UPDATE employee_availability_overrides SET employee_id=:eid, date=:d, status=:s, start_time=:st, end_time=:et, reason=:r WHERE id=:id");
+        $st->execute([':eid'=>$eid,':d'=>$date,':s'=>$status,':st'=>$startUtc,':et'=>$endUtc,':r'=>$reason,':id'=>$id]);
+    } else {
+        $st = $pdo->prepare("INSERT INTO employee_availability_overrides (employee_id, date, status, start_time, end_time, reason) VALUES (:eid,:d,:s,:st,:et,:r)");
+        $st->execute([':eid'=>$eid,':d'=>$date,':s'=>$status,':st'=>$startUtc,':et'=>$endUtc,':r'=>$reason]);
+        $id = (int)$pdo->lastInsertId();
+    }
+} catch (Throwable $e) {
+    availability_log_error($pdo, $eid, $data, $e);
+    http_response_code(500);
+    echo json_encode(['ok'=>false,'error'=>'db_error','message'=>'Failed to save override.']);
+    exit;
 }
 
 
