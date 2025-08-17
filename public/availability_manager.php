@@ -498,18 +498,37 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         const res = await fetch(`api/employees/search.php?q=${encodeURIComponent(q)}`);
         if (!res.ok) throw new Error('bad response');
         const data = await res.json();
-        for (const it of data) {
+        if (!data.ok) {
+          showAlert('danger', data.error || 'Search failed');
+          return;
+        }
+        if (!data.items || data.items.length === 0) {
+          showAlert('warning', 'No employees found');
+          return;
+        }
+        for (const it of data.items) {
           const opt = document.createElement('option');
           opt.value = it.id;
           opt.textContent = `${it.name} (ID: ${it.id})`;
           resultSelect.appendChild(opt);
         }
       } catch (err) {
-        // ignore errors
+        showAlert('danger', 'Error fetching employees');
       }
     }
 
     btnEmpSearch.addEventListener('click', searchEmployees);
+    employeeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        searchEmployees();
+      }
+    });
+    employeeInput.addEventListener('input', () => {
+      if (employeeInput.value.trim().length >= 2) {
+        searchEmployees();
+      }
+    });
     resultSelect.addEventListener('change', () => {
       const id = resultSelect.value;
       if (id) {
@@ -896,14 +915,14 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     if (initId) {
       fetch(`api/employees/search.php?id=${initId}`)
         .then(r => r.json())
-        .then(emp => {
-          if (emp && emp.name) {
-            employeeInput.value = emp.name;
+        .then(resp => {
+          if (resp.ok && resp.item && resp.item.name) {
+            employeeInput.value = resp.item.name;
             const opt = document.createElement('option');
-            opt.value = emp.id;
-            opt.textContent = `${emp.name} (ID: ${emp.id})`;
+            opt.value = resp.item.id;
+            opt.textContent = `${resp.item.name} (ID: ${resp.item.id})`;
             resultSelect.appendChild(opt);
-            resultSelect.value = String(emp.id);
+            resultSelect.value = String(resp.item.id);
           }
           loadAvailability();
         })
