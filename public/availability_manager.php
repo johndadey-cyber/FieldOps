@@ -498,6 +498,15 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       }
     }
 
+    const calendarEl = document.getElementById('calendar');
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'timeGridWeek',
+      selectable: true,
+      select: handleSelect,
+      eventClick: info => handleEventEdit(info.event)
+    });
+    calendar.render();
+
     async function searchEmployees() {
       hideAlert();
       const q = employeeInput.value.trim();
