@@ -36,7 +36,10 @@ try {
     }
 
     $params = [':q' => '%'.$q.'%'];
-    $where  = "p.first_name LIKE :q OR p.last_name LIKE :q OR CONCAT(p.first_name,' ',p.last_name) LIKE :q";
+    $coll   = 'utf8mb4_unicode_ci';
+    $where  = "p.first_name COLLATE {$coll} LIKE :q"
+            . " OR p.last_name COLLATE {$coll} LIKE :q"
+            . " OR CONCAT(p.first_name,' ',p.last_name) COLLATE {$coll} LIKE :q";
     if (ctype_digit($q)) {
         $where .= " OR e.id = :eid";
         $params[':eid'] = (int)$q;
