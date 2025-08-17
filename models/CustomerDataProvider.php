@@ -12,6 +12,8 @@ final class CustomerDataProvider
      *   last_name:string,
      *   email:?string,
      *   phone:?string,
+     *   company:?string,
+     *   notes:?string,
      *   address_line1:?string,
      *   address_line2:?string,
      *   city:?string,
@@ -29,7 +31,7 @@ final class CustomerDataProvider
         ?string $sort = 'id',
         string $order = 'asc'
     ): array {
-        $sql = "SELECT id, first_name, last_name, email, phone, address_line1, address_line2, city, state, postal_code, country
+        $sql = "SELECT id, first_name, last_name, company, notes, email, phone, address_line1, address_line2, city, state, postal_code, country
                 FROM customers
                 WHERE 1=1";
         $params = [];
@@ -40,6 +42,8 @@ final class CustomerDataProvider
                 'first_name',
                 'last_name',
                 'email',
+                'company',
+                'notes',
                 'address_line1',
                 'address_line2',
                 'city',
@@ -72,6 +76,7 @@ final class CustomerDataProvider
             'id'          => 'id',
             'email'       => 'email',
             'phone'       => 'phone',
+            'company'     => 'company',
             'city'        => 'city',
             'state'       => 'state',
             'postal_code' => 'postal_code',
@@ -99,7 +104,7 @@ final class CustomerDataProvider
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
 
-        /** @var array<int, array{id:int, first_name:string, last_name:string, email:?string, phone:?string, address_line1:?string, address_line2:?string, city:?string, state:?string, postal_code:?string, country:?string}> */
+        /** @var array<int, array{id:int, first_name:string, last_name:string, company:?string, notes:?string, email:?string, phone:?string, address_line1:?string, address_line2:?string, city:?string, state:?string, postal_code:?string, country:?string}> */
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         return $rows;
     }

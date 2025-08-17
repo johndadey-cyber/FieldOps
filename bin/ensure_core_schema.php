@@ -246,6 +246,19 @@ if (!tableExists($pdo, 'jobtype_skills')) {
     out('[OK] jobtype_skills created');
 }
 
+// Ensure optional columns on existing tables
+if (tableExists($pdo, 'customers')) {
+    $cols = columns($pdo, 'customers');
+    if (!array_key_exists('company', $cols)) {
+        out('[..] Adding `company` column to customers ...');
+        $pdo->exec("ALTER TABLE `customers` ADD COLUMN `company` VARCHAR(255) NULL AFTER `last_name`");
+    }
+    if (!array_key_exists('notes', $cols)) {
+        out('[..] Adding `notes` column to customers ...');
+        $pdo->exec("ALTER TABLE `customers` ADD COLUMN `notes` TEXT NULL");
+    }
+}
+
 out("== Ensuring PRIMARY KEYS ==");
 foreach (['people','employees','job_types','employee_availability_overrides'] as $t) {
     ensureAutoPk($pdo, $t);

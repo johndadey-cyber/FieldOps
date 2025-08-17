@@ -59,8 +59,8 @@ final class Customer
      */
     public function create(array $data)
     {
-        $sql = 'INSERT INTO customers (first_name,last_name,email,phone,address_line1,address_line2,city,state,postal_code,country,google_place_id,latitude,longitude)
-                VALUES (:fn,:ln,:em,:ph,:a1,:a2,:city,:st,:pc,:country,:pid,:lat,:lon)';
+        $sql = 'INSERT INTO customers (first_name,last_name,company,email,phone,address_line1,address_line2,city,state,postal_code,country,google_place_id,latitude,longitude,notes)
+                VALUES (:fn,:ln,:co,:em,:ph,:a1,:a2,:city,:st,:pc,:country,:pid,:lat,:lon,:notes)';
         $stmt = $this->pdo->prepare($sql);
         if (!$stmt) {
             return false;
@@ -69,6 +69,7 @@ final class Customer
         $ok = $stmt->execute([
             ':fn'      => (string)($data['first_name']    ?? ''),
             ':ln'      => (string)($data['last_name']     ?? ''),
+            ':co'      => $data['company']    !== '' ? (string)$data['company']    : null,
             ':em'      => $data['email']      !== '' ? (string)$data['email']      : null,
             ':ph'      => $data['phone']      !== '' ? (string)$data['phone']      : null,
             ':a1'      => $data['address_line1'] !== '' ? (string)$data['address_line1'] : null,
@@ -80,6 +81,7 @@ final class Customer
             ':pid'     => $data['google_place_id'] !== '' ? (string)$data['google_place_id'] : null,
             ':lat'     => isset($data['latitude']) ? $data['latitude'] : null,
             ':lon'     => isset($data['longitude']) ? $data['longitude'] : null,
+            ':notes'   => $data['notes']      !== '' ? (string)$data['notes']      : null,
         ]);
 
         if (!$ok) {
@@ -99,9 +101,9 @@ final class Customer
     public function update(int $id, array $data): bool
     {
         $sql = 'UPDATE customers
-                   SET first_name=:fn,last_name=:ln,email=:em,phone=:ph,
+                   SET first_name=:fn,last_name=:ln,company=:co,email=:em,phone=:ph,
                        address_line1=:a1,address_line2=:a2,city=:city,state=:st,postal_code=:pc,country=:country,
-                       google_place_id=:pid, latitude=:lat, longitude=:lon
+                       google_place_id=:pid, latitude=:lat, longitude=:lon, notes=:notes
                  WHERE id=:id';
         $stmt = $this->pdo->prepare($sql);
         if (!$stmt) {
@@ -111,6 +113,7 @@ final class Customer
         return $stmt->execute([
             ':fn'      => (string)($data['first_name']    ?? ''),
             ':ln'      => (string)($data['last_name']     ?? ''),
+            ':co'      => $data['company']    !== '' ? (string)$data['company']    : null,
             ':em'      => $data['email']      !== '' ? (string)$data['email']      : null,
             ':ph'      => $data['phone']      !== '' ? (string)$data['phone']      : null,
             ':a1'      => $data['address_line1'] !== '' ? (string)$data['address_line1'] : null,
@@ -122,6 +125,7 @@ final class Customer
             ':pid'     => $data['google_place_id'] !== '' ? (string)$data['google_place_id'] : null,
             ':lat'     => isset($data['latitude']) ? $data['latitude'] : null,
             ':lon'     => isset($data['longitude']) ? $data['longitude'] : null,
+            ':notes'   => $data['notes']      !== '' ? (string)$data['notes']      : null,
             ':id'      => $id,
         ]);
     }
