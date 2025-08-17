@@ -82,9 +82,8 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
             <input type="hidden" id="employee_id" name="employee_id" value="<?= $selectedEmployeeId ?: '' ?>">
           </div>
           <div class="col-auto">
-
             <button type="button" class="btn btn-success" id="btnAdd">Add Window</button>
-
+            <button type="button" class="btn btn-warning ms-2" id="btnAddOverride">Add Override</button>
           </div>
         </form>
       </div>
@@ -115,6 +114,28 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           </table>
         </div>
         <div id="emptyState" class="text-muted d-none">No availability windows yet.</div>
+      </div>
+    </div>
+
+    <div class="card mt-4">
+      <div class="card-body">
+        <h2 class="h5 mb-3">Overrides</h2>
+        <div class="table-responsive">
+          <table class="table align-middle" id="overrideTable">
+            <thead>
+              <tr>
+                <th style="width: 160px;">Date</th>
+                <th style="width: 160px;">Start</th>
+                <th style="width: 160px;">End</th>
+                <th style="width: 160px;">Status</th>
+                <th>Reason</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="overrideEmpty" class="text-muted d-none">No overrides yet.</div>
       </div>
     </div>
   </div>
@@ -172,6 +193,60 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     </div>
   </div>
 
+  <div class="modal fade" id="ovModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content" id="ovForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="ovTitle">Add Override</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body row g-3">
+          <input type="hidden" id="ov_id">
+          <div class="col-6">
+            <label class="form-label">Start Date</label>
+            <input type="date" class="form-control" id="ov_start_date" required>
+          </div>
+          <div class="col-6">
+            <label class="form-label">End Date</label>
+            <input type="date" class="form-control" id="ov_end_date">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Days of Week</label>
+            <select class="form-select" id="ov_days" multiple>
+              <?php foreach (['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] as $d): ?>
+                <option value="<?= s($d) ?>"><?= s($d) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label">Start</label>
+            <input type="time" class="form-control" id="ov_start_time">
+          </div>
+          <div class="col-6">
+            <label class="form-label">End</label>
+            <input type="time" class="form-control" id="ov_end_time">
+          </div>
+          <div class="col-6">
+            <label class="form-label">Status</label>
+            <select class="form-select" id="ov_status" required>
+              <option value="UNAVAILABLE">Unavailable</option>
+              <option value="AVAILABLE">Available</option>
+              <option value="PARTIAL">Partial</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label">Reason</label>
+            <input type="text" class="form-control" id="ov_reason">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="ovSubmit">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <template id="subRowTpl">
     <tr class="sub-row" data-id="">
       <td></td>
@@ -188,6 +263,13 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     </div>
   </template>
 
+  <template id="ovActionTpl">
+    <div class="btn-group btn-group-sm">
+      <button class="btn btn-outline-primary btn-edit">Edit</button>
+      <button class="btn btn-outline-danger btn-del">Delete</button>
+    </div>
+  </template>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
   <script>
     const CSRF = <?= json_encode($__csrf) ?>;
@@ -197,6 +279,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     const alertBox = document.getElementById('alertBox');
     const subRowTpl = document.getElementById('subRowTpl');
     const actionTpl = document.getElementById('actionTpl');
+    const overrideBody = document.querySelector('#overrideTable tbody');
+    const overrideEmpty = document.getElementById('overrideEmpty');
+    const ovActionTpl = document.getElementById('ovActionTpl');
     const dayRows = {};
     tableBody.querySelectorAll('tr.day-row').forEach(tr => { dayRows[tr.dataset.day] = tr; });
 
@@ -205,6 +290,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     const btnEmpSearch = document.getElementById('btnEmpSearch');
     const resultSelect = document.getElementById('employeeResults');
     const btnAdd = document.getElementById('btnAdd');
+    const btnAddOverride = document.getElementById('btnAddOverride');
 
     const winModalEl = document.getElementById('winModal');
     const winModal = new bootstrap.Modal(winModalEl);
@@ -219,6 +305,19 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     const winEndDate = document.getElementById('win_end_date');
     const btnWeekdays = document.getElementById('btnWeekdays');
     const btnClearWeek = document.getElementById('btnClearWeek');
+
+    const ovModalEl = document.getElementById('ovModal');
+    const ovModal = new bootstrap.Modal(ovModalEl);
+    const ovForm = document.getElementById('ovForm');
+    const ovTitle = document.getElementById('ovTitle');
+    const ovId = document.getElementById('ov_id');
+    const ovStartDate = document.getElementById('ov_start_date');
+    const ovEndDate = document.getElementById('ov_end_date');
+    const ovDays = document.getElementById('ov_days');
+    const ovStartTime = document.getElementById('ov_start_time');
+    const ovEndTime = document.getElementById('ov_end_time');
+    const ovStatus = document.getElementById('ov_status');
+    const ovReason = document.getElementById('ov_reason');
 
     // Clear focus inside the modal before it is hidden to avoid accessibility warnings
     winModalEl.addEventListener('hide.bs.modal', () => {
@@ -357,7 +456,24 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         }
       }
 
+      overrideBody.innerHTML = '';
       const overrides = Array.isArray(data.overrides) ? data.overrides : [];
+      if (!overrides.length) {
+        overrideEmpty.classList.remove('d-none');
+      } else {
+        overrideEmpty.classList.add('d-none');
+        for (const ov of overrides) {
+          const tr = document.createElement('tr');
+          tr.dataset.id = ov.id;
+          tr.innerHTML = `<td>${ov.date}</td><td>${ov.start_time || ''}</td><td>${ov.end_time || ''}</td><td>${ov.status}</td><td>${ov.reason || ''}</td><td class="actions"></td>`;
+          const actions = ovActionTpl.content.firstElementChild.cloneNode(true);
+          actions.querySelector('.btn-edit').addEventListener('click', () => openOvEdit(ov));
+          actions.querySelector('.btn-del').addEventListener('click', () => delOverride(ov));
+          tr.querySelector('.actions').appendChild(actions);
+          overrideBody.appendChild(tr);
+        }
+      }
+
       for (const ov of overrides) {
         let day = ov.day_of_week;
         if (!day && ov.date) {
@@ -417,6 +533,44 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       }
     }
 
+    function openOvAdd() {
+      ovTitle.textContent = 'Add Override';
+      ovId.value = '';
+      ovStartDate.value = currentWeekStart();
+      ovEndDate.value = '';
+      Array.from(ovDays.options).forEach(o => { o.selected = false; });
+      ovStartTime.value = '';
+      ovEndTime.value = '';
+      ovStatus.value = 'UNAVAILABLE';
+      ovReason.value = '';
+      ovModal.show();
+    }
+
+    function openOvEdit(ov) {
+      ovTitle.textContent = 'Edit Override';
+      ovId.value = ov.id;
+      ovStartDate.value = ov.date;
+      ovEndDate.value = ov.date;
+      Array.from(ovDays.options).forEach(o => { o.selected = o.value === ov.day_of_week; });
+      ovStartTime.value = ov.start_time || '';
+      ovEndTime.value = ov.end_time || '';
+      ovStatus.value = ov.status || 'UNAVAILABLE';
+      ovReason.value = ov.reason || '';
+      ovModal.show();
+    }
+
+    async function delOverride(ov) {
+      if (!confirm(`Delete override on ${ov.date}?`)) return;
+      const res = await fetch(`api/availability/override_delete.php?id=${ov.id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data && data.ok) {
+        showAlert('success', 'Deleted.');
+        loadAvailability();
+      } else {
+        showAlert('danger', 'Delete failed');
+      }
+    }
+
     winForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const eid = currentEmployeeId();
@@ -460,7 +614,65 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       }
     });
 
+    ovForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const eid = currentEmployeeId();
+      if (!eid) { showAlert('warning', 'Select an employee first.'); return; }
+
+      const id = ovId.value.trim();
+      const startDate = ovStartDate.value;
+      const endDate = ovEndDate.value || startDate;
+      const days = Array.from(ovDays.options).filter(o => o.selected).map(o => o.value);
+      const status = ovStatus.value;
+      const startTime = ovStartTime.value;
+      const endTime = ovEndTime.value;
+      const reason = ovReason.value;
+      if (!startDate) { showAlert('warning', 'Start date required.'); return; }
+
+      function* eachDate(s,e){ const d=new Date(s+'T00:00:00'); const end=new Date(e+'T00:00:00'); while(d<=end){ yield d.toISOString().slice(0,10); d.setDate(d.getDate()+1);} }
+      const dayName = ds => daysOrder[(new Date(ds+'T00:00:00').getDay()+6)%7];
+      let ok = true;
+      if (id) {
+        const payload = { id: parseInt(id,10), employee_id: eid, date: startDate, status };
+        if (startTime) payload.start_time = startTime;
+        if (endTime) payload.end_time = endTime;
+        if (reason) payload.reason = reason;
+        const res = await fetch('api/availability/override.php', {
+          method: 'POST',
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        ok = data && data.ok;
+      } else {
+        for (const d of eachDate(startDate, endDate)) {
+          const dn = dayName(d);
+          if (days.length && !days.includes(dn)) continue;
+          const payload = { employee_id: eid, date: d, status };
+          if (startTime) payload.start_time = startTime;
+          if (endTime) payload.end_time = endTime;
+          if (reason) payload.reason = reason;
+          const res = await fetch('api/availability/override.php', {
+            method: 'POST',
+            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+          if (!data || !data.ok) { ok = false; break; }
+        }
+      }
+
+      if (ok) {
+        showAlert('success', 'Saved.');
+        ovModal.hide();
+        loadAvailability();
+      } else {
+        showAlert('danger', 'Save failed');
+      }
+    });
+
     document.getElementById('btnAdd').addEventListener('click', openAdd);
+    btnAddOverride.addEventListener('click', openOvAdd);
 
     const initId = currentEmployeeId();
     if (initId) {
