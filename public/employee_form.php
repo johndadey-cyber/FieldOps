@@ -67,12 +67,12 @@ function stickyArr(string $name, array $default = []): array {
         <legend class="col-12">Personal Information</legend>
         <div class="col-md-6">
           <label class="form-label" for="first_name">First Name <span class="text-danger">*</span><span class="visually-hidden"> required</span></label>
-          <input type="text" class="form-control" id="first_name" name="first_name" maxlength="50" value="<?= s(sticky('first_name', $employee['first_name'] ?? '')) ?>" required aria-required="true">
+          <input type="text" class="form-control" id="first_name" name="first_name" maxlength="100" value="<?= s(sticky('first_name', $employee['first_name'] ?? '')) ?>" required aria-required="true">
           <div class="invalid-feedback">First name is required.</div>
         </div>
         <div class="col-md-6">
           <label class="form-label" for="last_name">Last Name <span class="text-danger">*</span><span class="visually-hidden"> required</span></label>
-          <input type="text" class="form-control" id="last_name" name="last_name" maxlength="50" value="<?= s(sticky('last_name', $employee['last_name'] ?? '')) ?>" required aria-required="true">
+          <input type="text" class="form-control" id="last_name" name="last_name" maxlength="100" value="<?= s(sticky('last_name', $employee['last_name'] ?? '')) ?>" required aria-required="true">
           <div class="invalid-feedback">Last name is required.</div>
         </div>
         <div class="col-md-6">

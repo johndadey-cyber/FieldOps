@@ -125,7 +125,7 @@ function fkInfo(PDO $pdo, string $table, string $column): array {
     $st=$pdo->prepare($sql); $st->execute([':t'=>$table,':c'=>$column]);
     return $st->fetchAll(PDO::FETCH_ASSOC);
 }
-function ensureFk(PDO $pdo, string $table, string $col, string $refTable, string $refCol='id', string $nameHint=null, string $onDelete='RESTRICT', string $onUpdate='CASCADE'): void {
+function ensureFk(PDO $pdo, string $table, string $col, string $refTable, string $refCol='id', ?string $nameHint=null, string $onDelete='RESTRICT', string $onUpdate='CASCADE'): void {
     if (!tableExists($pdo,$table) || !tableExists($pdo,$refTable)) { out("[-] Skip FK {$table}.{$col} → {$refTable}.{$refCol} (table missing)"); return; }
     $have = fkInfo($pdo,$table,$col);
 
