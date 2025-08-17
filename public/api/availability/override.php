@@ -4,14 +4,37 @@ declare(strict_types=1);
 /**
  * POST /api/availability/override.php
  * Create or update date-specific availability overrides.
+ * Overrides take precedence over recurring availability windows.
  * JSON body: {id?, employee_id, date, status, start_time?, end_time?, reason?}
  */
 
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../../config/database.php';
+if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
 $pdo = getPDO();
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+/**
+ * Check for conflicting overrides for the same date range.
+ */
+function override_conflict(PDO $pdo, int $eid, string $date, ?string $start, ?string $end, ?int $excludeId = null): bool {
+    $params = [':eid'=>$eid, ':d'=>$date];
+    $sql = "SELECT COUNT(*) AS cnt FROM employee_availability_overrides WHERE employee_id=:eid AND date=:d";
+    if ($start !== null || $end !== null) {
+        $sql .= " AND NOT (COALESCE(end_time,'24:00:00') <= :st OR COALESCE(start_time,'00:00:00') >= :et)";
+        $params[':st'] = $start ?? '00:00:00';
+        $params[':et'] = $end   ?? '24:00:00';
+    }
+    if ($excludeId !== null) {
+        $sql .= " AND id <> :id";
+        $params[':id'] = $excludeId;
+    }
+    $st = $pdo->prepare($sql);
+    $st->execute($params);
+    $row = $st->fetch(PDO::FETCH_ASSOC);
+    return ((int)($row['cnt'] ?? 0)) > 0;
+}
 
 $raw = file_get_contents('php://input');
 $data = json_decode($raw ?: '[]', true);
@@ -46,6 +69,12 @@ if ($errors) {
 $startUtc = $start !== null ? $start . ':00' : null;
 $endUtc   = $end   !== null ? $end . ':00'   : null;
 
+if (override_conflict($pdo, $eid, $date, $startUtc, $endUtc, $id > 0 ? $id : null)) {
+    http_response_code(409);
+    echo json_encode(['ok'=>false,'error'=>'override_conflict','message'=>'Override conflicts with existing override for this date/time. Overrides take precedence over recurring availability.']);
+    exit;
+}
+
 // Simple conflict warning: check for existing assignments on that date
 $warning = null;
 $stJob = $pdo->prepare("SELECT j.id, j.scheduled_time, j.duration_minutes FROM job_employee_assignment a JOIN jobs j ON j.id=a.job_id WHERE a.employee_id=:eid AND j.scheduled_date=:d");
@@ -64,6 +93,16 @@ if ($id > 0) {
     $id = (int)$pdo->lastInsertId();
 }
 
+
+try {
+    $uid = $_SESSION['user']['id'] ?? null;
+    $det = json_encode(['id'=>$id,'date'=>$date,'status'=>$status,'start'=>$start,'end'=>$end,'reason'=>$reason], JSON_UNESCAPED_UNICODE);
+    $act = $id > 0 ? 'override_update' : 'override_create';
+    $pdo->prepare('INSERT INTO availability_audit (employee_id, user_id, action, details) VALUES (:eid,:uid,:act,:det)')
+        ->execute([':eid'=>$eid, ':uid'=>$uid, ':act'=>$act, ':det'=>$det]);
+} catch (Throwable $e) {
+    // ignore audit errors
+}
 $resp = ['ok'=>true,'id'=>$id];
 if ($warning) $resp['warning'] = $warning;
 echo json_encode($resp);

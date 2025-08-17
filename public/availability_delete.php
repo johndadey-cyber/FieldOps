@@ -37,8 +37,20 @@ if ($id <= 0) {
 }
 
 try {
+    $rowSt = $pdo->prepare("SELECT employee_id, day_of_week, DATE_FORMAT(start_time,'%H:%i') AS st, DATE_FORMAT(end_time,'%H:%i') AS et FROM employee_availability WHERE id = :id");
+    $rowSt->execute([':id'=>$id]);
+    $prev = $rowSt->fetch(PDO::FETCH_ASSOC);
+
     $del = $pdo->prepare("DELETE FROM employee_availability WHERE id = :id");
     $ok  = $del->execute([':id'=>$id]);
+    try {
+        $uid = $_SESSION['user']['id'] ?? null;
+        $det = json_encode(['id'=>$id,'day'=>$prev['day_of_week'] ?? null,'start'=>$prev['st'] ?? null,'end'=>$prev['et'] ?? null], JSON_UNESCAPED_UNICODE);
+        $pdo->prepare('INSERT INTO availability_audit (employee_id, user_id, action, details) VALUES (:eid,:uid,:act,:det)')
+            ->execute([':eid'=>$prev['employee_id'] ?? null, ':uid'=>$uid, ':act'=>'delete', ':det'=>$det]);
+    } catch (Throwable $e) {
+        // ignore audit errors
+    }
     json_out(['ok'=> (bool)$ok]);
 } catch (Throwable $e) {
     error_log('[availability_delete] ' . $e->getMessage());
