@@ -15,6 +15,8 @@ final class CustomerDataProviderSortTest extends TestCase
             id INTEGER PRIMARY KEY,
             first_name TEXT,
             last_name TEXT,
+            company TEXT,
+            notes TEXT,
             email TEXT,
             phone TEXT,
             address_line1 TEXT,

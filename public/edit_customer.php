@@ -11,7 +11,7 @@ $customer = [];
 
 if ($id > 0) {
     $st = $pdo->prepare(
-        'SELECT id, first_name, last_name, email, phone, address_line1, address_line2, city, state, postal_code, country, google_place_id, latitude, longitude FROM customers WHERE id = :id'
+        'SELECT id, first_name, last_name, company, notes, email, phone, address_line1, address_line2, city, state, postal_code, country, google_place_id, latitude, longitude FROM customers WHERE id = :id'
     );
     if ($st) {
         $st->execute([':id' => $id]);

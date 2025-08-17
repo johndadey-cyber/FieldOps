@@ -52,6 +52,10 @@ function sticky(string $name, ?string $default = null): string {
           <div class="invalid-feedback">Last name is required.</div>
         </div>
         <div class="col-md-6">
+          <label class="form-label" for="company">Company</label>
+          <input type="text" class="form-control" id="company" name="company" maxlength="255" value="<?= s(sticky('company', $customer['company'] ?? '')) ?>">
+        </div>
+        <div class="col-md-6">
           <label class="form-label" for="email">Email</label>
           <input type="email" class="form-control" id="email" name="email" value="<?= s(sticky('email', $customer['email'] ?? '')) ?>">
           <div class="invalid-feedback">Valid email required.</div>
@@ -92,6 +96,14 @@ function sticky(string $name, ?string $default = null): string {
         <input type="hidden" id="google_place_id" name="google_place_id" value="<?= s(sticky('google_place_id', $customer['google_place_id'] ?? '')) ?>">
         <input type="hidden" id="latitude" name="latitude" value="<?= s(sticky('latitude', isset($customer['latitude']) ? (string)$customer['latitude'] : '')) ?>">
         <input type="hidden" id="longitude" name="longitude" value="<?= s(sticky('longitude', isset($customer['longitude']) ? (string)$customer['longitude'] : '')) ?>">
+      </fieldset>
+
+      <fieldset class="row g-3">
+        <legend class="col-12">Notes</legend>
+        <div class="col-12">
+          <label class="form-label" for="notes">Notes</label>
+          <textarea class="form-control" id="notes" name="notes" rows="4" maxlength="1000"><?= s(sticky('notes', $customer['notes'] ?? '')) ?></textarea>
+        </div>
       </fieldset>
 
       <div class="mt-3">

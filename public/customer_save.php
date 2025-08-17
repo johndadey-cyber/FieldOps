@@ -39,6 +39,8 @@ $first   = trim((string)($_POST['first_name'] ?? ''));
 $last    = trim((string)($_POST['last_name'] ?? ''));
 $email   = trim((string)($_POST['email'] ?? ''));
 $phone   = trim((string)($_POST['phone'] ?? ''));
+$company = trim((string)($_POST['company'] ?? ''));
+$notes   = trim((string)($_POST['notes'] ?? ''));
 $addr1   = trim((string)($_POST['address_line1'] ?? ''));
 $addr2   = trim((string)($_POST['address_line2'] ?? ''));
 $city    = trim((string)($_POST['city'] ?? ''));
@@ -52,6 +54,8 @@ $lon     = ($_POST['longitude'] ?? '') !== '' ? (float)$_POST['longitude'] : nul
 $errors = [];
 if ($first === '') $errors[] = 'First name is required';
 if ($last === '')  $errors[] = 'Last name is required';
+if (strlen($company) > 255) $errors[] = 'Company is too long';
+if (strlen($notes) > 1000) $errors[] = 'Notes are too long';
 
 if ($errors) { wants_json() ? json_out(['ok'=>false,'errors'=>$errors], 422) : redirect_back(); }
 
@@ -62,6 +66,8 @@ $data = [
     'last_name'        => $last,
     'email'            => $email,
     'phone'            => $phone,
+    'company'          => $company,
+    'notes'            => $notes,
     'address_line1'    => $addr1,
     'address_line2'    => $addr2,
     'city'             => $city,

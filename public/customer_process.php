@@ -30,6 +30,8 @@ $first_name   = trim((string)($_POST['first_name'] ?? ''));
 $last_name    = trim((string)($_POST['last_name'] ?? ''));
 $email        = trim((string)($_POST['email'] ?? ''));
 $phone        = trim((string)($_POST['phone'] ?? ''));
+$company      = trim((string)($_POST['company'] ?? ''));
+$notes        = trim((string)($_POST['notes'] ?? ''));
 $address1     = trim((string)($_POST['address_line1'] ?? ''));
 $address2     = trim((string)($_POST['address_line2'] ?? ''));
 $city         = trim((string)($_POST['city'] ?? ''));
@@ -44,6 +46,8 @@ $errors = [];
 if ($first_name === '') $errors[] = 'First name is required.';
 if ($last_name === '')  $errors[] = 'Last name is required.';
 if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Email is invalid.';
+if (strlen($company) > 255) $errors[] = 'Company is too long.';
+if (strlen($notes) > 1000) $errors[] = 'Notes are too long.';
 
 if ($errors) {
     redirectWithFlash(($action === 'create' ? 'customer_form.php' : "edit_customer.php?id={$id}"), 'danger', implode(' ', $errors));
@@ -56,6 +60,8 @@ $data = [
     'last_name'       => $last_name,
     'email'           => $email,
     'phone'           => $phone,
+    'company'         => $company,
+    'notes'           => $notes,
     'address_line1'   => $address1,
     'address_line2'   => $address2,
     'city'            => $city,
