@@ -94,7 +94,7 @@ $rows = CustomerDataProvider::getFiltered($pdo, $q, $city, $state, $limit, $sort
               echo s(implode(', ', $parts));
             ?></td>
             <td class="text-end">
-              <a href="/customer_form.php?id=<?= (int)$r['id'] ?>" class="btn btn-sm btn-outline-secondary">Edit</a>
+              <a href="/edit_customer.php?id=<?= (int)$r['id'] ?>" class="btn btn-sm btn-outline-secondary">Edit</a>
             </td>
           </tr>
         <?php endforeach; ?>
