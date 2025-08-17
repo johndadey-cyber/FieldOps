@@ -32,8 +32,15 @@ $st = $pdo->prepare("SELECT id, day_of_week, DATE_FORMAT(start_time,'%H:%i') AS 
 $st->execute([':eid' => $eid]);
 $avail = $st->fetchAll(PDO::FETCH_ASSOC);
 
-// Overrides within week
-$st2 = $pdo->prepare("SELECT id, date, status, DATE_FORMAT(start_time,'%H:%i') AS start_time, DATE_FORMAT(end_time,'%H:%i') AS end_time, reason FROM employee_availability_overrides WHERE employee_id = :eid AND date BETWEEN :ws AND :we ORDER BY date, start_time");
+// Overrides within week.  Include day_of_week so the UI can highlight affected days
+$st2 = $pdo->prepare(
+    "SELECT id, date, DATE_FORMAT(date,'%W') AS day_of_week, status, " .
+    "DATE_FORMAT(start_time,'%H:%i') AS start_time, " .
+    "DATE_FORMAT(end_time,'%H:%i') AS end_time, reason " .
+    "FROM employee_availability_overrides " .
+    "WHERE employee_id = :eid AND date BETWEEN :ws AND :we " .
+    "ORDER BY date, start_time"
+);
 $st2->execute([':eid' => $eid, ':ws' => $ws->format('Y-m-d'), ':we' => $we]);
 $over = $st2->fetchAll(PDO::FETCH_ASSOC);
 
