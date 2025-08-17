@@ -72,10 +72,8 @@ $schema = [
   'employee_availability'   => tableExists($pdo,'employee_availability'),
   'employee_availability_overrides' => tableExists($pdo, 'employee_availability_overrides'),
   'employee_skills'         => tableExists($pdo,'employee_skills'),
-  'job_types'               => tableExists($pdo,'job_types'),
+  'job_skill'               => tableExists($pdo,'job_skill'),
   'skills'                  => tableExists($pdo,'skills'),
-  'job_jobtype'             => tableExists($pdo,'job_jobtype'),
-  'jobtype_skills'          => tableExists($pdo,'jobtype_skills'),
   'job_employee_assignment' => tableExists($pdo,'job_employee_assignment'),
   'job_employee'            => tableExists($pdo,'job_employee'),
 ];
@@ -125,13 +123,12 @@ $jobWindowLabel = sprintf('%s, %s—%s', $dtLocal->format('Y-m-d'), $dtLocal->fo
 
 /* -------------- Required skills for job -------------- */
 $reqIds = []; $reqNamesById = [];
-if ($schema['job_jobtype'] && $schema['jobtype_skills'] && $schema['skills']) {
+if ($schema['job_skill'] && $schema['skills']) {
   $stReq = $pdo->prepare(
-    "SELECT DISTINCT s.id, s.name
-       FROM job_jobtype jj
-       JOIN jobtype_skills jts ON jts.job_type_id = jj.job_type_id
-       JOIN skills s ON s.id = jts.skill_id
-       WHERE jj.job_id = :jid
+    "SELECT s.id, s.name
+       FROM job_skill js
+       JOIN skills s ON s.id = js.skill_id
+       WHERE js.job_id = :jid
        ORDER BY s.name"
   );
   $stReq->execute([':jid' => $jobId]);

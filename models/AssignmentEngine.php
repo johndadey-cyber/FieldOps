@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/Job.php';
 /**
  * AssignmentEngine — eligibility + helpers
  * Drop-in ready for weekday names OR numbers in employee_availability.day_of_week
@@ -34,7 +35,10 @@ class AssignmentEngine
         $endTs   = $startTs + ($duration * 60);
 
         // Required skills for this job
-        $requiredSkillIds = array_map('intval', JobType::getRequiredSkillsForJob($this->pdo, $jobId));
+        $requiredSkillIds = array_map(
+            static fn(array $r): int => (int)$r['id'],
+            Job::getSkillsForJob($this->pdo, $jobId)
+        );
 
         // Candidates: active techs
         $candSql = "SELECT e.id AS employee_id, p.first_name, p.last_name, p.latitude AS emp_lat, p.longitude AS emp_lng

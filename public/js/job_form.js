@@ -5,7 +5,7 @@
     var mode = form.getAttribute('data-mode') || 'add';
     var errBox = document.getElementById('form-errors');
     var customerSelect = document.getElementById('customerId');
-    var jtError = document.getElementById('jobTypeError');
+    var skillError = document.getElementById('jobSkillError');
 
     function showErrors(list){
       if(!errBox) return;
@@ -31,9 +31,9 @@
     form.addEventListener('submit', function(e){
       e.preventDefault();
       showErrors([]);
-      var jtChecks = form.querySelectorAll('input[name="job_types[]"]:checked');
+      var skillChecks = form.querySelectorAll('input[name="skills[]"]:checked');
       var valid = form.checkValidity();
-      if(jtChecks.length===0){ if(jtError){jtError.style.display='block';} valid=false; } else { if(jtError){jtError.style.display='none';} }
+      if(skillChecks.length===0){ if(skillError){skillError.style.display='block';} valid=false; } else { if(skillError){skillError.style.display='none';} }
       if(!valid){ form.classList.add('was-validated'); return; }
       var submitBtn=form.querySelector('button[type="submit"]');
       var originalHTML = submitBtn ? submitBtn.innerHTML : '';

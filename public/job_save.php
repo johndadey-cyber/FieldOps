@@ -36,6 +36,9 @@ $scheduledDate   = trim((string)($_POST['scheduled_date'] ?? ''));
 $scheduledTime   = trim((string)($_POST['scheduled_time'] ?? ''));
 $durationMinutes = isset($_POST['duration_minutes']) ? (int)$_POST['duration_minutes'] : 0;
 $statusIn        = trim((string)($_POST['status'] ?? ''));
+$skillIds        = isset($_POST['skills']) && is_array($_POST['skills'])
+    ? array_values(array_filter(array_map('intval', $_POST['skills']), static fn($v) => $v > 0))
+    : [];
 
 // Normalize status to canonical ENUM values (lowercase)
 $map = [
@@ -72,6 +75,7 @@ else {
   }
 }
 if ($durationMinutes<=0) { $errors['duration_minutes']='Duration minutes must be > 0'; }
+if (!$skillIds) { $errors['skills']='Select at least one skill'; }
 if ($errors) {
   log_error('Validation failed: '.json_encode($errors));
   json_out(['ok'=>false,'errors'=>$errors,'code'=>422], 422);
@@ -110,6 +114,21 @@ try {
       ':sdate'=>$scheduledDate, ':stime'=>$scheduledTime, ':dur'=>$durationMinutes,
     ]);
     $jobId = (int)$pdo->lastInsertId();
+  }
+
+  // Refresh job skills (ignore if mapping table absent)
+  try {
+      $pdo->prepare('DELETE FROM job_skill WHERE job_id = :jid')
+          ->execute([':jid' => $jobId]);
+
+      if (!empty($skillIds)) {
+          $ins = $pdo->prepare('INSERT INTO job_skill (job_id, skill_id) VALUES (:jid, :sid)');
+          foreach ($skillIds as $sid) {
+              $ins->execute([':jid' => $jobId, ':sid' => $sid]);
+          }
+      }
+  } catch (Throwable $e) {
+      // no-op
   }
 
   $pdo->commit();
