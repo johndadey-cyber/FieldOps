@@ -177,6 +177,43 @@ function ensureUnique(PDO $pdo, string $table, array $cols, string $name): void 
     out("[OK] UNIQUE added");
 }
 
+function ensureVarchar100NotNull(PDO $pdo, string $table, string $col): void {
+    if (!tableExists($pdo, $table)) { out("[-] Table missing: {$table}"); return; }
+    $cols = columns($pdo, $table);
+    if (!array_key_exists($col, $cols)) { out("[-] Column missing: {$table}.{$col}"); return; }
+    $type = strtoupper((string)$cols[$col]['COLUMN_TYPE']);
+    $nullable = strtoupper((string)$cols[$col]['IS_NULLABLE']);
+    if ($type !== 'VARCHAR(100)' || $nullable !== 'NO') {
+        out("[..] Updating {$table}.{$col} to VARCHAR(100) NOT NULL ...");
+        $pdo->exec("ALTER TABLE `{$table}` MODIFY `{$col}` VARCHAR(100) NOT NULL");
+        out("[OK] {$table}.{$col} updated to VARCHAR(100) NOT NULL");
+    } else {
+        out("[OK] {$table}.{$col} is VARCHAR(100) NOT NULL");
+    }
+}
+
+function indexExists(PDO $pdo, string $table, array $cols): bool {
+    $st=$pdo->prepare("SHOW INDEX FROM `{$table}`");
+    $st->execute();
+    $byName=[];
+    foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $byName[$r['Key_name']][$r['Seq_in_index']] = $r['Column_name'];
+    }
+    foreach ($byName as $colsBySeq) {
+        ksort($colsBySeq);
+        if (array_values($colsBySeq) === array_values($cols)) return true;
+    }
+    return false;
+}
+
+function ensureIndex(PDO $pdo, string $table, array $cols, string $name): void {
+    if (!tableExists($pdo,$table)) { out("[-] Table missing: {$table}"); return; }
+    if (indexExists($pdo,$table,$cols)) { out("[OK] INDEX(".implode(',',$cols).") on {$table} present"); return; }
+    out("[..] Adding INDEX {$name} on {$table}(".implode(',',$cols).") ...");
+    $pdo->exec("ALTER TABLE `{$table}` ADD INDEX `{$name}` (`" . implode('`,`', $cols) . "`)");
+    out("[OK] INDEX added");
+}
+
 // ---- New tables (idempotent) ----
 if (!tableExists($pdo, 'employee_availability_overrides')) {
     out('[..] Creating table employee_availability_overrides ...');
@@ -320,6 +357,11 @@ ensureFk($pdo, 'job_employee_assignment', 'employee_id', 'employees', 'id', 'fk_
 
 ensureFk($pdo, 'employee_availability_overrides', 'employee_id', 'employees', 'id', 'fk_eao_employee', 'CASCADE', 'CASCADE');
 ensureFk($pdo, 'availability_audit', 'employee_id', 'employees', 'id', 'fk_avail_audit_employee', 'CASCADE', 'CASCADE');
+
+out(PHP_EOL . "== Ensuring people name columns and index ==");
+ensureVarchar100NotNull($pdo, 'people', 'first_name');
+ensureVarchar100NotNull($pdo, 'people', 'last_name');
+ensureIndex($pdo, 'people', ['first_name','last_name'], 'idx_people_first_last');
 
 out(PHP_EOL . "== Ensuring UNIQUE indexes ==");
 ensureUnique($pdo, 'employee_availability', ['employee_id','day_of_week','start_time','end_time'], 'uq_availability_window');

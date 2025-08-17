@@ -108,6 +108,14 @@ function hasUniqueIndex(PDO $pdo, string $table, array $colsInOrder, ?string $na
     return false;
 }
 
+function hasIndex(PDO $pdo, string $table, array $colsInOrder): bool {
+    $idx = indexes($pdo, $table);
+    foreach ($idx as $d) {
+        if (($d['cols'] ?? []) === $colsInOrder) return true;
+    }
+    return false;
+}
+
 $pdo = pdo();
 $db  = dbname($pdo);
 $issues = [];
@@ -172,6 +180,21 @@ foreach ($fkExpect as $t=>$list) {
         if (!$found) {
             $issues[] = "Missing FK on $t(" . implode(',',$exp['cols']) . ") → {$exp['ref']}(" . implode(',',$exp['refcols']) . ")";
         }
+    }
+}
+
+if (tableExists($pdo,'people')) {
+    $cols = columns($pdo,'people');
+    $fn = $cols['first_name'] ?? null;
+    if (!$fn || strtolower((string)$fn['column_type']) !== 'varchar(100)' || strtoupper((string)$fn['is_nullable']) !== 'NO') {
+        $issues[] = 'people.first_name should be VARCHAR(100) NOT NULL';
+    }
+    $ln = $cols['last_name'] ?? null;
+    if (!$ln || strtolower((string)$ln['column_type']) !== 'varchar(100)' || strtoupper((string)$ln['is_nullable']) !== 'NO') {
+        $issues[] = 'people.last_name should be VARCHAR(100) NOT NULL';
+    }
+    if (!hasIndex($pdo,'people',['first_name','last_name'])) {
+        $issues[] = 'Missing INDEX on people(first_name, last_name)';
     }
 }
 
