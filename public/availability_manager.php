@@ -74,8 +74,11 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         <form id="employeePicker" class="row g-2 align-items-end">
           <div class="col-sm-7 col-md-6 col-lg-5">
             <label class="form-label">Employee</label>
-            <input type="search" id="employeeSearch" class="form-control" placeholder="Type to search..." list="employeeList" autocomplete="off">
-            <datalist id="employeeList"></datalist>
+            <div class="input-group">
+              <input type="search" id="employeeSearch" class="form-control" placeholder="Search by name..." autocomplete="off">
+              <button type="button" class="btn btn-outline-secondary" id="btnEmpSearch">Search</button>
+            </div>
+            <select id="employeeResults" class="form-select mt-2" size="5"></select>
             <input type="hidden" id="employee_id" name="employee_id" value="<?= $selectedEmployeeId ?: '' ?>">
           </div>
           <div class="col-auto">
@@ -199,7 +202,8 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
 
     const employeeInput = document.getElementById('employeeSearch');
     const employeeIdField = document.getElementById('employee_id');
-    const suggestionList = document.getElementById('employeeList');
+    const btnEmpSearch = document.getElementById('btnEmpSearch');
+    const resultSelect = document.getElementById('employeeResults');
     const btnAdd = document.getElementById('btnAdd');
 
     const winModalEl = document.getElementById('winModal');
@@ -239,32 +243,32 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       Array.from(winDays.options).forEach(o => { o.selected = false; });
     });
 
-    employeeInput.addEventListener('input', async () => {
+    async function searchEmployees() {
       const q = employeeInput.value.trim();
-      if (q.length < 2) { suggestionList.innerHTML = ''; return; }
-
+      resultSelect.innerHTML = '';
+      employeeIdField.value = '';
+      if (q.length < 2) { return; }
       try {
         const res = await fetch(`api/employees/search.php?q=${encodeURIComponent(q)}`);
         if (!res.ok) throw new Error('bad response');
         const data = await res.json();
-        suggestionList.innerHTML = '';
         for (const it of data) {
           const opt = document.createElement('option');
-          opt.value = `${it.name} (ID: ${it.id})`;
-          suggestionList.appendChild(opt);
+          opt.value = it.id;
+          opt.textContent = `${it.name} (ID: ${it.id})`;
+          resultSelect.appendChild(opt);
         }
       } catch (err) {
-        suggestionList.innerHTML = '';
+        // ignore errors
       }
-    });
+    }
 
-    employeeInput.addEventListener('change', () => {
-      const m = /\(ID:\s*(\d+)\)$/.exec(employeeInput.value);
-      if (m) {
-        employeeIdField.value = m[1];
+    btnEmpSearch.addEventListener('click', searchEmployees);
+    resultSelect.addEventListener('change', () => {
+      const id = resultSelect.value;
+      if (id) {
+        employeeIdField.value = id;
         loadAvailability();
-      } else {
-        employeeIdField.value = '';
       }
     });
 
@@ -463,7 +467,14 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       fetch(`api/employees/search.php?id=${initId}`)
         .then(r => r.json())
         .then(emp => {
-          if (emp && emp.name) employeeInput.value = `${emp.name} (ID: ${emp.id})`;
+          if (emp && emp.name) {
+            employeeInput.value = emp.name;
+            const opt = document.createElement('option');
+            opt.value = emp.id;
+            opt.textContent = `${emp.name} (ID: ${emp.id})`;
+            resultSelect.appendChild(opt);
+            resultSelect.value = String(emp.id);
+          }
           loadAvailability();
         })
         .catch(() => loadAvailability());
