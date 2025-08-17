@@ -13,6 +13,30 @@ require_once __DIR__ . '/../../../config/database.php';
 $pdo = getPDO();
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+// Overrides supersede recurring availability entries.
+/**
+ * @param list<string> $days
+ */
+function has_overlap(PDO $pdo, int $eid, array $days, string $start, string $end, ?int $excludeId = null): bool {
+    if ($days === []) return false;
+    $placeholders = [];
+    $params = [':eid'=>$eid, ':st'=>$start, ':et'=>$end];
+    foreach ($days as $i => $d) {
+        $ph = ':d' . $i;
+        $placeholders[] = $ph;
+        $params[$ph] = $d;
+    }
+    $sql = "SELECT COUNT(*) AS cnt FROM employee_availability WHERE employee_id=:eid AND day_of_week IN (" . implode(',', $placeholders) . ") AND NOT (end_time <= :st OR start_time >= :et)";
+    if ($excludeId !== null) {
+        $sql .= " AND id <> :id";
+        $params[':id'] = $excludeId;
+    }
+    $st = $pdo->prepare($sql);
+    $st->execute($params);
+    $row = $st->fetch(PDO::FETCH_ASSOC);
+    return ((int)($row['cnt'] ?? 0)) > 0;
+}
+
 $raw = file_get_contents('php://input');
 $data = json_decode($raw ?: '[]', true);
 if (!is_array($data)) {
@@ -22,7 +46,8 @@ if (!is_array($data)) {
 }
 
 $eid  = (int)($data['employee_id'] ?? 0);
-$day  = (string)($data['day_of_week'] ?? '');
+$dayInput = $data['day_of_week'] ?? [];
+$days = is_array($dayInput) ? $dayInput : [(string)$dayInput];
 $start= (string)($data['start_time'] ?? '');
 $end  = (string)($data['end_time'] ?? '');
 $id   = isset($data['id']) ? (int)$data['id'] : 0;
@@ -30,7 +55,10 @@ $id   = isset($data['id']) ? (int)$data['id'] : 0;
 $validDays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday','0','1','2','3','4','5','6'];
 $err = [];
 if ($eid <= 0) $err[] = 'employee_id';
-if (!in_array($day, $validDays, true)) $err[] = 'day_of_week';
+if ($days === []) $err[] = 'day_of_week';
+foreach ($days as $d) {
+    if (!in_array($d, $validDays, true)) { $err[] = 'day_of_week'; break; }
+}
 if (!preg_match('/^\d{2}:\d{2}$/', $start)) $err[] = 'start_time';
 if (!preg_match('/^\d{2}:\d{2}$/', $end)) $err[] = 'end_time';
 if ($start >= $end) $err[] = 'range';
@@ -44,12 +72,21 @@ if ($err) {
 $startUtc = $start . ':00';
 $endUtc   = $end . ':00';
 
+if (has_overlap($pdo, $eid, $days, $startUtc, $endUtc, $id > 0 ? $id : null)) {
+    http_response_code(409);
+    echo json_encode(['ok'=>false,'error'=>'overlap','message'=>'Window overlaps existing recurring availability for selected day(s). Overrides take precedence.']);
+    exit;
+}
+
 if ($id > 0) {
+    $day = $days[0] ?? '';
     $st = $pdo->prepare("UPDATE employee_availability SET day_of_week=:dow, start_time=:st, end_time=:et WHERE id=:id AND employee_id=:eid");
     $st->execute([':dow'=>$day,':st'=>$startUtc,':et'=>$endUtc,':id'=>$id,':eid'=>$eid]);
 } else {
     $st = $pdo->prepare("INSERT INTO employee_availability (employee_id, day_of_week, start_time, end_time) VALUES (:eid,:dow,:st,:et)");
-    $st->execute([':eid'=>$eid,':dow'=>$day,':st'=>$startUtc,':et'=>$endUtc]);
+    foreach ($days as $d) {
+        $st->execute([':eid'=>$eid,':dow'=>$d,':st'=>$startUtc,':et'=>$endUtc]);
+    }
     $id = (int)$pdo->lastInsertId();
 }
 
