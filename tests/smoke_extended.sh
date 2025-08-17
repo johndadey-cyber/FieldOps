@@ -13,7 +13,7 @@ pick_free_port() {
 
 PORT="$(pick_free_port)"; [ -n "$PORT" ] || { echo "No free port found"; exit 1; }
 LOG="/tmp/fo_server_${PORT}.log"
-$PHP -S 127.0.0.1:$PORT -t "$ROOT/public" >"$LOG" 2>&1 &
+APP_ENV=${APP_ENV:-test} $PHP -S 127.0.0.1:$PORT -t "$ROOT/public" >"$LOG" 2>&1 &
 SERVER_PID=$!
 trap 'kill $SERVER_PID >/dev/null 2>&1 || true' EXIT
 

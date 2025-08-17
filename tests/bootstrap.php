@@ -8,6 +8,11 @@ declare(strict_types=1);
  * - You can enable trace with FIELDOPS_TRACE=1 to see suppressed call stacks in error_log.
  */
 
+if (getenv('APP_ENV') === false) {
+    // Ensure config/database.php sees APP_ENV=test
+    putenv('APP_ENV=test');
+    $_ENV['APP_ENV'] = 'test';
+}
 if (!defined('APP_ENV')) {
     define('APP_ENV', 'test');
 }
