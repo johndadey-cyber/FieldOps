@@ -180,6 +180,10 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           <input type="hidden" name="id" id="win_id">
           <input type="hidden" name="csrf_token" id="csrf_token" value="<?= s($__csrf) ?>">
           <div class="col-12">
+            <label class="form-label">Employee</label>
+            <input type="text" class="form-control" id="win_employee" readonly>
+          </div>
+          <div class="col-12">
             <label class="form-label">Days of Week</label>
             <select class="form-select" id="win_days" multiple required>
               <?php foreach (['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] as $d): ?>
@@ -349,6 +353,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     const winForm = document.getElementById('winForm');
     const winTitle = document.getElementById('winTitle');
     const winId = document.getElementById('win_id');
+    const winEmployee = document.getElementById('win_employee');
     const winDays = document.getElementById('win_days');
     const winStart = document.getElementById('win_start');
     const winEnd = document.getElementById('win_end');
@@ -577,6 +582,11 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       return parseInt(employeeIdField.value || '0', 10) || 0;
     }
 
+    function currentEmployeeName() {
+      const opt = resultSelect.options[resultSelect.selectedIndex];
+      return opt ? opt.textContent : '';
+    }
+
     function currentWeekStart() {
       const d = new Date();
       const diff = (d.getDay() + 6) % 7; // days since Monday
@@ -720,6 +730,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     function openAdd() {
       winTitle.textContent = 'Add Window';
       winId.value = '';
+      winEmployee.value = `${currentEmployeeName()} (ID ${currentEmployeeId()})`;
       Array.from(winDays.options).forEach(o => { o.selected = o.value === 'Monday'; });
       winStart.value = '09:00';
       winEnd.value = '17:00';
@@ -733,6 +744,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     function openEdit(it) {
       winTitle.textContent = 'Edit Window';
       winId.value = it.id;
+      winEmployee.value = `${currentEmployeeName()} (ID ${currentEmployeeId()})`;
       Array.from(winDays.options).forEach(o => { o.selected = o.value === it.day_of_week; });
       winStart.value = it.start_time;
       winEnd.value = it.end_time;
