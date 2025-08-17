@@ -84,6 +84,8 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           <div class="col-auto">
             <button type="button" class="btn btn-success" id="btnAdd">Add Window</button>
             <button type="button" class="btn btn-warning ms-2" id="btnAddOverride">Add Override</button>
+            <button type="button" class="btn btn-outline-info ms-2" id="btnExport">Export</button>
+            <button type="button" class="btn btn-outline-secondary ms-2" id="btnPrint">Print</button>
           </div>
         </form>
       </div>
@@ -291,6 +293,8 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     const resultSelect = document.getElementById('employeeResults');
     const btnAdd = document.getElementById('btnAdd');
     const btnAddOverride = document.getElementById('btnAddOverride');
+    const btnExport = document.getElementById('btnExport');
+    const btnPrint = document.getElementById('btnPrint');
 
     const winModalEl = document.getElementById('winModal');
     const winModal = new bootstrap.Modal(winModalEl);
@@ -673,6 +677,18 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
 
     document.getElementById('btnAdd').addEventListener('click', openAdd);
     btnAddOverride.addEventListener('click', openOvAdd);
+    btnExport.addEventListener('click', () => {
+      const eid = currentEmployeeId();
+      if (!eid) { showAlert('warning', 'Select an employee first.'); return; }
+      const ws = currentWeekStart();
+      window.location.href = `api/availability/export.php?employee_id=${encodeURIComponent(eid)}&week_start=${ws}`;
+    });
+    btnPrint.addEventListener('click', () => {
+      const eid = currentEmployeeId();
+      if (!eid) { showAlert('warning', 'Select an employee first.'); return; }
+      const ws = currentWeekStart();
+      window.open(`availability_print.php?employee_id=${encodeURIComponent(eid)}&week_start=${ws}`, '_blank');
+    });
 
     const initId = currentEmployeeId();
     if (initId) {
