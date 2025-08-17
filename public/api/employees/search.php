@@ -46,8 +46,9 @@ try {
     }
     echo json_encode($rows, JSON_UNESCAPED_SLASHES);
 } catch (Throwable $e) {
+    error_log($e->getMessage());
     http_response_code(500);
-    echo json_encode([]);
+    echo json_encode(['error' => 'Database unavailable']);
 
     exit;
 
