@@ -130,6 +130,7 @@ try {
             'job_id' => $jobId,
             'scheduled_date' => (string)$r['scheduled_date'],
             'scheduled_time' => $r['scheduled_time'] !== null ? (string)$r['scheduled_time'] : null,
+            'duration_minutes' => (int)$r['duration_minutes'],
             'customer' => [
                 'id' => (int)$r['customer_id'],
                 'first_name' => (string)$r['first_name'],
