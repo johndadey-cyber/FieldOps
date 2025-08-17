@@ -845,11 +845,24 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         const data = await res.json();
         ok = data && data.ok;
         if (!ok) {
-          const msg = (data && (data.message || data.error || (Array.isArray(data.errors) ? data.errors.join(', ') : data.errors))) || 'Save failed';
+          const msg = (data && data.message) ? data.message : 'Save failed';
           showAlert('danger', msg);
         }
       } catch (err) {
-        showAlert('danger', 'Save failed');
+        const msg = (err && err.message) ? err.message : 'Save failed';
+        showAlert('danger', msg);
+        const logPayload = {
+          employee_id: eid,
+          employee_name: currentEmployeeName(),
+          message: err && err.message ? err.message : '',
+          stack: err && err.stack ? err.stack : ''
+        };
+        fetch('api/availability/log_client_error.php', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(logPayload)
+        }).catch(() => {});
       }
 
       if (ok) {
