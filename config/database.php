@@ -71,6 +71,7 @@ if (!function_exists('getPDO')) {
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES   => false,
             ]);
+            $pdo->exec('SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci');
             return $pdo;
         } catch (PDOException $e) {
             // Helpful but not secret-spilling
