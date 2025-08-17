@@ -137,6 +137,9 @@ try {
                 'address_line1' => (string)$r['address_line1'],
                 'city' => (string)$r['city'],
             ],
+            // Include required job skills; provide both legacy and current keys
+            // so older clients expecting `skills` still receive data.
+            'skills' => $skills,
             'job_skills' => $skills,
             'assigned_employees' => $emps,
             'status' => (string)$r['status'],

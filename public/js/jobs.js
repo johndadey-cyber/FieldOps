@@ -59,9 +59,13 @@
         tr.appendChild(custCell);
         // Job skills
         const jsCell=document.createElement('td');
-        const skills = job.skills?.length ? job.skills : job.job_skills;
-        if(skills?.length){
-          jsCell.innerHTML=skills.map(s=>`<span class="badge bg-secondary-subtle text-secondary border me-1">${h(s.name)}</span>`).join('');
+        const skills = Array.isArray(job.skills) && job.skills.length
+            ? job.skills
+            : Array.isArray(job.job_skills) ? job.job_skills : [];
+        if(skills.length){
+          jsCell.innerHTML=skills
+            .map(s=>`<span class="badge bg-secondary-subtle text-secondary border me-1">${h(s.name)}</span>`)
+            .join('');
         } else {
           jsCell.textContent='—';
         }
