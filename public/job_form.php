@@ -4,7 +4,7 @@ declare(strict_types=1);
 require __DIR__ . '/_cli_guard.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/_csrf.php';
-require_once __DIR__ . '/../models/JobType.php';
+require_once __DIR__ . '/../models/Skill.php';
 require_once __DIR__ . '/../models/Job.php';
 require_once __DIR__ . '/../models/Customer.php';
 
@@ -13,10 +13,10 @@ $__csrf = csrf_token();
 
 $mode        = $mode ?? 'add';
 $job         = $job ?? [];
-$jobTypeIds  = $jobTypeIds ?? [];
+$jobSkillIds = $jobSkillIds ?? [];
 $isEdit      = $mode === 'edit';
 
-$jobTypes  = JobType::all($pdo);
+$skills   = Skill::all($pdo);
 $statuses  = $isEdit ? Job::allowedStatuses() : array_intersect(['scheduled','draft'], Job::allowedStatuses());
 $customers = (new Customer($pdo))->getAll();
 $today     = date('Y-m-d');
@@ -85,20 +85,20 @@ function stickyArr(string $name, array $default = []): array {
           <div class="invalid-feedback">Description must be between 5 and 255 characters.</div>
         </div>
         <div class="mb-3">
-          <span class="form-label d-block mb-2">Job Types</span>
-          <?php $selJt = stickyArr('job_types', array_map('strval', $jobTypeIds)); ?>
-          <div class="row row-cols-2" id="jobTypes">
-            <?php foreach ($jobTypes as $jt): ?>
-              <?php $jid = (string)$jt['id']; ?>
+          <span class="form-label d-block mb-2">Skills</span>
+          <?php $selSkills = stickyArr('skills', array_map('strval', $jobSkillIds)); ?>
+          <div class="row row-cols-2" id="skills">
+            <?php foreach ($skills as $sk): ?>
+              <?php $sid = (string)$sk['id']; ?>
               <div class="col">
                 <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="job_types[]" value="<?= s($jid) ?>" id="jt<?= s($jid) ?>" <?= in_array($jid, $selJt, true) ? 'checked' : '' ?>>
-                  <label class="form-check-label" for="jt<?= s($jid) ?>"><?= s($jt['name']) ?></label>
+                  <input class="form-check-input" type="checkbox" name="skills[]" value="<?= s($sid) ?>" id="sk<?= s($sid) ?>" <?= in_array($sid, $selSkills, true) ? 'checked' : '' ?>>
+                  <label class="form-check-label" for="sk<?= s($sid) ?>"><?= s($sk['name']) ?></label>
                 </div>
               </div>
             <?php endforeach; ?>
           </div>
-          <div class="invalid-feedback d-block" id="jobTypeError" style="display:none">Select at least one job type.</div>
+          <div class="invalid-feedback d-block" id="jobSkillError" style="display:none">Select at least one skill.</div>
         </div>
         <div class="mb-3">
           <label for="status" class="form-label">Status <span class="text-danger">*</span></label>

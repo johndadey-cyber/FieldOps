@@ -5,7 +5,7 @@ declare(strict_types=1);
 // /public/api/jobs.php
 require __DIR__ . '/../_cli_guard.php';
 require __DIR__ . '/../../config/database.php';
-require __DIR__ . '/../../models/JobType.php';
+require __DIR__ . '/../../models/Job.php';
 
 header('Content-Type: application/json');
 
@@ -73,9 +73,9 @@ try {
     foreach ($rows as $r) {
         $jobId = (int)$r['id'];
 
-        // Required job skills for this job derived from its job type(s)
-        $skills = JobType::getRequiredSkillsForJob($pdo, $jobId);
-        $skills = array_map(fn($n) => ['name' => $n], $skills);
+        // Required job skills for this job
+        $skillRows = Job::getSkillsForJob($pdo, $jobId);
+        $skills = array_map(static fn($r) => ['name' => $r['name']], $skillRows);
 
         // Use distinct placeholders for each occurrence when native prepares are enabled
         // to avoid "Invalid parameter number" errors with drivers that don't allow

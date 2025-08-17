@@ -33,6 +33,7 @@ final class JobWriteRbacTest extends TestCase
             'scheduled_date' => '2025-08-20',
             'scheduled_time' => '10:00',
             'status'         => 'scheduled',
+            'skills'         => [1],
         ], [
             'role' => 'field_tech',
         ]);
@@ -52,6 +53,7 @@ final class JobWriteRbacTest extends TestCase
             'scheduled_date' => '2025-08-20',
             'scheduled_time' => '10:00',
             'status'         => 'scheduled',
+            'skills'         => [1],
             // no csrf_token on purpose
         ], [
             'role' => 'dispatcher',
@@ -73,6 +75,7 @@ final class JobWriteRbacTest extends TestCase
             'scheduled_time'   => '09:30',
             'status'           => 'scheduled',
             'duration_minutes' => 120,
+            'skills'           => [1],
         ], ['role' => 'dispatcher']);
 
         $this->assertTrue($create['ok'] ?? false);
@@ -90,6 +93,7 @@ final class JobWriteRbacTest extends TestCase
             'scheduled_time'   => '14:15',
             'status'           => 'assigned',
             'duration_minutes' => 90,
+            'skills'           => [1],
         ], ['role' => 'dispatcher']);
 
         $this->assertTrue($update['ok'] ?? false);
