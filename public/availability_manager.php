@@ -560,6 +560,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         };
         const res = await fetch('api/availability/create.php', {
           method: 'POST',
+          credentials: 'same-origin',
           headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
@@ -588,6 +589,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         form.set('id', id);
         const res = await fetch('availability_delete.php', {
           method: 'POST',
+          credentials: 'same-origin',
           headers: { 'Accept': 'application/json' },
           body: form
         });
@@ -791,7 +793,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       if (!eid) { emptyState.classList.remove('d-none'); return; }
       const ws = currentWeekStart();
       const url = `api/availability/index.php?employee_id=${encodeURIComponent(eid)}&week_start=${ws}`;
-      const res = await fetch(url, { headers: { 'Accept': 'application/json' }});
+      const res = await fetch(url, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
       if (!res.ok) { showAlert('danger', 'Failed to load availability'); return; }
       const data = await res.json();
       if (data.ok === false) { showAlert('danger', data.error || 'Failed to load availability'); return; }
@@ -983,6 +985,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       form.set('id', String(it.id));
       const res = await fetch('availability_delete.php', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: { 'Accept': 'application/json' },
         body: form
       });
@@ -1025,7 +1028,10 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
 
     async function delOverride(ov) {
       if (!confirm(`Delete override on ${ov.date}?`)) return;
-      const res = await fetch(`api/availability/override_delete.php?id=${ov.id}`, { method: 'DELETE' });
+      const res = await fetch(`api/availability/override_delete.php?id=${ov.id}`, {
+        method: 'DELETE',
+        credentials: 'same-origin'
+      });
       const data = await res.json();
       if (data && data.ok) {
         showAlert('success', 'Deleted.');
@@ -1083,6 +1089,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         const msg = (err && err.message) ? err.message : 'Save failed';
         showAlert('danger', msg);
         const logPayload = {
+          csrf_token: CSRF,
           employee_id: eid,
           employee_name: currentEmployeeName(),
           message: err && err.message ? err.message : '',
@@ -1123,12 +1130,13 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       const dayName = ds => daysOrder[(new Date(ds+'T00:00:00').getDay()+6)%7];
       let ok = true;
       if (id) {
-        const payload = { id: parseInt(id,10), employee_id: eid, date: startDate, status, type };
+        const payload = { csrf_token: CSRF, id: parseInt(id,10), employee_id: eid, date: startDate, status, type };
         if (startTime) payload.start_time = startTime;
         if (endTime) payload.end_time = endTime;
         if (reason) payload.reason = reason;
         const res = await fetch('api/availability/override.php', {
           method: 'POST',
+          credentials: 'same-origin',
           headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
@@ -1138,12 +1146,13 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         for (const d of eachDate(startDate, endDate)) {
           const dn = dayName(d);
           if (days.length && !days.includes(dn)) continue;
-          const payload = { employee_id: eid, date: d, status, type };
+          const payload = { csrf_token: CSRF, employee_id: eid, date: d, status, type };
           if (startTime) payload.start_time = startTime;
           if (endTime) payload.end_time = endTime;
           if (reason) payload.reason = reason;
           const res = await fetch('api/availability/override.php', {
             method: 'POST',
+            credentials: 'same-origin',
             headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           });
@@ -1165,7 +1174,10 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       const eid = currentEmployeeId();
       if (!eid) { return; }
       try {
-        const res = await fetch(`availability_manager.php?action=log&employee_id=${encodeURIComponent(eid)}`, { headers: { 'Accept':'application/json' }});
+        const res = await fetch(`availability_manager.php?action=log&employee_id=${encodeURIComponent(eid)}`, {
+          headers: { 'Accept':'application/json' },
+          credentials: 'same-origin'
+        });
         const data = await res.json();
         logContent.innerHTML = '';
         const items = Array.isArray(data.items) ? data.items : [];
@@ -1223,6 +1235,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       try {
         const res = await fetch('api/availability/bulk_copy.php', {
           method: 'POST',
+          credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
           body: JSON.stringify(payload)
         });
@@ -1248,6 +1261,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       try {
         const res = await fetch('api/availability/bulk_reset.php', {
           method: 'POST',
+          credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
           body: JSON.stringify(payload)
         });
@@ -1273,6 +1287,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       try {
         const res = await fetch('api/availability/create.php', {
           method: 'POST',
+          credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
           body: JSON.stringify(payload)
         });
