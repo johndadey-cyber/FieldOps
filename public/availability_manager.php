@@ -864,10 +864,31 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     async function fetchAvailability(eid, weekStart) {
       if (!eid) { return { availability: [], overrides: [] }; }
       const url = `api/availability/index.php?employee_id=${encodeURIComponent(eid)}&week_start=${weekStart}`;
-      const res = await fetch(url, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
-      if (!res.ok) { showAlert('danger', 'Failed to load availability'); return { availability: [], overrides: [] }; }
-      const data = await res.json();
-      if (data.ok === false) { showAlert('danger', data.error || 'Failed to load availability'); return { availability: [], overrides: [] }; }
+      let res;
+      try {
+        res = await fetch(url, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
+      } catch (err) {
+        console.error('fetchAvailability: network error', err);
+        showAlert('danger', 'Failed to load availability: network error');
+        return { availability: [], overrides: [] };
+      }
+      let data;
+      try {
+        data = await res.json();
+      } catch (err) {
+        console.error('fetchAvailability: invalid JSON', err);
+        const msg = `Failed to load availability (HTTP ${res.status})`;
+        showAlert('danger', msg);
+        return { availability: [], overrides: [] };
+      }
+      if (!res.ok || data.ok === false) {
+        const errMsg = data && data.error
+          ? `Failed to load availability: ${data.error}`
+          : `Failed to load availability (HTTP ${res.status})`;
+        console.error('fetchAvailability: error response', { status: res.status, data });
+        showAlert('danger', errMsg);
+        return { availability: [], overrides: [] };
+      }
       const availability = Array.isArray(data.availability)
         ? data.availability
         : Array.isArray(data.items)
