@@ -11,6 +11,7 @@ declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../../config/database.php';
 if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
+require_once __DIR__ . '/../../_csrf.php';
 require_once __DIR__ . '/../../../helpers/availability_error_logger.php';
 
 $pdo = getPDO();
@@ -42,6 +43,13 @@ $data = json_decode($raw ?: '[]', true);
 if (!is_array($data)) {
     http_response_code(400);
     echo json_encode(['ok'=>false,'error'=>'invalid_json']);
+    exit;
+}
+
+if (!csrf_verify($data['csrf_token'] ?? null)) {
+    csrf_log_failure_payload($raw, $data);
+    http_response_code(422);
+    echo json_encode(['ok'=>false,'error'=>'invalid_csrf']);
     exit;
 }
 

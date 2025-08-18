@@ -94,6 +94,7 @@ if (!is_array($data)) {
 }
 
 if (!csrf_verify($data['csrf_token'] ?? null)) {
+    csrf_log_failure_payload($raw, $data);
     http_response_code(422);
     echo json_encode(['ok'=>false,'error'=>'invalid_csrf']);
     exit;
