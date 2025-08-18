@@ -235,6 +235,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       </div>
       <div class="tab-pane fade" id="calendarView" role="tabpanel">
         <div id="calendar" class="mt-3"></div>
+        <div id="calendarEmpty" class="text-muted text-center py-3 d-none">No calendar events</div>
       </div>
     </div>
   </div>
@@ -630,8 +631,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       if (ok) {
         showAlert('success', 'Copied.');
         winModal.hide();
-        const data = await fetchAvailability(currentEmployeeId(), currentWeekStart());
-        renderList(data.availability, data.overrides);
+        await loadAvailability();
       } else {
         showAlert('danger', 'Copy failed');
       }
@@ -659,8 +659,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       }
       if (ok) {
         showAlert('success', 'Week cleared.');
-        const data = await fetchAvailability(currentEmployeeId(), currentWeekStart());
-        renderList(data.availability, data.overrides);
+        await loadAvailability();
       } else {
         showAlert('danger', 'Clear failed');
       }
@@ -776,13 +775,11 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     resultSelect.addEventListener('change', async () => {
       const id = resultSelect.value;
       employeeIdField.value = id;
-      const data = await fetchAvailability(currentEmployeeId(), currentWeekStart());
-      renderList(data.availability, data.overrides);
+      await loadAvailability();
     });
 
     weekStartInput.addEventListener('change', async () => {
-      const data = await fetchAvailability(currentEmployeeId(), currentWeekStart());
-      renderList(data.availability, data.overrides);
+      await loadAvailability();
     });
 
     function showAlert(kind, msg, autoHide = true) {
@@ -891,12 +888,6 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       clearRows();
       if (!eid) { emptyState.classList.remove('d-none'); return; }
 
-      const ws = currentWeekStart();
-      const wsDate = new Date(ws + 'T00:00:00');
-      const weDate = new Date(wsDate);
-      weDate.setDate(weDate.getDate() + 6);
-      const we = weDate.toISOString().slice(0,10);
-
       availability.sort((a,b) => {
         const dayDiff = daysOrder.indexOf(a.day_of_week) - daysOrder.indexOf(b.day_of_week);
         return dayDiff !== 0 ? dayDiff : (a.start_time || '').localeCompare(b.start_time || '');
@@ -904,7 +895,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
 
       if (!availability.length) {
         emptyState.classList.remove('d-none');
-        console.warn('renderList: availability empty for employee', eid, 'week', ws);
+        console.warn('renderList: availability empty for employee', eid, 'week', currentWeekStart());
       } else {
         emptyState.classList.add('d-none');
       }
@@ -947,66 +938,6 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         }
       }
 
-      calendar.removeAllEvents();
-      for (const it of availability) {
-        const idx = daysOrder.indexOf(it.day_of_week);
-        if (idx >= 0) {
-          const d = new Date(wsDate);
-          d.setDate(d.getDate() + idx);
-          const start = d.toISOString().slice(0,10) + 'T' + it.start_time;
-          const end = d.toISOString().slice(0,10) + 'T' + it.end_time;
-          calendar.addEvent({
-            id: 'win-' + it.id,
-            start,
-            end,
-            backgroundColor: '#198754',
-            borderColor: '#198754',
-            editable: true,
-            extendedProps: { type: 'window', raw: it }
-          });
-        }
-      }
-
-      for (const ov of overrides) {
-        const start = `${ov.date}T${ov.start_time || '00:00'}`;
-        const end = `${ov.date}T${ov.end_time || ov.start_time || '00:00'}`;
-        calendar.addEvent({
-          id: 'ov-' + ov.id,
-          start,
-          end,
-          backgroundColor: '#ffc107',
-          borderColor: '#ffc107',
-          editable: true,
-          extendedProps: { type: 'override', raw: ov }
-        });
-      }
-
-      fetch(`api/jobs.php?start=${ws}&end=${we}`, { headers: { 'Accept': 'application/json' }})
-        .then(jobRes => jobRes.json())
-        .then(jobs => {
-          for (const job of Array.isArray(jobs) ? jobs : []) {
-            const emps = Array.isArray(job.assigned_employees) ? job.assigned_employees : [];
-            if (!emps.some(e => e.id === eid)) continue;
-            if (!job.scheduled_time) continue;
-            const start = `${job.scheduled_date}T${job.scheduled_time}`;
-            const dur = job.duration_minutes || 60;
-            const endDt = new Date(start);
-            endDt.setMinutes(endDt.getMinutes() + dur);
-            const end = endDt.toISOString().slice(0,16);
-            calendar.addEvent({
-              id: 'job-' + job.job_id,
-              title: `Job #${job.job_id}`,
-              start,
-              end,
-              backgroundColor: '#0d6efd',
-              borderColor: '#0d6efd',
-              editable: false,
-              extendedProps: { type: 'job', raw: job }
-            });
-          }
-        })
-        .catch(err => console.error('Failed to load jobs', err));
-
       for (const ov of overrides) {
         let day = ov.day_of_week;
         if (!day && ov.date) {
@@ -1019,6 +950,113 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           badge.className = 'badge bg-warning text-dark day-badge';
         }
       }
+    }
+
+    async function fetchJobs(weekStart) {
+      const wsDate = new Date(weekStart + 'T00:00:00');
+      const weDate = new Date(wsDate);
+      weDate.setDate(weDate.getDate() + 6);
+      const we = weDate.toISOString().slice(0,10);
+      try {
+        const res = await fetch(`api/jobs.php?start=${weekStart}&end=${we}`, { headers: { 'Accept': 'application/json' }});
+        const jobs = await res.json();
+        return Array.isArray(jobs) ? jobs : [];
+      } catch (err) {
+        console.error('fetchJobs failed', err);
+        return [];
+      }
+    }
+
+    function renderCalendar(availability, overrides, jobs, weekStart) {
+      calendar.removeAllEvents();
+      const wsDate = new Date(weekStart + 'T00:00:00');
+      const eid = currentEmployeeId();
+      let added = 0;
+
+      for (const it of Array.isArray(availability) ? availability : []) {
+        const idx = daysOrder.indexOf(it.day_of_week);
+        if (idx < 0 || !it.start_time || !it.end_time) {
+          console.warn('renderCalendar: invalid availability item', it);
+          continue;
+        }
+        const d = new Date(wsDate);
+        d.setDate(d.getDate() + idx);
+        const start = `${d.toISOString().slice(0,10)}T${it.start_time}`;
+        const end = `${d.toISOString().slice(0,10)}T${it.end_time}`;
+        if (start >= end) {
+          console.warn('renderCalendar: start after end', it);
+          continue;
+        }
+        calendar.addEvent({
+          id: 'win-' + it.id,
+          start,
+          end,
+          backgroundColor: '#198754',
+          borderColor: '#198754',
+          editable: true,
+          extendedProps: { type: 'window', raw: it }
+        });
+        added++;
+      }
+
+      for (const ov of Array.isArray(overrides) ? overrides : []) {
+        if (!ov.date) { console.warn('renderCalendar: override missing date', ov); continue; }
+        const startTime = ov.start_time || '00:00';
+        const endTime = ov.end_time || ov.start_time || '00:00';
+        const start = `${ov.date}T${startTime}`;
+        const end = `${ov.date}T${endTime}`;
+        calendar.addEvent({
+          id: 'ov-' + ov.id,
+          start,
+          end,
+          backgroundColor: '#ffc107',
+          borderColor: '#ffc107',
+          editable: true,
+          extendedProps: { type: 'override', raw: ov }
+        });
+        added++;
+      }
+
+      for (const job of Array.isArray(jobs) ? jobs : []) {
+        const emps = Array.isArray(job.assigned_employees) ? job.assigned_employees : [];
+        if (!emps.some(e => e.id === eid)) continue;
+        if (!job.scheduled_time) continue;
+        const start = `${job.scheduled_date}T${job.scheduled_time}`;
+        const dur = job.duration_minutes || 60;
+        const endDt = new Date(start);
+        endDt.setMinutes(endDt.getMinutes() + dur);
+        const end = endDt.toISOString().slice(0,16);
+        calendar.addEvent({
+          id: 'job-' + job.job_id,
+          title: `Job #${job.job_id}`,
+          start,
+          end,
+          backgroundColor: '#0d6efd',
+          borderColor: '#0d6efd',
+          editable: false,
+          extendedProps: { type: 'job', raw: job }
+        });
+        added++;
+      }
+
+      const calEmpty = document.getElementById('calendarEmpty');
+      if (added === 0) {
+        console.info('renderCalendar: no events added', { eid, weekStart });
+        if (calEmpty) calEmpty.classList.remove('d-none');
+      } else if (calEmpty) {
+        calEmpty.classList.add('d-none');
+      }
+    }
+
+    async function loadAvailability() {
+      const eid = currentEmployeeId();
+      const ws = currentWeekStart();
+      const [data, jobs] = await Promise.all([
+        fetchAvailability(eid, ws),
+        eid ? fetchJobs(ws) : Promise.resolve([])
+      ]);
+      renderList(data.availability, data.overrides);
+      renderCalendar(data.availability, data.overrides, jobs, ws);
     }
 
     function openAdd() {
@@ -1081,8 +1119,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       const data = await res.json();
       if (data && data.ok) {
         showAlert('success', 'Deleted.');
-        const d = await fetchAvailability(currentEmployeeId(), currentWeekStart());
-        renderList(d.availability, d.overrides);
+        await loadAvailability();
       } else {
         showAlert('danger', (data && (data.error || (data.errors||[]).join(', '))) || 'Delete failed');
       }
@@ -1125,8 +1162,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       const data = await res.json();
       if (data && data.ok) {
         showAlert('success', 'Deleted.');
-        const d = await fetchAvailability(currentEmployeeId(), currentWeekStart());
-        renderList(d.availability, d.overrides);
+        await loadAvailability();
       } else {
         showAlert('danger', 'Delete failed');
       }
@@ -1213,8 +1249,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       if (ok) {
         showAlert('success', 'Saved.');
         winModal.hide();
-        const data = await fetchAvailability(currentEmployeeId(), currentWeekStart());
-        renderList(data.availability, data.overrides);
+        await loadAvailability();
       }
     });
 
@@ -1284,8 +1319,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       if (ok) {
         showAlert('success', 'Saved.');
         ovModal.hide();
-        const data = await fetchAvailability(currentEmployeeId(), currentWeekStart());
-        renderList(data.availability, data.overrides);
+        await loadAvailability();
       } else {
         showAlert('danger', 'Save failed');
       }
@@ -1371,8 +1405,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           FieldOpsToast.show('Schedule copied.');
           bulkCopyModal.hide();
           if (targets.includes(src)) {
-            const d = await fetchAvailability(currentEmployeeId(), currentWeekStart());
-            renderList(d.availability, d.overrides);
+            await loadAvailability();
           }
         } else {
           FieldOpsToast.show('Copy failed', 'danger');
@@ -1406,8 +1439,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           FieldOpsToast.show('Week reset.');
           bulkResetModal.hide();
           if (ids.includes(currentEmployeeId())) {
-            const d = await fetchAvailability(currentEmployeeId(), currentWeekStart());
-            renderList(d.availability, d.overrides);
+            await loadAvailability();
           }
         } else {
           FieldOpsToast.show('Reset failed', 'danger');
@@ -1440,8 +1472,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         if (res.ok && data.ok) {
           copyModal.hide();
           FieldOpsToast.show('Availability copied.');
-          const d = await fetchAvailability(currentEmployeeId(), currentWeekStart());
-          renderList(d.availability, d.overrides);
+          await loadAvailability();
         } else {
           FieldOpsToast.show('Copy failed', 'danger');
         }
@@ -1467,11 +1498,11 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
             resultSelect.value = String(resp.item.id);
             updateProfileLink(resp.item.id);
           }
-          fetchAvailability(currentEmployeeId(), currentWeekStart()).then(d => renderList(d.availability, d.overrides));
+          loadAvailability();
         })
-        .catch(() => { updateProfileLink(initId); fetchAvailability(currentEmployeeId(), currentWeekStart()).then(d => renderList(d.availability, d.overrides)); });
+        .catch(() => { updateProfileLink(initId); loadAvailability(); });
     } else {
-      fetchAvailability(currentEmployeeId(), currentWeekStart()).then(d => renderList(d.availability, d.overrides));
+      loadAvailability();
     }
   </script>
 </body>
