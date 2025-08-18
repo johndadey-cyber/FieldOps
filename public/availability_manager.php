@@ -863,7 +863,10 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     }
     async function fetchAvailability(eid, weekStart) {
       if (!eid) { return { availability: [], overrides: [] }; }
-      const url = `api/availability/index.php?employee_id=${encodeURIComponent(eid)}&week_start=${weekStart}`;
+      const url = new URL('api/availability/index.php', window.location);
+      url.searchParams.set('employee_id', eid);
+      url.searchParams.set('week_start', weekStart);
+      console.log('fetchAvailability URL:', url.toString());
       let res;
       try {
         res = await fetch(url, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
