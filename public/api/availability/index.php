@@ -17,6 +17,8 @@ $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $eid = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 0;
 $weekStart = isset($_GET['week_start']) ? (string)$_GET['week_start'] : '';
 
+error_log(sprintf('availability index request: employee_id=%d, week_start=%s', $eid, $weekStart));
+
 if ($eid <= 0 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $weekStart)) {
     http_response_code(400);
     echo json_encode(['ok' => false, 'error' => 'invalid_params']);
@@ -81,5 +83,9 @@ $st2 = $pdo->prepare(
 $st2->execute([':eid' => $eid, ':ws' => $ws->format('Y-m-d'), ':we' => $we]);
 $over = $st2->fetchAll(PDO::FETCH_ASSOC);
 
-echo json_encode(['ok' => true, 'availability' => $avail, 'overrides' => $over], JSON_UNESCAPED_UNICODE);
+$response = ['ok' => true, 'availability' => $avail, 'overrides' => $over];
+if (empty($avail)) {
+    $response['message'] = 'no_records';
+}
+echo json_encode($response, JSON_UNESCAPED_UNICODE);
 
