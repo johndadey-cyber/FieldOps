@@ -67,8 +67,6 @@ $rows = CustomerDataProvider::getFiltered($pdo, $q, $city, $state, $limit, $sort
             <th><?= sort_link('Company', 'company', $baseParams, $sort, $dir) ?></th>
             <th><?= sort_link('Email', 'email', $baseParams, $sort, $dir) ?></th>
             <th><?= sort_link('Phone', 'phone', $baseParams, $sort, $dir) ?></th>
-            <th><?= sort_link('City', 'city', $baseParams, $sort, $dir) ?></th>
-            <th><?= sort_link('State', 'state', $baseParams, $sort, $dir) ?></th>
             <th><?= sort_link('Created', 'created_at', $baseParams, $sort, $dir) ?></th>
             <th>Address</th>
             <th class="text-end">Actions</th>
@@ -82,8 +80,6 @@ $rows = CustomerDataProvider::getFiltered($pdo, $q, $city, $state, $limit, $sort
             <td><?= s($r['company'] ?? '') ?></td>
             <td><?= s($r['email'] ?? '') ?></td>
             <td><?= s($r['phone'] ?? '') ?></td>
-            <td><?= s($r['city'] ?? '') ?></td>
-            <td><?= s($r['state'] ?? '') ?></td>
             <td><?php $created = $r['created_at'] ? date('Y-m-d H:i', strtotime($r['created_at'])) : ''; echo s($created); ?></td>
             <td><?php
               $parts = [
@@ -103,7 +99,7 @@ $rows = CustomerDataProvider::getFiltered($pdo, $q, $city, $state, $limit, $sort
           </tr>
         <?php endforeach; ?>
         <?php if (!$rows): ?>
-          <tr><td colspan="10" class="text-center text-muted py-4">No customers found.</td></tr>
+          <tr><td colspan="8" class="text-center text-muted py-4">No customers found.</td></tr>
         <?php endif; ?>
         </tbody>
       </table>
