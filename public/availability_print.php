@@ -32,7 +32,7 @@ $st = $pdo->prepare("SELECT day_of_week, DATE_FORMAT(start_time,'%H:%i') AS star
 $st->execute([':eid'=>$eid]);
 $avail = $st->fetchAll(PDO::FETCH_ASSOC);
 
-$st2 = $pdo->prepare("SELECT date, DATE_FORMAT(start_time,'%H:%i') AS start_time, DATE_FORMAT(end_time,'%H:%i') AS end_time, status, reason FROM employee_availability_overrides WHERE employee_id=:eid AND date BETWEEN :ws AND :we ORDER BY date, start_time");
+$st2 = $pdo->prepare("SELECT date, DATE_FORMAT(start_time,'%H:%i') AS start_time, DATE_FORMAT(end_time,'%H:%i') AS end_time, status, type, reason FROM employee_availability_overrides WHERE employee_id=:eid AND date BETWEEN :ws AND :we ORDER BY date, start_time");
 $st2->execute([':eid'=>$eid, ':ws'=>$ws->format('Y-m-d'), ':we'=>$we]);
 $overrides = $st2->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -47,10 +47,10 @@ $overrides = $st2->fetchAll(PDO::FETCH_ASSOC);
 <body>
 <div class="container">
   <h1 class="h4 mb-4">Availability for <?= htmlspecialchars($empName, ENT_QUOTES, 'UTF-8') ?></h1>
-  <table class="table table-bordered">
-    <thead>
-      <tr><th>Day</th><th>Start</th><th>End</th><th>Status</th><th>Reason</th></tr>
-    </thead>
+    <table class="table table-bordered">
+      <thead>
+        <tr><th>Day</th><th>Start</th><th>End</th><th>Status</th><th>Type</th><th>Reason</th></tr>
+      </thead>
     <tbody>
     <?php foreach ($avail as $a): ?>
       <tr>
@@ -62,13 +62,14 @@ $overrides = $st2->fetchAll(PDO::FETCH_ASSOC);
       </tr>
     <?php endforeach; ?>
     <?php foreach ($overrides as $ov): ?>
-      <tr>
-        <td><?= htmlspecialchars((string)$ov['date'], ENT_QUOTES, 'UTF-8') ?></td>
-        <td><?= htmlspecialchars((string)($ov['start_time'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
-        <td><?= htmlspecialchars((string)($ov['end_time'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
-        <td><?= htmlspecialchars((string)($ov['status'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
-        <td><?= htmlspecialchars((string)($ov['reason'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
-      </tr>
+        <tr>
+          <td><?= htmlspecialchars((string)$ov['date'], ENT_QUOTES, 'UTF-8') ?></td>
+          <td><?= htmlspecialchars((string)($ov['start_time'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+          <td><?= htmlspecialchars((string)($ov['end_time'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+          <td><?= htmlspecialchars((string)($ov['status'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+          <td><?= htmlspecialchars((string)($ov['type'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+          <td><?= htmlspecialchars((string)($ov['reason'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+        </tr>
     <?php endforeach; ?>
     </tbody>
   </table>

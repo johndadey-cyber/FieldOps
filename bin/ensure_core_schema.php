@@ -225,6 +225,7 @@ if (!tableExists($pdo, 'employee_availability_overrides')) {
             `employee_id` INT NOT NULL,
             `date` DATE NOT NULL,
             `status` VARCHAR(20) NOT NULL,
+            `type` VARCHAR(20) NOT NULL DEFAULT 'CUSTOM',
             `start_time` TIME NULL,
             `end_time` TIME NULL,
             `reason` VARCHAR(255) NULL
@@ -330,6 +331,14 @@ if (tableExists($pdo, 'customers')) {
     if (!array_key_exists('notes', $cols)) {
         out('[..] Adding `notes` column to customers ...');
         $pdo->exec("ALTER TABLE `customers` ADD COLUMN `notes` TEXT NULL");
+    }
+}
+
+if (tableExists($pdo, 'employee_availability_overrides')) {
+    $cols = columns($pdo, 'employee_availability_overrides');
+    if (!array_key_exists('type', $cols)) {
+        out('[..] Adding `type` column to employee_availability_overrides ...');
+        $pdo->exec("ALTER TABLE `employee_availability_overrides` ADD COLUMN `type` VARCHAR(20) NOT NULL DEFAULT 'CUSTOM' AFTER `status`");
     }
 }
 

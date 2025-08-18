@@ -22,15 +22,16 @@ final class AvailabilityOverrideTest extends TestCase
         $this->pdo = createTestPdo();
 
         // Ensure overrides table exists for tests
-        $this->pdo->exec("CREATE TABLE IF NOT EXISTS employee_availability_overrides (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            employee_id INT NOT NULL,
-            date DATE NOT NULL,
-            status VARCHAR(20) NOT NULL,
-            start_time TIME NULL,
-            end_time TIME NULL,
-            reason VARCHAR(255) NULL
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+          $this->pdo->exec("CREATE TABLE IF NOT EXISTS employee_availability_overrides (
+              id INT AUTO_INCREMENT PRIMARY KEY,
+              employee_id INT NOT NULL,
+              date DATE NOT NULL,
+              status VARCHAR(20) NOT NULL,
+              type VARCHAR(20) NOT NULL DEFAULT 'CUSTOM',
+              start_time TIME NULL,
+              end_time TIME NULL,
+              reason VARCHAR(255) NULL
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
         // Clean tables used
         $tables = ['job_employee_assignment','employee_availability_overrides','employee_availability','jobs','employees','people','customers'];
