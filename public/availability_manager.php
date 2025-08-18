@@ -172,6 +172,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
                     <th style="width: 160px;">Start</th>
                     <th style="width: 160px;">End</th>
                     <th style="width: 160px;">Status</th>
+                    <th style="width: 160px;">Type</th>
                     <th>Reason</th>
                     <th>Actions</th>
                   </tr>
@@ -285,7 +286,15 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
             </select>
           </div>
           <div class="col-6">
-            <label class="form-label">Reason</label>
+            <label class="form-label">Type</label>
+            <select class="form-select" id="ov_type" required>
+              <option value="PTO">PTO</option>
+              <option value="SICK">Sick</option>
+              <option value="CUSTOM">Custom</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Details</label>
             <input type="text" class="form-control" id="ov_reason">
           </div>
         </div>
@@ -468,6 +477,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     const ovStartTime = document.getElementById('ov_start_time');
     const ovEndTime = document.getElementById('ov_end_time');
     const ovStatus = document.getElementById('ov_status');
+    const ovType = document.getElementById('ov_type');
     const ovReason = document.getElementById('ov_reason');
 
     // Clear focus inside the modal before it is hidden to avoid accessibility warnings
@@ -821,7 +831,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         for (const ov of overrides) {
           const tr = document.createElement('tr');
           tr.dataset.id = ov.id;
-          tr.innerHTML = `<td>${ov.date}</td><td>${ov.start_time || ''}</td><td>${ov.end_time || ''}</td><td>${ov.status}</td><td>${ov.reason || ''}</td><td class="actions"></td>`;
+          tr.innerHTML = `<td>${ov.date}</td><td>${ov.start_time || ''}</td><td>${ov.end_time || ''}</td><td>${ov.status}</td><td>${ov.type || ''}</td><td>${ov.reason || ''}</td><td class="actions"></td>`;
           const actions = ovActionTpl.content.firstElementChild.cloneNode(true);
           actions.querySelector('.btn-edit').addEventListener('click', () => openOvEdit(ov));
           actions.querySelector('.btn-del').addEventListener('click', () => delOverride(ov));
@@ -966,6 +976,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       ovStartTime.value = '';
       ovEndTime.value = '';
       ovStatus.value = 'UNAVAILABLE';
+      ovType.value = 'PTO';
       ovReason.value = '';
       ovModal.show();
     }
@@ -979,6 +990,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       ovStartTime.value = ov.start_time || '';
       ovEndTime.value = ov.end_time || '';
       ovStatus.value = ov.status || 'UNAVAILABLE';
+      ovType.value = ov.type || 'PTO';
       ovReason.value = ov.reason || '';
       ovModal.show();
     }
@@ -1073,6 +1085,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       const endDate = ovEndDate.value || startDate;
       const days = Array.from(ovDays.options).filter(o => o.selected).map(o => o.value);
       const status = ovStatus.value;
+      const type = ovType.value;
       const startTime = ovStartTime.value;
       const endTime = ovEndTime.value;
       const reason = ovReason.value;
@@ -1082,7 +1095,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       const dayName = ds => daysOrder[(new Date(ds+'T00:00:00').getDay()+6)%7];
       let ok = true;
       if (id) {
-        const payload = { id: parseInt(id,10), employee_id: eid, date: startDate, status };
+        const payload = { id: parseInt(id,10), employee_id: eid, date: startDate, status, type };
         if (startTime) payload.start_time = startTime;
         if (endTime) payload.end_time = endTime;
         if (reason) payload.reason = reason;
@@ -1097,7 +1110,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         for (const d of eachDate(startDate, endDate)) {
           const dn = dayName(d);
           if (days.length && !days.includes(dn)) continue;
-          const payload = { employee_id: eid, date: d, status };
+          const payload = { employee_id: eid, date: d, status, type };
           if (startTime) payload.start_time = startTime;
           if (endTime) payload.end_time = endTime;
           if (reason) payload.reason = reason;

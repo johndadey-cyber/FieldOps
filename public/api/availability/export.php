@@ -41,7 +41,7 @@ $st->execute([':eid' => $eid]);
 $avail = $st->fetchAll(PDO::FETCH_ASSOC);
 
 // Overrides within week range
-$st2 = $pdo->prepare("SELECT date, DATE_FORMAT(start_time,'%H:%i') AS start_time, DATE_FORMAT(end_time,'%H:%i') AS end_time, status, reason FROM employee_availability_overrides WHERE employee_id=:eid AND date BETWEEN :ws AND :we ORDER BY date, start_time");
+  $st2 = $pdo->prepare("SELECT date, DATE_FORMAT(start_time,'%H:%i') AS start_time, DATE_FORMAT(end_time,'%H:%i') AS end_time, status, type, reason FROM employee_availability_overrides WHERE employee_id=:eid AND date BETWEEN :ws AND :we ORDER BY date, start_time");
 $st2->execute([':eid' => $eid, ':ws' => $ws->format('Y-m-d'), ':we' => $we]);
 $overrides = $st2->fetchAll(PDO::FETCH_ASSOC);
 
@@ -52,15 +52,16 @@ $esc = static function (?string $v): string {
     return '"' . $v . '"';
 };
 
-$lines = ['employee,day,start,end,status,reason'];
+  $lines = ['employee,day,start,end,status,type,reason'];
 foreach ($avail as $a) {
     $lines[] = implode(',', [
         $esc($empName),
         $esc($a['day_of_week'] ?? ''),
         $esc($a['start_time'] ?? ''),
-        $esc($a['end_time'] ?? ''),
-        $esc(''),
-        $esc(''),
+          $esc($a['end_time'] ?? ''),
+          $esc(''),
+          $esc(''),
+          $esc(''),
     ]);
 }
 
@@ -70,8 +71,9 @@ foreach ($overrides as $ov) {
         $esc($ov['date'] ?? ''),
         $esc($ov['start_time'] ?? ''),
         $esc($ov['end_time'] ?? ''),
-        $esc($ov['status'] ?? ''),
-        $esc($ov['reason'] ?? ''),
+          $esc($ov['status'] ?? ''),
+          $esc($ov['type'] ?? ''),
+          $esc($ov['reason'] ?? ''),
     ]);
 }
 

@@ -72,8 +72,8 @@ usort($avail, static function($a, $b) use ($order) {
 // Overrides within week.  Include day_of_week so the UI can highlight affected days
 $st2 = $pdo->prepare(
     "SELECT id, date, DATE_FORMAT(date,'%W') AS day_of_week, status, " .
-    "DATE_FORMAT(start_time,'%H:%i') AS start_time, " .
-    "DATE_FORMAT(end_time,'%H:%i') AS end_time, reason " .
+      "DATE_FORMAT(start_time,'%H:%i') AS start_time, " .
+      "DATE_FORMAT(end_time,'%H:%i') AS end_time, type, reason " .
     "FROM employee_availability_overrides " .
     "WHERE employee_id = :eid AND date BETWEEN :ws AND :we " .
     "ORDER BY date, start_time"
