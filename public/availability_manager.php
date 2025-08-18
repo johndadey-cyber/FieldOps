@@ -74,6 +74,12 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
 </head>
 <body>
   <div class="container-xxl">
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a href="assignments.php" aria-label="Back to dashboard">Dashboard</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Availability Manager</li>
+      </ol>
+    </nav>
     <div class="d-flex align-items-center justify-content-between mb-3">
       <h1 class="h3 mb-0">Availability Manager</h1>
       <a href="availability_form.php" class="btn btn-outline-secondary btn-sm">Classic Form</a>
@@ -94,7 +100,8 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
             <input type="hidden" id="employee_id" name="employee_id" value="<?= $selectedEmployeeId ?: '' ?>">
           </div>
           <div class="col-auto">
-            <button type="button" class="btn btn-success" id="btnAdd">Add Window</button>
+            <a href="#" class="btn btn-outline-primary disabled" id="btnProfile" aria-label="View selected employee profile" aria-disabled="true">View Profile</a>
+            <button type="button" class="btn btn-success ms-2" id="btnAdd">Add Window</button>
             <button type="button" class="btn btn-warning ms-2" id="btnAddOverride">Add Override</button>
             <button type="button" class="btn btn-outline-info ms-2" id="btnExport">Export</button>
             <button type="button" class="btn btn-outline-secondary ms-2" id="btnPrint">Print</button>
@@ -337,6 +344,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     const employeeIdField = document.getElementById('employee_id');
     const btnEmpSearch = document.getElementById('btnEmpSearch');
     const resultSelect = document.getElementById('employeeResults');
+    const btnProfile = document.getElementById('btnProfile');
     const btnAdd = document.getElementById('btnAdd');
     const btnAddOverride = document.getElementById('btnAddOverride');
 
@@ -566,10 +574,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     });
     resultSelect.addEventListener('change', () => {
       const id = resultSelect.value;
-      if (id) {
-        employeeIdField.value = id;
-        loadAvailability();
-      }
+      employeeIdField.value = id;
+      updateProfileLink(id);
+      loadAvailability();
     });
 
     function showAlert(kind, msg, autoHide = true) {
@@ -594,6 +601,18 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     function currentEmployeeName() {
       const opt = resultSelect.options[resultSelect.selectedIndex];
       return opt ? opt.textContent : '';
+    }
+
+    function updateProfileLink(id) {
+      if (id) {
+        btnProfile.href = `edit_employee.php?id=${encodeURIComponent(id)}`;
+        btnProfile.classList.remove('disabled');
+        btnProfile.setAttribute('aria-disabled', 'false');
+      } else {
+        btnProfile.href = '#';
+        btnProfile.classList.add('disabled');
+        btnProfile.setAttribute('aria-disabled', 'true');
+      }
     }
 
     function currentWeekStart() {
@@ -628,6 +647,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
 
     async function loadAvailability() {
       const eid = currentEmployeeId();
+      updateProfileLink(eid);
 
       clearRows();
       if (!eid) { emptyState.classList.remove('d-none'); return; }
@@ -1019,10 +1039,11 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
             opt.textContent = `${resp.item.name} (ID: ${resp.item.id})`;
             resultSelect.appendChild(opt);
             resultSelect.value = String(resp.item.id);
+            updateProfileLink(resp.item.id);
           }
           loadAvailability();
         })
-        .catch(() => loadAvailability());
+        .catch(() => { updateProfileLink(initId); loadAvailability(); });
     } else {
       loadAvailability();
     }
