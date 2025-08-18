@@ -794,7 +794,11 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       const res = await fetch(url, { headers: { 'Accept': 'application/json' }});
       const data = await res.json();
 
-      const items = Array.isArray(data.availability) ? data.availability : [];
+      const items = Array.isArray(data.availability)
+        ? data.availability
+        : Array.isArray(data.items)
+          ? data.items
+          : [];
       const wsDate = new Date(ws + 'T00:00:00');
       const weDate = new Date(wsDate);
       weDate.setDate(weDate.getDate() + 6);
