@@ -190,6 +190,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         <div class="modal-body row g-3">
           <input type="hidden" name="id" id="win_id">
           <input type="hidden" name="csrf_token" id="csrf_token" value="<?= s($__csrf) ?>">
+          <input type="hidden" id="win_replace_ids">
           <div class="col-12">
             <label class="form-label">Employee</label>
             <input type="text" class="form-control" id="win_employee" readonly>
@@ -220,13 +221,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
             <label class="form-label">End Date</label>
             <input type="date" class="form-control" id="win_end_date">
           </div>
-          <div class="col-6">
-            <label class="form-label">Start</label>
-            <input type="time" class="form-control" id="win_start" required>
-          </div>
-          <div class="col-6">
-            <label class="form-label">End</label>
-            <input type="time" class="form-control" id="win_end" required>
+          <div class="col-12" id="win_blocks"></div>
+          <div class="col-12">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnAddBlock">Add block</button>
           </div>
         </div>
         <div class="modal-footer">
@@ -328,6 +325,20 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     </div>
   </template>
 
+  <template id="blockTpl">
+    <div class="row g-2 align-items-center mb-2 block">
+      <div class="col">
+        <input type="time" class="form-control block-start" required>
+      </div>
+      <div class="col">
+        <input type="time" class="form-control block-end" required>
+      </div>
+      <div class="col-auto">
+        <button type="button" class="btn btn-outline-danger btn-remove-block">&times;</button>
+      </div>
+    </div>
+  </template>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
   <script>
@@ -358,6 +369,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     let alertTimer;
     let searchTimer;
     let searchAbortController;
+    let currentGroups = {};
 
 
     const winModalEl = document.getElementById('winModal');
@@ -367,8 +379,10 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     const winId = document.getElementById('win_id');
     const winEmployee = document.getElementById('win_employee');
     const winDays = document.getElementById('win_days');
-    const winStart = document.getElementById('win_start');
-    const winEnd = document.getElementById('win_end');
+    const winBlocks = document.getElementById('win_blocks');
+    const btnAddBlock = document.getElementById('btnAddBlock');
+    const blockTpl = document.getElementById('blockTpl');
+    const winReplaceIds = document.getElementById('win_replace_ids');
     const winRecurring = document.getElementById('win_recurring');
     const winStartDate = document.getElementById('win_start_date');
     const winEndDate = document.getElementById('win_end_date');
@@ -403,12 +417,33 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     winRecurring.addEventListener('change', toggleRecurring);
     toggleRecurring();
 
+    function clearBlocks() { winBlocks.innerHTML = ''; }
+    function addBlock(start = '', end = '') {
+      const block = blockTpl.content.firstElementChild.cloneNode(true);
+      const s = block.querySelector('.block-start');
+      const e = block.querySelector('.block-end');
+      s.value = start;
+      e.value = end;
+      block.querySelector('.btn-remove-block').addEventListener('click', () => block.remove());
+      winBlocks.appendChild(block);
+    }
+    function getBlocks() {
+      const blocks = [];
+      winBlocks.querySelectorAll('.block').forEach(b => {
+        const s = b.querySelector('.block-start').value;
+        const e = b.querySelector('.block-end').value;
+        if (s && e) blocks.push({ start_time: s, end_time: e });
+      });
+      return blocks;
+    }
+    btnAddBlock.addEventListener('click', () => addBlock());
+
     btnWeekdays.addEventListener('click', async () => {
       if (!confirm('Copy this window to all weekdays?')) return;
       const eid = currentEmployeeId();
       if (!eid) { showAlert('warning', 'Select an employee first.'); return; }
-      const start = winStart.value;
-      const end = winEnd.value;
+      const blocks = getBlocks();
+      if (!blocks.length) { showAlert('warning', 'Add at least one block first.'); return; }
       const srcDay = Array.from(winDays.options).find(o => o.selected)?.value;
       const weekdays = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
       let ok = true;
@@ -418,8 +453,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           csrf_token: CSRF,
           employee_id: eid,
           day_of_week: day,
-          start_time: start,
-          end_time: end
+          blocks
         };
         const res = await fetch('api/availability/create.php', {
           method: 'POST',
@@ -483,8 +517,8 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       } else {
         openAdd();
         Array.from(winDays.options).forEach(o => { o.selected = o.value === dayName; });
-        winStart.value = startTime;
-        winEnd.value = endTime;
+        clearBlocks();
+        addBlock(startTime, endTime);
       }
       calendar.unselect();
     }
@@ -492,13 +526,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     function handleEventEdit(ev) {
       const type = ev.extendedProps.type;
       if (type === 'window') {
-        const raw = { ...ev.extendedProps.raw };
         const s = ev.start;
-        const e = ev.end || s;
-        raw.day_of_week = daysOrder[(s.getDay() + 6) % 7];
-        raw.start_time = s.toISOString().slice(11,16);
-        raw.end_time = e.toISOString().slice(11,16);
-        openEdit(raw);
+        const day = daysOrder[(s.getDay() + 6) % 7];
+        openEditDay(day);
       } else if (type === 'override') {
         const raw = { ...ev.extendedProps.raw };
         const s = ev.start;
@@ -644,7 +674,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       tr.querySelector('.start').textContent = it.start_time;
       tr.querySelector('.end').textContent = it.end_time;
       const actions = actionTpl.content.firstElementChild.cloneNode(true);
-      actions.querySelector('.btn-edit').addEventListener('click', () => openEdit(it));
+      actions.querySelector('.btn-edit').addEventListener('click', () => openEditDay(it.day_of_week));
       actions.querySelector('.btn-del').addEventListener('click', () => delRow(it));
       tr.querySelector('.actions').appendChild(actions);
     }
@@ -683,6 +713,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       for (const it of items) {
         if (groups[it.day_of_week]) groups[it.day_of_week].push(it);
       }
+      currentGroups = groups;
 
       for (const d of daysOrder) {
         const arr = groups[d];
@@ -794,8 +825,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       winId.value = '';
       winEmployee.value = `${currentEmployeeName()} (ID ${currentEmployeeId()})`;
       Array.from(winDays.options).forEach(o => { o.selected = o.value === 'Monday'; });
-      winStart.value = '09:00';
-      winEnd.value = '17:00';
+      winReplaceIds.value = '';
+      clearBlocks();
+      addBlock('09:00', '17:00');
       winRecurring.checked = true;
       winStartDate.value = '';
       winEndDate.value = '';
@@ -803,13 +835,19 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       winModal.show();
     }
 
-    function openEdit(it) {
+    function openEditDay(day) {
       winTitle.textContent = 'Edit Window';
-      winId.value = it.id;
+      winId.value = '';
       winEmployee.value = `${currentEmployeeName()} (ID ${currentEmployeeId()})`;
-      Array.from(winDays.options).forEach(o => { o.selected = o.value === it.day_of_week; });
-      winStart.value = it.start_time;
-      winEnd.value = it.end_time;
+      Array.from(winDays.options).forEach(o => { o.selected = o.value === day; });
+      const arr = currentGroups[day] || [];
+      winReplaceIds.value = arr.map(it => it.id).join(',');
+      clearBlocks();
+      if (arr.length) {
+        arr.forEach(it => addBlock(it.start_time, it.end_time));
+      } else {
+        addBlock('09:00', '17:00');
+      }
       winRecurring.checked = true;
       winStartDate.value = '';
       winEndDate.value = '';
@@ -878,23 +916,31 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       e.preventDefault();
       const eid = currentEmployeeId();
       if (!eid) { showAlert('warning', 'Select an employee first.'); return; }
-
-      const id = winId.value.trim();
       const days = Array.from(winDays.options).filter(o => o.selected).map(o => o.value);
       if (!days.length) { showAlert('warning', 'Select at least one day.'); return; }
+      const blocks = getBlocks();
+      if (!blocks.length) { showAlert('warning', 'Add at least one block.'); return; }
+      blocks.sort((a,b)=>a.start_time.localeCompare(b.start_time));
+      for (const b of blocks) {
+        if (b.start_time >= b.end_time) { showAlert('warning','Start must be before end.'); return; }
+      }
+      for (let i=0;i<blocks.length-1;i++) {
+        if (blocks[i].end_time > blocks[i+1].start_time) { showAlert('warning','Blocks overlap or out of order.'); return; }
+      }
 
       const payload = {
         csrf_token: CSRF,
         employee_id: eid,
         day_of_week: days,
-        start_time: winStart.value,
-        end_time: winEnd.value
+        blocks
       };
       if (!winRecurring.checked) {
         if (winStartDate.value) payload.start_date = winStartDate.value;
         if (winEndDate.value) payload.end_date = winEndDate.value;
       }
-      if (id) payload.id = id;
+      if (winReplaceIds.value) {
+        payload.replace_ids = winReplaceIds.value.split(',').map(v=>parseInt(v,10)).filter(Boolean);
+      }
 
       let ok = false;
       try {

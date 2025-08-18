@@ -4,7 +4,8 @@ declare(strict_types=1);
 /**
  * POST /api/availability/create.php
  * Save or update recurring availability windows.
- * Accepts JSON body: {id?, employee_id, day_of_week, start_time, end_time}
+ * Accepts JSON body: {employee_id, day_of_week, blocks:[{start_time,end_time}], replace_ids?}
+ * Legacy: start_time/end_time and id are still supported.
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -101,9 +102,27 @@ if (!csrf_verify($data['csrf_token'] ?? null)) {
 $eid  = (int)($data['employee_id'] ?? 0);
 $dayInput = $data['day_of_week'] ?? [];
 $days = is_array($dayInput) ? $dayInput : [(string)$dayInput];
-$start= (string)($data['start_time'] ?? '');
-$end  = (string)($data['end_time'] ?? '');
-$id   = isset($data['id']) ? (int)$data['id'] : 0;
+$blocks = [];
+if (isset($data['blocks']) && is_array($data['blocks'])) {
+    foreach ($data['blocks'] as $b) {
+        if (is_array($b)) {
+            $s = (string)($b['start_time'] ?? '');
+            $e = (string)($b['end_time'] ?? '');
+            $blocks[] = ['start'=>$s, 'end'=>$e];
+        }
+    }
+} else {
+    $start= (string)($data['start_time'] ?? '');
+    $end  = (string)($data['end_time'] ?? '');
+    $blocks[] = ['start'=>$start, 'end'=>$end];
+}
+$replaceIds = [];
+if (!empty($data['replace_ids']) && is_array($data['replace_ids'])) {
+    foreach ($data['replace_ids'] as $rid) {
+        $rid = (int)$rid; if ($rid > 0) $replaceIds[] = $rid;
+    }
+}
+$id   = isset($data['id']) ? (int)$data['id'] : 0; // backward compat
 
 $validDays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday','0','1','2','3','4','5','6'];
 $err = [];
@@ -112,54 +131,52 @@ if ($days === []) $err[] = 'day_of_week';
 foreach ($days as $d) {
     if (!in_array($d, $validDays, true)) { $err[] = 'day_of_week'; break; }
 }
-if (!preg_match('/^\d{2}:\d{2}$/', $start)) $err[] = 'start_time';
-if (!preg_match('/^\d{2}:\d{2}$/', $end)) $err[] = 'end_time';
-if ($start >= $end) $err[] = 'range';
+if ($blocks === []) $err[] = 'blocks';
+foreach ($blocks as $b) {
+    if (!preg_match('/^\d{2}:\d{2}$/', $b['start'])) $err[] = 'start_time';
+    if (!preg_match('/^\d{2}:\d{2}$/', $b['end'])) $err[] = 'end_time';
+}
+usort($blocks, function($a,$b){ return strcmp($a['start'], $b['start']); });
+for ($i=0; $i<count($blocks); $i++) {
+    $s = $blocks[$i]['start'];
+    $e = $blocks[$i]['end'];
+    if ($s >= $e) { $err[] = 'range'; break; }
+    if ($i > 0 && $blocks[$i-1]['end'] > $s) { $err[] = 'overlap'; break; }
+}
 
 if ($err) {
     http_response_code(422);
     echo json_encode(['ok'=>false,'error'=>'validation','errors'=>$err,'message'=>'Invalid input.']);
     exit;
 }
-
-$startUtc = $start . ':00';
-$endUtc   = $end . ':00';
-
 // Normalize day values depending on column type
 $days = normalize_days($pdo, $days);
+if ($id > 0 && $replaceIds === []) { $replaceIds = [$id]; }
 
-if (has_overlap($pdo, $eid, $days, $startUtc, $endUtc, $id > 0 ? $id : null)) {
-    http_response_code(409);
-    echo json_encode(['ok'=>false,'error'=>'overlap','message'=>'Window overlaps existing recurring availability for selected day(s). Overrides take precedence.','days'=>$days]);
-    exit;
-}
-
-
-$day = $days[0] ?? null;
-$ids = [];
-$isUpdate = $id > 0;
+$blocksUtc = array_map(fn($b) => ['start'=>$b['start'] . ':00','end'=>$b['end'] . ':00'], $blocks);
 
 try {
     $pdo->beginTransaction();
-    if ($isUpdate) {
-        $stUpd = $pdo->prepare("UPDATE employee_availability SET day_of_week=:dow, start_time=:st, end_time=:et WHERE id=:id AND employee_id=:eid");
-        $stUpd->execute([':dow'=>$day,':st'=>$startUtc,':et'=>$endUtc,':id'=>$id,':eid'=>$eid]);
-        $ids[] = $id;
-        $remaining = array_slice($days, 1);
-        if ($remaining) {
-            $stIns = $pdo->prepare("INSERT INTO employee_availability (employee_id, day_of_week, start_time, end_time) VALUES (:eid,:dow,:st,:et)");
-            foreach ($remaining as $d) {
-                $stIns->execute([':eid'=>$eid,':dow'=>$d,':st'=>$startUtc,':et'=>$endUtc]);
-                $ids[] = (int)$pdo->lastInsertId();
-            }
+    if ($replaceIds) {
+        $in = implode(',', array_fill(0, count($replaceIds), '?'));
+        $params = array_merge([$eid], $replaceIds);
+        $pdo->prepare("DELETE FROM employee_availability WHERE employee_id=? AND id IN ($in)")->execute($params);
+    }
+    foreach ($blocksUtc as $b) {
+        if (has_overlap($pdo, $eid, $days, $b['start'], $b['end'])) {
+            $pdo->rollBack();
+            http_response_code(409);
+            echo json_encode(['ok'=>false,'error'=>'overlap','message'=>'Window overlaps existing recurring availability for selected day(s). Overrides take precedence.','days'=>$days]);
+            exit;
         }
-    } else {
-        $stIns = $pdo->prepare("INSERT INTO employee_availability (employee_id, day_of_week, start_time, end_time) VALUES (:eid,:dow,:st,:et)");
-        foreach ($days as $d) {
-            $stIns->execute([':eid'=>$eid,':dow'=>$d,':st'=>$startUtc,':et'=>$endUtc]);
+    }
+    $ids = [];
+    $stIns = $pdo->prepare("INSERT INTO employee_availability (employee_id, day_of_week, start_time, end_time) VALUES (:eid,:dow,:st,:et)");
+    foreach ($days as $d) {
+        foreach ($blocksUtc as $b) {
+            $stIns->execute([':eid'=>$eid,':dow'=>$d,':st'=>$b['start'],':et'=>$b['end']]);
             $ids[] = (int)$pdo->lastInsertId();
         }
-        $id = $ids[0] ?? 0;
     }
     $pdo->commit();
 } catch (Throwable $e) {
@@ -170,15 +187,14 @@ try {
     exit;
 }
 
-
 try {
     $uid = $_SESSION['user']['id'] ?? null;
-    $det = json_encode(['ids'=>$ids,'days'=>$days,'start'=>$start,'end'=>$end], JSON_UNESCAPED_UNICODE);
-    $act = $isUpdate ? 'update' : 'create';
+    $det = json_encode(['ids'=>$ids,'days'=>$days,'blocks'=>$blocks], JSON_UNESCAPED_UNICODE);
     $pdo->prepare('INSERT INTO availability_audit (employee_id, user_id, action, details) VALUES (:eid,:uid,:act,:det)')
-        ->execute([':eid'=>$eid, ':uid'=>$uid, ':act'=>$act, ':det'=>$det]);
+        ->execute([':eid'=>$eid, ':uid'=>$uid, ':act'=>'create', ':det'=>$det]);
 } catch (Throwable $e) {
     // ignore audit errors
 }
-echo json_encode(['ok'=>true,'id'=>$id,'ids'=>$ids]);
+$idOut = $ids[0] ?? 0;
+echo json_encode(['ok'=>true,'id'=>$idOut,'ids'=>$ids]);
 
