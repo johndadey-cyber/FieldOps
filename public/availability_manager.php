@@ -73,6 +73,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
   </style>
 </head>
 <body>
+  <div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer"></div>
   <div class="container-xxl">
     <nav aria-label="breadcrumb" class="mb-3">
       <ol class="breadcrumb mb-0">
@@ -126,6 +127,14 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       <div class="tab-pane fade show active" id="listView" role="tabpanel">
         <div class="card">
           <div class="card-body">
+            <div class="mb-3 d-flex">
+              <select id="bulk_action" class="form-select form-select-sm w-auto me-2">
+                <option value="">Bulk Actions</option>
+                <option value="copy">Copy schedule to employees</option>
+                <option value="reset">Reset week</option>
+              </select>
+              <button id="bulk_apply" class="btn btn-sm btn-secondary">Apply</button>
+            </div>
             <div class="table-responsive">
               <table class="table align-middle" id="availabilityTable">
                 <thead>
@@ -302,6 +311,56 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     </div>
   </div>
 
+  <div class="modal fade" id="bulkCopyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content" id="bulkCopyForm">
+        <div class="modal-header">
+          <h5 class="modal-title">Copy Schedule</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Target Employee IDs</label>
+            <input type="text" id="copyEmployees" class="form-control" placeholder="e.g. 2,3,4" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Week of</label>
+            <input type="date" id="copyWeek" class="form-control">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Copy</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal fade" id="bulkResetModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content" id="bulkResetForm">
+        <div class="modal-header">
+          <h5 class="modal-title">Reset Week</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Employee IDs</label>
+            <input type="text" id="resetEmployees" class="form-control" placeholder="e.g. 2,3,4" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Week of</label>
+            <input type="date" id="resetWeek" class="form-control">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">Reset</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <template id="subRowTpl">
     <tr class="sub-row" data-id="">
       <td></td>
@@ -365,6 +424,15 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
 
     const btnExport = document.getElementById('btnExport');
     const btnPrint = document.getElementById('btnPrint');
+
+    const bulkAction = document.getElementById('bulk_action');
+    const bulkApply = document.getElementById('bulk_apply');
+    const bulkCopyModalEl = document.getElementById('bulkCopyModal');
+    const bulkResetModalEl = document.getElementById('bulkResetModal');
+    const bulkCopyModal = new bootstrap.Modal(bulkCopyModalEl);
+    const bulkResetModal = new bootstrap.Modal(bulkResetModalEl);
+    const bulkCopyForm = document.getElementById('bulkCopyForm');
+    const bulkResetForm = document.getElementById('bulkResetForm');
 
     let alertTimer;
     let searchTimer;
@@ -626,6 +694,21 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     function hideAlert() {
       if (alertTimer) { clearTimeout(alertTimer); }
       alertBox.classList.add('d-none');
+    }
+
+    function showToast(msg, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      if (!container || typeof bootstrap === 'undefined') return;
+      const el = document.createElement('div');
+      el.className = 'toast align-items-center text-bg-' + (type === 'success' ? 'success' : 'danger') + ' border-0';
+      el.setAttribute('role', 'alert');
+      el.setAttribute('aria-live', 'assertive');
+      el.setAttribute('aria-atomic', 'true');
+      el.innerHTML = '<div class="d-flex"><div class="toast-body"></div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>';
+      el.querySelector('.toast-body').textContent = msg;
+      container.appendChild(el);
+      const toast = new bootstrap.Toast(el, { delay: 3000 });
+      toast.show();
     }
 
     function currentEmployeeId() {
@@ -1074,6 +1157,70 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       if (!eid) { showAlert('warning', 'Select an employee first.'); return; }
       const ws = encodeURIComponent(currentWeekStart());
       window.open(`availability_print.php?employee_id=${encodeURIComponent(eid)}&week_start=${ws}`, '_blank');
+    });
+
+    if (bulkApply) {
+      bulkApply.addEventListener('click', () => {
+        const action = bulkAction.value;
+        if (action === 'copy') {
+          bulkCopyForm.reset();
+          bulkCopyModal.show();
+        } else if (action === 'reset') {
+          bulkResetForm.reset();
+          bulkResetModal.show();
+        }
+      });
+    }
+
+    bulkCopyForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const src = currentEmployeeId();
+      const targets = document.getElementById('copyEmployees').value.split(',').map(v => parseInt(v.trim(),10)).filter(v => !isNaN(v) && v > 0);
+      const week = document.getElementById('copyWeek').value;
+      if (!src || targets.length === 0) { showToast('Select employees', 'danger'); return; }
+      const payload = { csrf_token: CSRF, source_employee_id: src, target_employee_ids: targets, week_start: week };
+      try {
+        const res = await fetch('api/availability/bulk_copy.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          showToast('Schedule copied.');
+          bulkCopyModal.hide();
+          if (targets.includes(src)) loadAvailability();
+        } else {
+          showToast('Copy failed', 'danger');
+        }
+      } catch {
+        showToast('Copy failed', 'danger');
+      }
+    });
+
+    bulkResetForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const ids = document.getElementById('resetEmployees').value.split(',').map(v => parseInt(v.trim(),10)).filter(v => !isNaN(v) && v > 0);
+      const week = document.getElementById('resetWeek').value;
+      if (ids.length === 0) { showToast('Select employees', 'danger'); return; }
+      const payload = { csrf_token: CSRF, employee_ids: ids, week_start: week };
+      try {
+        const res = await fetch('api/availability/bulk_reset.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          showToast('Week reset.');
+          bulkResetModal.hide();
+          if (ids.includes(currentEmployeeId())) loadAvailability();
+        } else {
+          showToast('Reset failed', 'danger');
+        }
+      } catch {
+        showToast('Reset failed', 'danger');
+      }
     });
 
 
