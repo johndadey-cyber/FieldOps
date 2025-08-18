@@ -1,10 +1,11 @@
 export async function fetchAvailability(eid, weekStart) {
   if (!eid) return { availability: [], overrides: [] };
   try {
-    const res = await fetch(`availability_manager.php?action=list&employee_id=${encodeURIComponent(eid)}&week_start=${encodeURIComponent(weekStart)}`, {
+    const res = await fetch(`api/availability/index.php?employee_id=${encodeURIComponent(eid)}&week_start=${encodeURIComponent(weekStart)}`, {
       headers: { 'Accept': 'application/json' },
       credentials: 'same-origin'
     });
+    if (!res.ok) throw new Error('bad response');
     const data = await res.json();
     return {
       availability: Array.isArray(data.availability) ? data.availability : [],
