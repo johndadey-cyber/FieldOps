@@ -76,7 +76,11 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
   <div class="container-xxl">
     <nav aria-label="breadcrumb" class="mb-3">
       <ol class="breadcrumb mb-0">
-        <li class="breadcrumb-item"><a href="assignments.php" aria-label="Back to dashboard">Dashboard</a></li>
+
+        <li class="breadcrumb-item">
+          <a href="assignments.php" class="text-decoration-none" aria-label="Back to dashboard">&larr; Back to Dashboard</a>
+        </li>
+
         <li class="breadcrumb-item active" aria-current="page">Availability Manager</li>
       </ol>
     </nav>
