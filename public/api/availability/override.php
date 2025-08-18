@@ -17,6 +17,19 @@ require_once __DIR__ . '/../../../helpers/availability_error_logger.php';
 $pdo = getPDO();
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+// Determine if the `type` column exists on employee_availability_overrides.
+$hasTypeColumn = true;
+try {
+    $colCheck = $pdo->query("SHOW COLUMNS FROM employee_availability_overrides LIKE 'type'");
+    $hasTypeColumn = (bool)$colCheck->fetch(PDO::FETCH_ASSOC);
+    if (!$hasTypeColumn) {
+        error_log('employee_availability_overrides.type column missing; database schema is outdated.');
+    }
+} catch (Throwable $e) {
+    // If the check fails, assume the column exists to avoid altering behavior.
+    $hasTypeColumn = true;
+}
+
 /**
  * Check for conflicting overrides for the same date range.
  */
@@ -62,11 +75,15 @@ $date = (string)($data['date'] ?? '');
   $reason = $data['reason'] ?? null;
 $id = isset($data['id']) ? (int)$data['id'] : 0;
 
+if (!$hasTypeColumn) {
+    $type = 'CUSTOM';
+}
+
 $errors = [];
 if ($eid <= 0) $errors[] = 'employee_id';
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) $errors[] = 'date';
   if (!in_array($status, ['UNAVAILABLE','AVAILABLE','PARTIAL'], true)) $errors[] = 'status';
-  if (!in_array($type, ['PTO','SICK','CUSTOM'], true)) $errors[] = 'type';
+  if ($hasTypeColumn && !in_array($type, ['PTO','SICK','CUSTOM'], true)) $errors[] = 'type';
 if ($start !== null && !preg_match('/^\d{2}:\d{2}$/', (string)$start)) $errors[] = 'start_time';
 if ($end   !== null && !preg_match('/^\d{2}:\d{2}$/', (string)$end)) $errors[] = 'end_time';
 if ($start !== null && $end !== null && $start >= $end) $errors[] = 'range';
@@ -97,11 +114,21 @@ if ($jobs) {
 
 try {
     if ($id > 0) {
-          $st = $pdo->prepare("UPDATE employee_availability_overrides SET employee_id=:eid, date=:d, status=:s, type=:t, start_time=:st, end_time=:et, reason=:r WHERE id=:id");
-          $st->execute([':eid'=>$eid,':d'=>$date,':s'=>$status,':t'=>$type,':st'=>$startUtc,':et'=>$endUtc,':r'=>$reason,':id'=>$id]);
+          if ($hasTypeColumn) {
+              $st = $pdo->prepare("UPDATE employee_availability_overrides SET employee_id=:eid, date=:d, status=:s, type=:t, start_time=:st, end_time=:et, reason=:r WHERE id=:id");
+              $st->execute([':eid'=>$eid,':d'=>$date,':s'=>$status,':t'=>$type,':st'=>$startUtc,':et'=>$endUtc,':r'=>$reason,':id'=>$id]);
+          } else {
+              $st = $pdo->prepare("UPDATE employee_availability_overrides SET employee_id=:eid, date=:d, status=:s, start_time=:st, end_time=:et, reason=:r WHERE id=:id");
+              $st->execute([':eid'=>$eid,':d'=>$date,':s'=>$status,':st'=>$startUtc,':et'=>$endUtc,':r'=>$reason,':id'=>$id]);
+          }
       } else {
-          $st = $pdo->prepare("INSERT INTO employee_availability_overrides (employee_id, date, status, type, start_time, end_time, reason) VALUES (:eid,:d,:s,:t,:st,:et,:r)");
-          $st->execute([':eid'=>$eid,':d'=>$date,':s'=>$status,':t'=>$type,':st'=>$startUtc,':et'=>$endUtc,':r'=>$reason]);
+          if ($hasTypeColumn) {
+              $st = $pdo->prepare("INSERT INTO employee_availability_overrides (employee_id, date, status, type, start_time, end_time, reason) VALUES (:eid,:d,:s,:t,:st,:et,:r)");
+              $st->execute([':eid'=>$eid,':d'=>$date,':s'=>$status,':t'=>$type,':st'=>$startUtc,':et'=>$endUtc,':r'=>$reason]);
+          } else {
+              $st = $pdo->prepare("INSERT INTO employee_availability_overrides (employee_id, date, status, start_time, end_time, reason) VALUES (:eid,:d,:s,:st,:et,:r)");
+              $st->execute([':eid'=>$eid,':d'=>$date,':s'=>$status,':st'=>$startUtc,':et'=>$endUtc,':r'=>$reason]);
+          }
           $id = (int)$pdo->lastInsertId();
       }
 } catch (Throwable $e) {
