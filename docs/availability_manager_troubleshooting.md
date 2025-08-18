@@ -34,3 +34,19 @@ The availability manager JavaScript has been split into ES modules located in `p
 - `availability-manager.js` – page bootstrap that wires UI events and combines the above modules.
 
 Use these modules when extending the page to keep concerns separated and logic testable.
+
+## Upgrading core schema
+
+Run the core schema migration after pulling updates to ensure new columns are present:
+
+```bash
+php bin/ensure_core_schema.php
+```
+
+When the `type` column is missing from `employee_availability_overrides`, the script reports:
+
+```
+[..] Adding `type` column to employee_availability_overrides ...
+```
+
+Include this command in deployment scripts so production databases receive the migration and avoid runtime errors.
