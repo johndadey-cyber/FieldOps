@@ -17,6 +17,7 @@ $schedule = [];
 $employeeName = '';
 
 if ($q !== '' && $employeeId === 0) {
+
     $st = $pdo->prepare(
         "SELECT e.id, CONCAT(p.first_name,' ',p.last_name) AS name
          FROM employees e
@@ -25,17 +26,20 @@ if ($q !== '' && $employeeId === 0) {
          ORDER BY p.last_name, p.first_name
          LIMIT 20"
     );
+
     $st->execute([':q' => "%$q%"]);
     $employees = $st->fetchAll(PDO::FETCH_ASSOC);
 }
 
 if ($employeeId > 0) {
+
     $nameSt = $pdo->prepare(
         "SELECT CONCAT(p.first_name,' ',p.last_name) AS name
          FROM employees e
          JOIN people p ON p.id = e.person_id
          WHERE e.id = :id"
     );
+
     $nameSt->execute([':id' => $employeeId]);
     $employeeName = (string)$nameSt->fetchColumn();
 
