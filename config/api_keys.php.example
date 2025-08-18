@@ -1,0 +1,4 @@
+<?php
+// /config/api_keys.php.example
+// Copy to api_keys.php and replace with your real Google Maps API key.
+define('MAPS_API_KEY', '');

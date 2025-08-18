@@ -2,7 +2,13 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/_csrf.php';
-require_once __DIR__ . '/../config/api_keys.php';
+$mapsApiKey = getenv('MAPS_API_KEY') ?: '';
+$apiKeyFile = __DIR__ . '/../config/api_keys.php';
+if ($mapsApiKey === '' && is_file($apiKeyFile)) {
+    /** @psalm-suppress UnresolvableInclude */
+    require_once $apiKeyFile;
+    $mapsApiKey = defined('MAPS_API_KEY') ? (string)MAPS_API_KEY : '';
+}
 
 $mode      = $mode ?? 'add';
 $customer  = $customer ?? [];
@@ -112,7 +118,7 @@ function sticky(string $name, ?string $default = null): string {
       </div>
     </form>
   </div>
-  <script src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars(MAPS_API_KEY, ENT_QUOTES, 'UTF-8') ?>&libraries=places"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars($mapsApiKey, ENT_QUOTES, 'UTF-8') ?>&libraries=places"></script>
   <script src="js/google_address_autocomplete.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
