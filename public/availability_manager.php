@@ -756,7 +756,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       const d = new Date();
       const diff = (d.getDay() + 6) % 7; // days since Monday
       d.setDate(d.getDate() - diff);
-      return d.toISOString().slice(0,10);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
 
     function clearRows() {
