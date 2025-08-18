@@ -73,7 +73,6 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
   </style>
 </head>
 <body>
-  <div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer"></div>
   <div class="container-xxl">
     <nav aria-label="breadcrumb" class="mb-3">
       <ol class="breadcrumb mb-0">
@@ -408,6 +407,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
   </template>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+  <script src="/js/toast.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
   <script>
     const CSRF = <?= json_encode($__csrf) ?>;
@@ -704,21 +704,6 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     function hideAlert() {
       if (alertTimer) { clearTimeout(alertTimer); }
       alertBox.classList.add('d-none');
-    }
-
-    function showToast(msg, type = 'success') {
-      const container = document.getElementById('toastContainer');
-      if (!container || typeof bootstrap === 'undefined') return;
-      const el = document.createElement('div');
-      el.className = 'toast align-items-center text-bg-' + (type === 'success' ? 'success' : 'danger') + ' border-0';
-      el.setAttribute('role', 'alert');
-      el.setAttribute('aria-live', 'assertive');
-      el.setAttribute('aria-atomic', 'true');
-      el.innerHTML = '<div class="d-flex"><div class="toast-body"></div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>';
-      el.querySelector('.toast-body').textContent = msg;
-      container.appendChild(el);
-      const toast = new bootstrap.Toast(el, { delay: 3000 });
-      toast.show();
     }
 
     function currentEmployeeId() {
@@ -1190,7 +1175,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       const src = currentEmployeeId();
       const targets = document.getElementById('copyEmployees').value.split(',').map(v => parseInt(v.trim(),10)).filter(v => !isNaN(v) && v > 0);
       const week = document.getElementById('copyWeek').value;
-      if (!src || targets.length === 0) { showToast('Select employees', 'danger'); return; }
+      if (!src || targets.length === 0) { FieldOpsToast.show('Select employees', 'danger'); return; }
       const payload = { csrf_token: CSRF, source_employee_id: src, target_employee_ids: targets, week_start: week };
       try {
         const res = await fetch('api/availability/bulk_copy.php', {
@@ -1200,14 +1185,14 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         });
         const data = await res.json();
         if (res.ok && data.ok) {
-          showToast('Schedule copied.');
+          FieldOpsToast.show('Schedule copied.');
           bulkCopyModal.hide();
           if (targets.includes(src)) loadAvailability();
         } else {
-          showToast('Copy failed', 'danger');
+          FieldOpsToast.show('Copy failed', 'danger');
         }
       } catch {
-        showToast('Copy failed', 'danger');
+        FieldOpsToast.show('Copy failed', 'danger');
       }
     });
 
@@ -1215,7 +1200,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       e.preventDefault();
       const ids = document.getElementById('resetEmployees').value.split(',').map(v => parseInt(v.trim(),10)).filter(v => !isNaN(v) && v > 0);
       const week = document.getElementById('resetWeek').value;
-      if (ids.length === 0) { showToast('Select employees', 'danger'); return; }
+      if (ids.length === 0) { FieldOpsToast.show('Select employees', 'danger'); return; }
       const payload = { csrf_token: CSRF, employee_ids: ids, week_start: week };
       try {
         const res = await fetch('api/availability/bulk_reset.php', {
@@ -1225,14 +1210,14 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         });
         const data = await res.json();
         if (res.ok && data.ok) {
-          showToast('Week reset.');
+          FieldOpsToast.show('Week reset.');
           bulkResetModal.hide();
           if (ids.includes(currentEmployeeId())) loadAvailability();
         } else {
-          showToast('Reset failed', 'danger');
+          FieldOpsToast.show('Reset failed', 'danger');
         }
       } catch {
-        showToast('Reset failed', 'danger');
+        FieldOpsToast.show('Reset failed', 'danger');
       }
     });
 

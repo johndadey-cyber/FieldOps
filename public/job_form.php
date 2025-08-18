@@ -47,7 +47,6 @@ function stickyArr(string $name, array $default = []): array {
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 </head>
 <body>
-  <div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer"></div>
   <div class="container mt-4">
     <h1 class="mb-4"><?= $isEdit ? 'Edit Job' : 'Add Job' ?></h1>
     <?php if ($isEdit && !$job): ?>
@@ -139,6 +138,7 @@ function stickyArr(string $name, array $default = []): array {
     <?php endif; ?>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/toast.js"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
   <script src="js/job_form.js"></script>

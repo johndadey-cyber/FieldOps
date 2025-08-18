@@ -50,7 +50,6 @@ function stickyArr(string $name, array $default = []): array {
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 </head>
 <body>
-  <div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer"></div>
   <div class="container mt-4">
     <h1 class="mb-4"><?= $isEdit ? 'Edit Employee' : 'Add Employee' ?></h1>
     <?php if ($isEdit && !$employee): ?>
@@ -181,6 +180,7 @@ function stickyArr(string $name, array $default = []): array {
     </form>
     <?php endif; ?>
   </div>
+  <script src="/js/toast.js"></script>
   <script src="js/employee_form.js"></script>
   <script src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars(MAPS_API_KEY, ENT_QUOTES, 'UTF-8') ?>&libraries=places"></script>
   <script src="js/google_address_autocomplete.js"></script>
