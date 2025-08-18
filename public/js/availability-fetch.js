@@ -5,8 +5,11 @@ export async function fetchAvailability(eid, weekStart) {
       headers: { 'Accept': 'application/json' },
       credentials: 'same-origin'
     });
-    if (!res.ok) throw new Error('bad response');
     const data = await res.json();
+    if (!res.ok || data.ok === false) {
+      console.error('fetchAvailability failed', data);
+      return { availability: [], overrides: [] };
+    }
     return {
       availability: Array.isArray(data.availability) ? data.availability : [],
       overrides: Array.isArray(data.overrides) ? data.overrides : []
