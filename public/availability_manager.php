@@ -429,6 +429,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
   <script src="/js/toast.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
   <script>
+    const DEBUG = false;
     const CSRF = <?= json_encode($__csrf) ?>;
     const daysOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
     const tableBody = document.querySelector('#availabilityTable tbody');
@@ -558,6 +559,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           day_of_week: day,
           blocks
         };
+        if (DEBUG) {
+          console.log('Request to api/availability/create.php', payload, document.cookie);
+        }
         const res = await fetch('api/availability/create.php', {
           method: 'POST',
           credentials: 'same-origin',
@@ -565,6 +569,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           body: JSON.stringify(payload)
         });
         const data = await res.json();
+        if (DEBUG) {
+          console.log('Response from api/availability/create.php', res.status, data);
+        }
         if (!data || !data.ok) { ok = false; break; }
       }
       if (ok) {
@@ -1073,6 +1080,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
 
       let ok = false;
       try {
+        if (DEBUG) {
+          console.log('Request to api/availability/create.php', payload, document.cookie);
+        }
         const res = await fetch('api/availability/create.php', {
           method: 'POST',
           credentials: 'same-origin',
@@ -1080,6 +1090,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           body: JSON.stringify(payload)
         });
         const data = await res.json();
+        if (DEBUG) {
+          console.log('Response from api/availability/create.php', res.status, data);
+        }
         ok = data && data.ok;
         if (!ok) {
           const msg = (data && data.message) ? data.message : 'Save failed';
@@ -1095,12 +1108,22 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           message: err && err.message ? err.message : '',
           stack: err && err.stack ? err.stack : ''
         };
+        if (DEBUG) {
+          console.log('Request to api/availability/log_client_error.php', logPayload, document.cookie);
+        }
         fetch('api/availability/log_client_error.php', {
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(logPayload)
-        }).catch(() => {});
+        })
+          .then(async res => {
+            const data = await res.json().catch(() => ({}));
+            if (DEBUG) {
+              console.log('Response from api/availability/log_client_error.php', res.status, data);
+            }
+          })
+          .catch(() => {});
       }
 
       if (ok) {
@@ -1134,6 +1157,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         if (startTime) payload.start_time = startTime;
         if (endTime) payload.end_time = endTime;
         if (reason) payload.reason = reason;
+        if (DEBUG) {
+          console.log('Request to api/availability/override.php', payload, document.cookie);
+        }
         const res = await fetch('api/availability/override.php', {
           method: 'POST',
           credentials: 'same-origin',
@@ -1141,6 +1167,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           body: JSON.stringify(payload)
         });
         const data = await res.json();
+        if (DEBUG) {
+          console.log('Response from api/availability/override.php', res.status, data);
+        }
         ok = data && data.ok;
       } else {
         for (const d of eachDate(startDate, endDate)) {
@@ -1150,6 +1179,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           if (startTime) payload.start_time = startTime;
           if (endTime) payload.end_time = endTime;
           if (reason) payload.reason = reason;
+          if (DEBUG) {
+            console.log('Request to api/availability/override.php', payload, document.cookie);
+          }
           const res = await fetch('api/availability/override.php', {
             method: 'POST',
             credentials: 'same-origin',
@@ -1157,6 +1189,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
             body: JSON.stringify(payload)
           });
           const data = await res.json();
+          if (DEBUG) {
+            console.log('Response from api/availability/override.php', res.status, data);
+          }
           if (!data || !data.ok) { ok = false; break; }
         }
       }
@@ -1233,6 +1268,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       if (!src || targets.length === 0) { FieldOpsToast.show('Select employees', 'danger'); return; }
       const payload = { csrf_token: CSRF, source_employee_id: src, target_employee_ids: targets, week_start: week };
       try {
+        if (DEBUG) {
+          console.log('Request to api/availability/bulk_copy.php', payload, document.cookie);
+        }
         const res = await fetch('api/availability/bulk_copy.php', {
           method: 'POST',
           credentials: 'same-origin',
@@ -1240,6 +1278,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           body: JSON.stringify(payload)
         });
         const data = await res.json();
+        if (DEBUG) {
+          console.log('Response from api/availability/bulk_copy.php', res.status, data);
+        }
         if (res.ok && data.ok) {
           FieldOpsToast.show('Schedule copied.');
           bulkCopyModal.hide();
@@ -1259,6 +1300,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       if (ids.length === 0) { FieldOpsToast.show('Select employees', 'danger'); return; }
       const payload = { csrf_token: CSRF, employee_ids: ids, week_start: week };
       try {
+        if (DEBUG) {
+          console.log('Request to api/availability/bulk_reset.php', payload, document.cookie);
+        }
         const res = await fetch('api/availability/bulk_reset.php', {
           method: 'POST',
           credentials: 'same-origin',
@@ -1266,6 +1310,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           body: JSON.stringify(payload)
         });
         const data = await res.json();
+        if (DEBUG) {
+          console.log('Response from api/availability/bulk_reset.php', res.status, data);
+        }
         if (res.ok && data.ok) {
           FieldOpsToast.show('Week reset.');
           bulkResetModal.hide();
@@ -1285,6 +1332,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       if (!eid || days.length === 0 || copyBlocks.length === 0) { FieldOpsToast.show('Select target days', 'danger'); return; }
       const payload = { csrf_token: CSRF, employee_id: eid, day_of_week: days, blocks: copyBlocks };
       try {
+        if (DEBUG) {
+          console.log('Request to api/availability/create.php', payload, document.cookie);
+        }
         const res = await fetch('api/availability/create.php', {
           method: 'POST',
           credentials: 'same-origin',
@@ -1292,6 +1342,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           body: JSON.stringify(payload)
         });
         const data = await res.json();
+        if (DEBUG) {
+          console.log('Response from api/availability/create.php', res.status, data);
+        }
         if (res.ok && data.ok) {
           copyModal.hide();
           FieldOpsToast.show('Availability copied.');
