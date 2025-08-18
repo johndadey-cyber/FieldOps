@@ -319,6 +319,24 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     </div>
   </div>
 
+  <div class="modal fade" id="copyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content" id="copyForm">
+        <div class="modal-header">
+          <h5 class="modal-title">Copy to Days</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="copyDays" class="d-flex flex-wrap gap-2"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Copy</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="modal fade" id="bulkCopyModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
       <form class="modal-content" id="bulkCopyForm">
@@ -381,6 +399,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
   <template id="actionTpl">
     <div class="btn-group btn-group-sm">
       <button class="btn btn-outline-primary btn-edit">Edit</button>
+      <button class="btn btn-outline-secondary btn-copy" title="Copy to week">Copy</button>
       <button class="btn btn-outline-danger btn-del">Delete</button>
     </div>
   </template>
@@ -479,6 +498,12 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     const ovStatus = document.getElementById('ov_status');
     const ovType = document.getElementById('ov_type');
     const ovReason = document.getElementById('ov_reason');
+
+    const copyModalEl = document.getElementById('copyModal');
+    const copyModal = new bootstrap.Modal(copyModalEl);
+    const copyForm = document.getElementById('copyForm');
+    const copyDays = document.getElementById('copyDays');
+    let copyBlocks = [];
 
     // Clear focus inside the modal before it is hidden to avoid accessibility warnings
     winModalEl.addEventListener('hide.bs.modal', () => {
@@ -753,6 +778,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       tr.querySelector('.end').textContent = it.end_time;
       const actions = actionTpl.content.firstElementChild.cloneNode(true);
       actions.querySelector('.btn-edit').addEventListener('click', () => openEditDay(it.day_of_week));
+      actions.querySelector('.btn-copy').addEventListener('click', () => openCopy(it.day_of_week));
       actions.querySelector('.btn-del').addEventListener('click', () => delRow(it));
       tr.querySelector('.actions').appendChild(actions);
     }
@@ -931,6 +957,17 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       winEndDate.value = '';
       toggleRecurring();
       winModal.show();
+    }
+
+    function openCopy(day) {
+      copyBlocks = (currentGroups[day] || []).map(it => ({ start_time: it.start_time, end_time: it.end_time }));
+      copyDays.innerHTML = '';
+      for (const d of daysOrder) {
+        const id = 'copy-' + d;
+        const dis = d === day ? ' disabled' : '';
+        copyDays.innerHTML += `<div class="form-check me-2"><input class="form-check-input" type="checkbox" id="${id}" value="${d}"${dis}><label class="form-check-label" for="${id}">${d}</label></div>`;
+      }
+      copyModal.show();
     }
 
     async function delRow(it) {
@@ -1221,6 +1258,30 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       }
     });
 
+    copyForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const eid = currentEmployeeId();
+      const days = Array.from(copyDays.querySelectorAll('input:checked')).map(i => i.value);
+      if (!eid || days.length === 0 || copyBlocks.length === 0) { FieldOpsToast.show('Select target days', 'danger'); return; }
+      const payload = { csrf_token: CSRF, employee_id: eid, day_of_week: days, blocks: copyBlocks };
+      try {
+        const res = await fetch('api/availability/create.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          copyModal.hide();
+          FieldOpsToast.show('Availability copied.');
+          loadAvailability();
+        } else {
+          FieldOpsToast.show('Copy failed', 'danger');
+        }
+      } catch {
+        FieldOpsToast.show('Copy failed', 'danger');
+      }
+    });
 
     const initId = currentEmployeeId();
     if (initId) {
