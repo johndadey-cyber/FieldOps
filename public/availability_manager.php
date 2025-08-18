@@ -20,6 +20,23 @@ function json_out(array $payload, int $code = 200): void {
     exit;
 }
 
+// Helper to detect numeric day column
+function dow_is_int(PDO $pdo): bool {
+    static $isInt = null;
+    if ($isInt !== null) {
+        return $isInt;
+    }
+    try {
+        $row = $pdo->query("SHOW COLUMNS FROM employee_availability LIKE 'day_of_week'")
+            ->fetch(PDO::FETCH_ASSOC);
+        $type = strtolower((string)($row['Type'] ?? ''));
+        $isInt = str_contains($type, 'int');
+    } catch (Throwable $e) {
+        $isInt = false;
+    }
+    return $isInt;
+}
+
 $__csrf = csrf_token();
 
 // JSON list endpoint for AJAX reloads
@@ -28,7 +45,10 @@ if (($_GET['action'] ?? '') === 'list') {
     $eid = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 0;
     if ($eid <= 0) { json_out(['ok'=>true,'items'=>[]]); }
 
-    $daysOrder = "FIELD(day_of_week,'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday')";
+    $isInt = dow_is_int($pdo);
+    $daysOrder = $isInt
+        ? 'FIELD(day_of_week,1,2,3,4,5,6,0)'
+        : "FIELD(day_of_week,'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday')";
     $st = $pdo->prepare("
         SELECT id,
                day_of_week,
@@ -40,6 +60,29 @@ if (($_GET['action'] ?? '') === 'list') {
     ");
     $st->execute([':eid'=>$eid]);
     $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+
+    $dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    if ($isInt) {
+        foreach ($rows as &$r) {
+            $v = $r['day_of_week'] ?? '';
+            if (is_numeric($v)) {
+                $r['day_of_week'] = $dayNames[((int)$v)%7];
+            }
+        }
+        unset($r);
+    }
+    $order = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    usort($rows, static function($a, $b) use ($order) {
+        $ad = array_search($a['day_of_week'], $order, true);
+        $bd = array_search($b['day_of_week'], $order, true);
+        $ad = $ad === false ? 99 : $ad;
+        $bd = $bd === false ? 99 : $bd;
+        if ($ad === $bd) {
+            return strcmp($a['start_time'] ?? '', $b['start_time'] ?? '');
+        }
+        return $ad <=> $bd;
+    });
+
     json_out(['ok'=>true,'items'=>$rows]);
 }
 
