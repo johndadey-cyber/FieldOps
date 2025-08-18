@@ -85,7 +85,10 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       </ol>
     </nav>
     <div class="d-flex align-items-center justify-content-between mb-3">
-      <h1 class="h3 mb-0">Availability Manager</h1>
+      <div>
+        <h1 class="h3 mb-0">Availability Manager</h1>
+        <div id="weekDisplay" class="text-muted small"></div>
+      </div>
       <a href="availability_form.php" class="btn btn-outline-secondary btn-sm">Classic Form</a>
     </div>
 
@@ -102,6 +105,10 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
             </div>
             <select id="employeeResults" class="form-select mt-2" size="5"></select>
             <input type="hidden" id="employee_id" name="employee_id" value="<?= $selectedEmployeeId ?: '' ?>">
+          </div>
+          <div class="col-sm-5 col-md-4 col-lg-3">
+            <label class="form-label">Week of</label>
+            <input type="date" id="weekStart" class="form-control">
           </div>
           <div class="col-auto">
             <a href="#" class="btn btn-outline-primary disabled" id="btnProfile" aria-label="View selected employee profile" aria-disabled="true">View Profile</a>
@@ -451,6 +458,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     const btnAdd = document.getElementById('btnAdd');
     const btnAddOverride = document.getElementById('btnAddOverride');
 
+    const weekStartInput = document.getElementById('weekStart');
+    const weekDisplay = document.getElementById('weekDisplay');
+
     const btnExport = document.getElementById('btnExport');
     const btnPrint = document.getElementById('btnPrint');
 
@@ -725,6 +735,10 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       loadAvailability();
     });
 
+    weekStartInput.addEventListener('change', () => {
+      loadAvailability();
+    });
+
     function showAlert(kind, msg, autoHide = true) {
       alertBox.className = 'alert alert-' + kind;
       alertBox.textContent = msg;
@@ -762,10 +776,23 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     }
 
     function currentWeekStart() {
+      const v = weekStartInput.value;
+      if (v) return v;
       const d = new Date();
       const diff = (d.getDay() + 6) % 7; // days since Monday
       d.setDate(d.getDate() - diff);
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      return d.toISOString().slice(0,10);
+    }
+
+    function updateWeekDisplay() {
+      const ws = currentWeekStart();
+      const start = new Date(ws + 'T00:00:00');
+      const end = new Date(start);
+      end.setDate(end.getDate() + 6);
+      const opts = { month: 'short', day: 'numeric' };
+      const startStr = start.toLocaleDateString(undefined, opts);
+      const endStr = end.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      if (weekDisplay) weekDisplay.textContent = `${startStr} – ${endStr}`;
     }
 
     function clearRows() {
@@ -795,6 +822,8 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     async function loadAvailability() {
       const eid = currentEmployeeId();
       updateProfileLink(eid);
+
+      updateWeekDisplay();
 
       clearRows();
       if (!eid) { emptyState.classList.remove('d-none'); return; }
@@ -1356,6 +1385,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         FieldOpsToast.show('Copy failed', 'danger');
       }
     });
+
+    weekStartInput.value = currentWeekStart();
+    updateWeekDisplay();
 
     const initId = currentEmployeeId();
     if (initId) {
