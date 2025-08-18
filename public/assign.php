@@ -34,6 +34,8 @@ function e(string $v): string { return htmlspecialchars($v, ENT_QUOTES, 'UTF-8')
     .is-click { cursor:pointer; }
     .scroll-box { max-height: 50vh; overflow:auto; }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/toast.js"></script>
 </head>
 <body>
 <div class="container">
@@ -222,7 +224,8 @@ document.getElementById('assignBtn').addEventListener('click', function(){
   .then(r => r.json())
   .then(data => {
     if (!data || !data.ok) {
-      alert(data && data.error ? data.error : 'Save failed.');
+      const msg = data && data.error ? data.error : 'Save failed.';
+      if (window.FieldOpsToast) { FieldOpsToast.show(msg, 'danger'); } else { alert(msg); }
       return;
     }
     // Success: navigate back or refresh Jobs
@@ -230,7 +233,7 @@ document.getElementById('assignBtn').addEventListener('click', function(){
   })
   .catch(err => {
     console.error(err);
-    alert('Save failed.');
+    if (window.FieldOpsToast) { FieldOpsToast.show('Save failed.', 'danger'); } else { alert('Save failed.'); }
   });
 });
 
