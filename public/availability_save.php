@@ -120,8 +120,10 @@ try {
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
     if ($method !== 'POST') { json_out(['ok'=>false,'error'=>'Method not allowed'], 405); }
 
-    $token = (string)($_POST['csrf_token'] ?? '');
-    if (!csrf_verify($token)) { json_out(['ok'=>false,'error'=>'Invalid CSRF token'], 422); }
+    $raw   = file_get_contents('php://input');
+    $data  = array_merge($_GET, $_POST);
+    $token = (string)($data['csrf_token'] ?? '');
+    if (!csrf_verify($token)) { csrf_log_failure_payload($raw, $data); json_out(['ok'=>false,'error'=>'Invalid CSRF token'], 422); }
 
     $employeeId = isset($_POST['employee_id']) ? (int)$_POST['employee_id'] : 0;
     $dayInput   = $_POST['day_of_week'] ?? [];

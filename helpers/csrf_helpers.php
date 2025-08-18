@@ -59,7 +59,6 @@ if (!function_exists('csrf_verify')) {
                 'request_uri' => $_SERVER['REQUEST_URI'] ?? '',
             ];
             $__csrfLastFailure = $details;
-            csrf_write_log($details);
         };
         if (session_status() !== PHP_SESSION_ACTIVE) {
             session_start();
@@ -142,11 +141,13 @@ if (!function_exists('csrf_log_failure_payload')) {
      * @param array<string,mixed>  $parsed  Parsed request body
      */
     function csrf_log_failure_payload(string $rawBody, array $parsed): void {
-        $entry = [
-            'payload_raw' => csrf_sanitize_raw($rawBody),
-            'payload'     => csrf_sanitize_array($parsed),
-            'debug'       => csrf_debug_info(),
-        ];
+        $entry = array_merge(
+            csrf_debug_info() ?? [],
+            [
+                'payload_raw' => csrf_sanitize_raw($rawBody),
+                'payload'     => csrf_sanitize_array($parsed),
+            ]
+        );
         csrf_write_log($entry);
     }
 }

@@ -17,8 +17,11 @@ if ($method !== 'POST') {
     json_out(['ok' => false, 'error' => 'Method not allowed'], 405);
 }
 
-$token = (string)($_POST['csrf_token'] ?? '');
+$raw   = file_get_contents('php://input');
+$data  = array_merge($_GET, $_POST);
+$token = (string)($data['csrf_token'] ?? '');
 if (!csrf_verify($token)) {
+    csrf_log_failure_payload($raw, $data);
     json_out(['ok' => false, 'error' => 'Invalid CSRF token'], 422);
 }
 
