@@ -12,7 +12,9 @@ require_once $ROOT . '/helpers/auth_helpers.php';
 require_once $ROOT . '/helpers/ErrorCodes.php';
 
 if (!require_role('dispatcher')) { JsonResponse::json(['ok'=>false,'error'=>'Forbidden','code'=>403], 403); return; }
-if (!verify_csrf_token($_POST['csrf_token'] ?? null)) { JsonResponse::json(['ok'=>false,'error'=>'Bad CSRF','code'=>403], 403); return; }
+$raw  = file_get_contents('php://input');
+$data = array_merge($_GET, $_POST);
+if (!verify_csrf_token($data['csrf_token'] ?? null)) { csrf_log_failure_payload($raw, $data); JsonResponse::json(['ok'=>false,'error'=>'Bad CSRF','code'=>403], 403); return; }
 
 $jobId = isset($_POST['jobId']) ? (int)$_POST['jobId'] : 0;
 $employeeId = isset($_POST['employeeId']) ? (int)$_POST['employeeId'] : 0;
