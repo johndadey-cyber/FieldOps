@@ -680,7 +680,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       try {
         if (searchAbortController) { searchAbortController.abort(); }
         searchAbortController = new AbortController();
-        const res = await fetch(`api/employees/search.php?q=${encodeURIComponent(q)}`, { signal: searchAbortController.signal });
+        const res = await fetch(`api/employees/search.php?search=${encodeURIComponent(q)}`, { signal: searchAbortController.signal });
         if (!res.ok) throw new Error('bad response');
         const data = await res.json();
         if (!data.ok) {
