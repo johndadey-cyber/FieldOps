@@ -792,7 +792,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       const ws = currentWeekStart();
       const url = `api/availability/index.php?employee_id=${encodeURIComponent(eid)}&week_start=${ws}`;
       const res = await fetch(url, { headers: { 'Accept': 'application/json' }});
+      if (!res.ok) { showAlert('danger', 'Failed to load availability'); return; }
       const data = await res.json();
+      if (data.ok === false) { showAlert('danger', data.error || 'Failed to load availability'); return; }
 
       const items = Array.isArray(data.availability)
         ? data.availability
