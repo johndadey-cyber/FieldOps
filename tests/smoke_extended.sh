@@ -25,14 +25,10 @@ for i in {1..60}; do
 done
 [ "$code" = "200" ] || { echo "Server not responding. Log:"; tail -n +200 "$LOG"; exit 1; }
 
-# CSRF token
+# Authenticate and fetch CSRF token
 COOK="/tmp/fo_cookies_ext_${PORT}.txt"
-HTML=$(curl -s -c "$COOK" "http://127.0.0.1:$PORT/availability_manager.php")
-TOKEN=$(printf '%s' "$HTML" | sed -n 's/.*name="csrf_token" value="\([^"]*\)".*/\1/p' | head -1)
-if [ -z "${TOKEN:-}" ]; then
-  HTML=$(curl -s -c "$COOK" "http://127.0.0.1:$PORT/availability_form.php")
-  TOKEN=$(printf '%s' "$HTML" | sed -n 's/.*name="csrf_token" value="\([^"]*\)".*/\1/p' | head -1)
-fi
+AUTH=$(curl -s -c "$COOK" "http://127.0.0.1:$PORT/test_auth.php?role=dispatcher")
+TOKEN=$($PHP -r '$j=$argv[1]; $d=json_decode($j,true); echo $d["token"] ?? "";' "$AUTH")
 [ -n "$TOKEN" ] || { echo "Could not extract CSRF token"; exit 1; }
 
 # Active employee id (auto-seed if none)
@@ -165,7 +161,8 @@ JOB_SAVE=$(curl -s -b "$COOK" -X POST "http://127.0.0.1:$PORT/job_save.php" \
   --data-urlencode "status=$STATUS" \
   --data-urlencode "scheduled_date=$SCHEDULED_DATE" \
   --data-urlencode "scheduled_time=$START" \
-  --data-urlencode "duration_minutes=60")
+  --data-urlencode "duration_minutes=60" \
+  --data-urlencode "skills[]=1")
 echo "JOB_SAVE: $JOB_SAVE"
 echo "$JOB_SAVE" | grep -q '"ok":true' || { echo "Job save failed"; exit 1; }
 JOB_ID=$($PHP -r '$j=$argv[1]; $d=json_decode($j,true); echo (int)($d["id"]??0);' "$JOB_SAVE")
