@@ -24,6 +24,10 @@ if (!defined('APP_ENV')) {
     define('APP_ENV', 'test');
 }
 
+// Use dedicated integration database for tests
+putenv('DB_NAME=fieldops_integration');
+$_ENV['DB_NAME'] = 'fieldops_integration';
+
 // Start a top-level output buffer to absorb any accidental echoes before tests run.
 ob_start();
 
