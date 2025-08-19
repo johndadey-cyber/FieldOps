@@ -21,7 +21,7 @@ $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 /**
  * @param list<string> $days
  */
-function has_overlap(PDO $pdo, int $eid, array $days, string $start, string $end, ?int $excludeId = null): bool {
+function has_overlap(PDO $pdo, int $eid, array $days, string $start, string $end, ?int $excludeId = null, ?string $startDate = null): bool {
     if ($days === []) return false;
     $placeholders = [];
     $params = [':eid'=>$eid, ':st'=>$start, ':et'=>$end];
@@ -34,6 +34,10 @@ function has_overlap(PDO $pdo, int $eid, array $days, string $start, string $end
     if ($excludeId !== null) {
         $sql .= " AND id <> :id";
         $params[':id'] = $excludeId;
+    }
+    if ($startDate !== null && has_start_date($pdo)) {
+        $sql .= " AND (start_date IS NULL OR start_date >= :sd)";
+        $params[':sd'] = $startDate;
     }
     $st = $pdo->prepare($sql);
     $st->execute($params);
@@ -179,7 +183,7 @@ try {
         $pdo->prepare("DELETE FROM employee_availability WHERE employee_id=? AND id IN ($in)")->execute($params);
     }
     foreach ($blocksUtc as $b) {
-        if (has_overlap($pdo, $eid, $days, $b['start'], $b['end'])) {
+        if (has_overlap($pdo, $eid, $days, $b['start'], $b['end'], null, $startDate)) {
             $pdo->rollBack();
             http_response_code(409);
             echo json_encode(['ok'=>false,'error'=>'overlap','message'=>'Window overlaps existing recurring availability for selected day(s). Overrides take precedence.','days'=>$days]);

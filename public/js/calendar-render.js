@@ -17,24 +17,43 @@ export function renderCalendar(calendar, availability, overrides, jobs, weekStar
   const wsDate = new Date(weekStart + 'T00:00:00');
   let added = 0;
 
+  const byDay = {};
   for (const it of Array.isArray(availability) ? availability : []) {
-    const idx = daysOrder.indexOf(it.day_of_week);
-    if (idx < 0 || !it.start_time || !it.end_time) continue;
+    if (!byDay[it.day_of_week]) byDay[it.day_of_week] = [];
+    byDay[it.day_of_week].push(it);
+  }
+
+  for (const day of daysOrder) {
+    const arr = byDay[day] || [];
+    const idx = daysOrder.indexOf(day);
     const d = new Date(wsDate);
     d.setDate(d.getDate() + idx);
-    const start = `${d.toISOString().slice(0,10)}T${it.start_time}`;
-    const end = `${d.toISOString().slice(0,10)}T${it.end_time}`;
-    if (start >= end) continue;
-    calendar.addEvent({
-      id: 'win-' + it.id,
-      start,
-      end,
-      backgroundColor: '#198754',
-      borderColor: '#198754',
-      editable: true,
-      extendedProps: { type: 'window', raw: it }
-    });
-    added++;
+    const dayStr = d.toISOString().slice(0,10);
+    const applicable = arr.filter(it => !it.start_date || it.start_date <= dayStr);
+    let latest = '';
+    for (const it of applicable) {
+      const sd = it.start_date || '';
+      if (sd > latest) latest = sd;
+    }
+    const final = applicable.filter(it => (it.start_date || '') === latest);
+    for (const it of final) {
+      if (!it.start_time || !it.end_time) continue;
+      const start = `${dayStr}T${it.start_time}`;
+      const end = `${dayStr}T${it.end_time}`;
+      if (start >= end) continue;
+      const future = it.start_date && it.start_date > weekStart;
+      const color = future ? '#0dcaf0' : '#198754';
+      calendar.addEvent({
+        id: 'win-' + it.id,
+        start,
+        end,
+        backgroundColor: color,
+        borderColor: color,
+        editable: true,
+        extendedProps: { type: 'window', raw: it }
+      });
+      added++;
+    }
   }
 
   for (const ov of Array.isArray(overrides) ? overrides : []) {
