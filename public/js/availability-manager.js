@@ -295,12 +295,17 @@ function openAdd() {
   winId.value = '';
   winEmployee.value = `${currentEmployeeName()} (ID ${currentEmployeeId()})`;
   winDays.value = 'Monday';
+  winDays.disabled = false;
   winReplaceIds.value = '';
   clearBlocks();
   addBlock('09:00', '17:00');
   winRecurring.checked = true;
   winStartDate.value = currentWeekStart();
   winEndDate.value = '';
+  btnWeekdays.classList.remove('d-none');
+  btnWeekdays.disabled = false;
+  btnClearWeek.classList.remove('d-none');
+  btnClearWeek.disabled = false;
   toggleRecurring();
   winModal.show();
 }
@@ -310,6 +315,7 @@ function openEditDay(day) {
   winId.value = '';
   winEmployee.value = `${currentEmployeeName()} (ID ${currentEmployeeId()})`;
   winDays.value = day;
+  winDays.disabled = true;
   const arr = currentGroups[day] || [];
   winReplaceIds.value = arr.map(it => it.id).join(',');
   clearBlocks();
@@ -322,6 +328,10 @@ function openEditDay(day) {
   let sd = arr[0] && arr[0].start_date ? arr[0].start_date : currentWeekStart();
   winStartDate.value = sd;
   winEndDate.value = '';
+  btnWeekdays.classList.add('d-none');
+  btnWeekdays.disabled = true;
+  btnClearWeek.classList.add('d-none');
+  btnClearWeek.disabled = true;
   toggleRecurring();
   winModal.show();
 }
