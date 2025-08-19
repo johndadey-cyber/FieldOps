@@ -10,6 +10,7 @@ const dayRows = {};
 tableBody.querySelectorAll('tr.day-row').forEach(tr => { dayRows[tr.dataset.day] = tr; });
 
 export let currentGroups = {};
+export let allGroups = {};
 
 let alertTimer;
 const alertBox = document.getElementById('alertBox');
@@ -36,25 +37,34 @@ function clearRows() {
     row.dataset.id = '';
     row.querySelector('.start').textContent = '';
     row.querySelector('.end').textContent = '';
+    row.querySelector('.effective').textContent = '';
     row.querySelector('.actions').innerHTML = '';
     const badge = row.querySelector('.day-badge');
     badge.className = 'badge bg-secondary day-badge';
   }
   currentGroups = {};
+  allGroups = {};
 }
-
-function fillRow(tr, it, callbacks) {
+function fillRow(tr, it, callbacks, weekStart, latest) {
   tr.dataset.id = it.id;
   tr.querySelector('.start').textContent = it.start_time;
   tr.querySelector('.end').textContent = it.end_time;
+  tr.querySelector('.effective').textContent = it.start_date || '';
   const actions = actionTpl.content.firstElementChild.cloneNode(true);
-  actions.querySelector('.btn-edit').addEventListener('click', () => callbacks.openEditDay(it.day_of_week));
+  actions.querySelector('.btn-edit').addEventListener('click', () => callbacks.openEditDay(it.day_of_week, it.start_date || ''));
   actions.querySelector('.btn-copy').addEventListener('click', () => callbacks.openCopy(it.day_of_week));
   actions.querySelector('.btn-del').addEventListener('click', () => callbacks.delRow(it));
   tr.querySelector('.actions').appendChild(actions);
+  const sd = it.start_date || '';
+  if (sd > weekStart) {
+    tr.classList.add('table-info');
+  } else if (sd && sd < latest) {
+    tr.classList.add('text-muted');
+  }
 }
 
-export function renderList(availability, overrides, callbacks) {
+export function renderList(availability, overrides, callbacks, opts = {}) {
+  const weekStart = opts.weekStart || '';
   clearRows();
   if (!Array.isArray(availability) || availability.length === 0) {
     emptyState.classList.remove('d-none');
@@ -62,22 +72,54 @@ export function renderList(availability, overrides, callbacks) {
     emptyState.classList.add('d-none');
   }
 
-  const groups = {};
-  for (const d of daysOrder) groups[d] = [];
+  const groupsAll = {};
+  for (const d of daysOrder) groupsAll[d] = [];
   for (const it of availability) {
-    if (groups[it.day_of_week]) groups[it.day_of_week].push(it);
+    if (groupsAll[it.day_of_week]) groupsAll[it.day_of_week].push(it);
   }
-  currentGroups = groups;
+  allGroups = groupsAll;
+
+  const latestStartPerDay = {};
+  currentGroups = {};
+  for (const d of daysOrder) {
+    const arr = groupsAll[d];
+    arr.sort((a,b) => {
+      const sa = a.start_date || '';
+      const sb = b.start_date || '';
+      const cmp = sa.localeCompare(sb);
+      return cmp !== 0 ? cmp : (a.start_time || '').localeCompare(b.start_time || '');
+    });
+    let latest = '';
+    for (const it of arr) {
+      const sd = it.start_date || '';
+      if (!sd || sd <= weekStart) {
+        if (sd > latest) latest = sd;
+      }
+    }
+    latestStartPerDay[d] = latest;
+    currentGroups[d] = arr.filter(it => {
+      const sd = it.start_date || '';
+      return (!sd && latest === '') || sd === latest;
+    });
+  }
 
   for (const d of daysOrder) {
-    const arr = groups[d];
-    arr.sort((a,b) => (a.start_time || '').localeCompare(b.start_time || ''));
+    const arr = groupsAll[d];
     if (!arr.length) continue;
-    fillRow(dayRows[d], arr[0], callbacks);
+    const latest = latestStartPerDay[d];
+    const current = currentGroups[d];
+    const others = arr.filter(it => !current.includes(it)).sort((a,b) => {
+      const sa = a.start_date || '';
+      const sb = b.start_date || '';
+      return sa.localeCompare(sb);
+    });
+    const first = current[0] || arr[0];
+    fillRow(dayRows[d], first, callbacks, weekStart, latest);
     let prev = dayRows[d];
-    for (const it of arr.slice(1)) {
+    const queue = [...current.slice(1), ...others];
+    for (const it of queue) {
       const sub = subRowTpl.content.firstElementChild.cloneNode(true);
-      fillRow(sub, it, callbacks);
+      fillRow(sub, it, callbacks, weekStart, latest);
       tableBody.insertBefore(sub, prev.nextSibling);
       prev = sub;
     }

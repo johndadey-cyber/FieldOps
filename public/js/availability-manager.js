@@ -1,5 +1,5 @@
 import { fetchAvailability, fetchJobs } from './availability-fetch.js';
-import { renderList, showAlert, hideAlert, currentGroups } from './list-render.js';
+import { renderList, showAlert, hideAlert, currentGroups, allGroups } from './list-render.js';
 import { initCalendar, renderCalendar } from './calendar-render.js';
 import { openOvAdd, openOvEdit, delOverride } from './override-handlers.js';
 
@@ -51,6 +51,8 @@ const winStartDate = document.getElementById('win_start_date');
 const winEndDate = document.getElementById('win_end_date');
 const btnWeekdays = document.getElementById('btnWeekdays');
 const btnClearWeek = document.getElementById('btnClearWeek');
+const winStartDateGroup = document.getElementById('winStartDateGroup');
+const winOrigStartDate = document.getElementById('win_orig_start_date');
 
 const ovForm = document.getElementById('ovForm');
 
@@ -201,7 +203,8 @@ function handleEventEdit(ev) {
   if (type === 'window') {
     const s = ev.start;
     const day = daysOrder[(s.getDay() + 6) % 7];
-    openEditDay(day);
+    const sd = ev.extendedProps.raw && ev.extendedProps.raw.start_date ? ev.extendedProps.raw.start_date : '';
+    openEditDay(day, sd);
   } else if (type === 'override') {
     const raw = { ...ev.extendedProps.raw };
     const s = ev.start;
@@ -298,11 +301,13 @@ function openAdd() {
   winDays.value = 'Monday';
   winDays.disabled = false;
   winReplaceIds.value = '';
+  winOrigStartDate.value = '';
   clearBlocks();
   addBlock('09:00', '17:00');
   winRecurring.checked = true;
   winStartDate.value = currentWeekStart();
   winEndDate.value = '';
+  winStartDateGroup.classList.add('d-none');
   btnWeekdays.classList.remove('d-none');
   btnWeekdays.disabled = false;
   btnClearWeek.classList.remove('d-none');
@@ -311,14 +316,16 @@ function openAdd() {
   winModal.show();
 }
 
-function openEditDay(day) {
+function openEditDay(day, startDate = '') {
   winTitle.textContent = 'Edit Window';
   winId.value = '';
   winEmployee.value = `${currentEmployeeName()} (ID ${currentEmployeeId()})`;
   winDays.value = day;
   winDays.disabled = true;
-  const arr = currentGroups[day] || [];
+  const arrAll = allGroups[day] || [];
+  const arr = startDate ? arrAll.filter(it => (it.start_date || '') === startDate) : (currentGroups[day] || arrAll);
   winReplaceIds.value = arr.map(it => it.id).join(',');
+  winOrigStartDate.value = arr[0] && arr[0].start_date ? arr[0].start_date : '';
   clearBlocks();
   if (arr.length) {
     arr.forEach(it => addBlock(it.start_time, it.end_time));
@@ -329,6 +336,7 @@ function openEditDay(day) {
   let sd = arr[0] && arr[0].start_date ? arr[0].start_date : currentWeekStart();
   winStartDate.value = sd;
   winEndDate.value = '';
+  winStartDateGroup.classList.remove('d-none');
   btnWeekdays.classList.add('d-none');
   btnWeekdays.disabled = true;
   btnClearWeek.classList.add('d-none');
@@ -381,7 +389,7 @@ async function loadAvailability() {
     delRow,
     openOvEdit,
     delOverride: ov => delOverride(ov, loadAvailability)
-  });
+  }, { weekStart: ws });
   renderCalendar(calendar, data.availability, data.overrides, jobs, ws, eid);
 }
 
@@ -413,7 +421,9 @@ winForm.addEventListener('submit', async (e) => {
     if (winEndDate.value) payload.end_date = winEndDate.value;
   }
   if (winReplaceIds.value) {
-    payload.replace_ids = winReplaceIds.value.split(',').map(v=>parseInt(v,10)).filter(Boolean);
+    if (winOrigStartDate.value && winOrigStartDate.value === winStartDate.value) {
+      payload.replace_ids = winReplaceIds.value.split(',').map(v=>parseInt(v,10)).filter(Boolean);
+    }
   }
 
   let ok = false;

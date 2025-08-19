@@ -196,6 +196,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
                     <th style="width: 160px;">Day</th>
                     <th style="width: 160px;">Start</th>
                     <th style="width: 160px;">End</th>
+                    <th style="width: 160px;">Effective</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -205,6 +206,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
                       <td><span class="badge bg-light text-dark day-badge"><?= s($d) ?></span></td>
                       <td class="start"></td>
                       <td class="end"></td>
+                      <td class="effective"></td>
                       <td class="actions"></td>
                     </tr>
                   <?php endforeach; ?>
@@ -256,6 +258,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           <input type="hidden" name="id" id="win_id">
           <input type="hidden" name="csrf_token" id="csrf_token" value="<?= s($__csrf) ?>">
           <input type="hidden" id="win_replace_ids">
+          <input type="hidden" id="win_orig_start_date">
           <div class="col-12">
             <label class="form-label">Employee</label>
             <input type="text" class="form-control" id="win_employee" readonly>
@@ -278,7 +281,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
               <label class="form-check-label" for="win_recurring">Recurring?</label>
             </div>
           </div>
-          <div class="col-6">
+          <div class="col-6 d-none" id="winStartDateGroup">
             <label class="form-label">Effective from</label>
             <input type="date" class="form-control" id="win_start_date" required>
           </div>
@@ -448,6 +451,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       <td></td>
       <td class="start"></td>
       <td class="end"></td>
+      <td class="effective"></td>
       <td class="actions"></td>
     </tr>
   </template>
