@@ -26,8 +26,8 @@ final class AssignmentsApiTest extends TestCase
             // Test-only: allow inserting employees without a real person row
             $this->pdo->exec("SET FOREIGN_KEY_CHECKS=0");
             $ins = $this->pdo->prepare("
-                INSERT INTO employees (person_id, hire_date, is_active, role_id, created_at, updated_at)
-                VALUES (0, CURDATE(), 1, NULL, NOW(), NOW())
+                INSERT INTO employees (person_id, hire_date, status, is_active, role_id, created_at, updated_at)
+                VALUES (0, CURDATE(), 'active', 1, NULL, NOW(), NOW())
             ");
             for ($i = 0; $i < $need; $i++) {
                 $ins->execute();
