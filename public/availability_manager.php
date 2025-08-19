@@ -256,8 +256,8 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
             <input type="text" class="form-control" id="win_employee" readonly>
           </div>
           <div class="col-12">
-            <label class="form-label">Days of Week</label>
-            <select class="form-select" id="win_days" multiple required>
+            <label class="form-label">Day of Week</label>
+            <select class="form-select" id="win_days" required>
               <?php foreach (['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] as $d): ?>
                 <option value="<?= s($d) ?>"><?= s($d) ?></option>
               <?php endforeach; ?>

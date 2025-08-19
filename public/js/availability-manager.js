@@ -100,7 +100,7 @@ btnWeekdays.addEventListener('click', async () => {
   if (!eid) { showAlert('warning', 'Select an employee first.'); return; }
   const blocks = getBlocks();
   if (!blocks.length) { showAlert('warning', 'Add at least one block first.'); return; }
-  const srcDay = Array.from(winDays.options).find(o => o.selected)?.value;
+  const srcDay = winDays.value;
   const weekdays = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
   let ok = true;
   for (const day of weekdays) {
@@ -188,7 +188,7 @@ function handleSelect(info) {
     ovEndTime.value = endTime;
   } else {
     openAdd();
-    Array.from(winDays.options).forEach(o => { o.selected = o.value === dayName; });
+    winDays.value = dayName;
     clearBlocks();
     addBlock(startTime, endTime);
   }
@@ -294,7 +294,7 @@ function openAdd() {
   winTitle.textContent = 'Add Window';
   winId.value = '';
   winEmployee.value = `${currentEmployeeName()} (ID ${currentEmployeeId()})`;
-  Array.from(winDays.options).forEach(o => { o.selected = o.value === 'Monday'; });
+  winDays.value = 'Monday';
   winReplaceIds.value = '';
   clearBlocks();
   addBlock('09:00', '17:00');
@@ -309,7 +309,7 @@ function openEditDay(day) {
   winTitle.textContent = 'Edit Window';
   winId.value = '';
   winEmployee.value = `${currentEmployeeName()} (ID ${currentEmployeeId()})`;
-  Array.from(winDays.options).forEach(o => { o.selected = o.value === day; });
+  winDays.value = day;
   const arr = currentGroups[day] || [];
   winReplaceIds.value = arr.map(it => it.id).join(',');
   clearBlocks();
@@ -378,8 +378,8 @@ winForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const eid = currentEmployeeId();
   if (!eid) { showAlert('warning', 'Select an employee first.'); return; }
-  const days = Array.from(winDays.options).filter(o => o.selected).map(o => o.value);
-  if (!days.length) { showAlert('warning', 'Select at least one day.'); return; }
+  const day = winDays.value;
+  if (!day) { showAlert('warning', 'Select a day.'); return; }
   const blocks = getBlocks();
   if (!blocks.length) { showAlert('warning', 'Add at least one block.'); return; }
   blocks.sort((a,b)=>a.start_time.localeCompare(b.start_time));
@@ -394,7 +394,7 @@ winForm.addEventListener('submit', async (e) => {
   const payload = {
     csrf_token: CSRF,
     employee_id: eid,
-    day_of_week: days,
+    day_of_week: day,
     blocks,
     start_date: winStartDate.value
   };
