@@ -2,48 +2,65 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+
   pull_request:
 
 jobs:
-  tests:
+  test:
+
     runs-on: ubuntu-latest
     services:
       mysql:
         image: mysql:8
         env:
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: test
-          MYSQL_USER: user
-          MYSQL_PASSWORD: password
+
+          MYSQL_DATABASE: fieldops_integration
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping -h localhost"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
+          --health-cmd "mysqladmin ping --silent"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: pdo_mysql
-
-      - name: Install MySQL client
-        run: sudo apt-get update && sudo apt-get install -y mysql-client
-
-      - name: Wait for MySQL
-        run: |
-          until mysqladmin ping -h 127.0.0.1 --silent; do
-            echo "Waiting for MySQL..."
-            sleep 5
-          done
-
+          coverage: none
       - name: Install dependencies
         run: composer install --no-interaction --no-progress
+      - name: Wait for MySQL
+        run: |
+          for i in {1..30}; do
+            mysqladmin ping -h 127.0.0.1 -P 3306 -uroot -proot && break
+            sleep 1
+          done
+      - name: Create database
+        run: mysql -h 127.0.0.1 -P 3306 -uroot -proot -e "CREATE DATABASE IF NOT EXISTS fieldops_integration;"
+      - name: Run migrations
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: fieldops_integration
+          DB_USER: root
+          DB_PASS: root
+        run: php tests/migrate_test_data.php
+      - name: Reset test data
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: fieldops_integration
+          DB_USER: root
+          DB_PASS: root
+        run: php tests/reset_test_data.php
+      - name: Run PHPUnit
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: fieldops_integration
+          DB_USER: root
+          DB_PASS: root
 
-      - name: Run tests
         run: vendor/bin/phpunit
