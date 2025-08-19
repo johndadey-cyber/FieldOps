@@ -28,7 +28,7 @@ try {
         $mappedStatuses[] = str_replace(' ', '_', strtolower($s));
     }
     if (!$mappedStatuses) {
-        $mappedStatuses = ['scheduled', 'assigned', 'in_progress'];
+        $mappedStatuses = ['scheduled', 'assigned', 'in_progress', 'completed'];
     }
 
     $search = trim($_GET['search'] ?? '');

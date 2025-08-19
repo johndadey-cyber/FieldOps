@@ -96,6 +96,20 @@ try {
     $ok = Job::complete($pdo, $jobId, $lat, $lng);
     if ($ok) {
         $pdo->commit();
+        // Log completion event for auditing
+        $msg = sprintf(
+            "[%s] job_id=%d technician_id=%d status=completed\n",
+            date('c'),
+            $jobId,
+            $technicianId
+        );
+        error_log($msg, 3, __DIR__ . '/../../logs/job_events.log');
+
+        // Notify internal stakeholders about the completed job
+        $subject = 'Job Completed: #' . $jobId;
+        $body    = 'Job #' . $jobId . ' was completed by technician #' . $technicianId . ' at ' . date('c');
+        @mail('alerts@example.com', $subject, $body);
+
         JsonResponse::json(['ok' => true, 'status' => 'completed']);
     } else {
         $pdo->rollBack();
