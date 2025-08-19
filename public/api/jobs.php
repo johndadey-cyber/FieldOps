@@ -5,7 +5,7 @@ declare(strict_types=1);
 // /public/api/jobs.php
 require __DIR__ . '/../_cli_guard.php';
 require __DIR__ . '/../../config/database.php';
-require __DIR__ . '/../../models/Job.php';
+require_once __DIR__ . '/../../models/Job.php';
 
 header('Content-Type: application/json');
 

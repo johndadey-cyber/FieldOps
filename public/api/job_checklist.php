@@ -5,7 +5,7 @@ require __DIR__ . '/../_cli_guard.php';
 require __DIR__ . '/../_auth.php';
 require __DIR__ . '/../_csrf.php';
 require __DIR__ . '/../../config/database.php';
-require __DIR__ . '/../../models/JobChecklistItem.php';
+require_once __DIR__ . '/../../models/JobChecklistItem.php';
 
 $raw  = file_get_contents('php://input');
 $data = array_merge($_GET, $_POST);

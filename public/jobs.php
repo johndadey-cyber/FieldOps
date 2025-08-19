@@ -14,7 +14,7 @@ if (!isset($_SESSION['csrf_token'])) {
 $CSRF = $_SESSION['csrf_token'];
 
 require __DIR__ . '/../config/database.php';
-require __DIR__ . '/../models/Job.php';
+require_once __DIR__ . '/../models/Job.php';
 
 $pdo = getPDO();
 $statuses = Job::allowedStatuses();
