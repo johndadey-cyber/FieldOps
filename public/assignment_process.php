@@ -55,6 +55,12 @@ try {
       $replace = !empty($data['replace']);
       if ($jobId <= 0 || empty($empIds)) throw new RuntimeException('Invalid job/employee');
 
+      $check = $pdo->prepare('SELECT 1 FROM jobs WHERE id=?');
+      $check->execute([$jobId]);
+      if (!$check->fetchColumn()) {
+        throw new RuntimeException('Job not found', 404);
+      }
+
       $pdo->beginTransaction();
       if ($replace) {
         $pdo->prepare('DELETE FROM job_employee_assignment WHERE job_id=?')->execute([$jobId]);
@@ -109,5 +115,6 @@ try {
   }
 } catch (Throwable $e) {
   if ($pdo->inTransaction()) $pdo->rollBack();
-  echo json_encode(['ok'=>false,'error'=>$e->getMessage()]);
+  $code = $e->getCode() ?: 500;
+  echo json_encode(['ok'=>false,'error'=>$e->getMessage(),'code'=>$code]);
 }
