@@ -216,6 +216,18 @@ function ensureIndex(PDO $pdo, string $table, array $cols, string $name): void {
     out("[OK] INDEX added");
 }
 
+function ensureColumn(PDO $pdo, string $table, string $col, string $definition): void {
+    if (!tableExists($pdo, $table)) { out("[-] Table missing: {$table}"); return; }
+    $cols = columns($pdo, $table);
+    if (!array_key_exists($col, $cols)) {
+        out("[..] Adding {$table}.{$col} ...");
+        $pdo->exec("ALTER TABLE `{$table}` ADD COLUMN `{$col}` {$definition}");
+        out("[OK] {$table}.{$col} added");
+    } else {
+        out("[OK] {$table}.{$col} present");
+    }
+}
+
 // ---- New tables (idempotent) ----
 if (!tableExists($pdo, 'employee_availability_overrides')) {
     out('[..] Creating table employee_availability_overrides ...');
@@ -413,6 +425,12 @@ out(PHP_EOL . "== Ensuring people name columns and index ==");
 ensureVarchar100NotNull($pdo, 'people', 'first_name');
 ensureVarchar100NotNull($pdo, 'people', 'last_name');
 ensureIndex($pdo, 'people', ['first_name','last_name'], 'idx_people_first_last');
+
+out(PHP_EOL . "== Ensuring job timing/location columns ==");
+ensureColumn($pdo, 'jobs', 'started_at', 'DATETIME NULL');
+ensureColumn($pdo, 'jobs', 'completed_at', 'DATETIME NULL');
+ensureColumn($pdo, 'jobs', 'location_lat', 'DECIMAL(10,6) NULL');
+ensureColumn($pdo, 'jobs', 'location_lng', 'DECIMAL(10,6) NULL');
 
 out(PHP_EOL . "== Ensuring UNIQUE indexes ==");
 ensureUnique($pdo, 'employee_availability', ['employee_id','day_of_week','start_time','end_time'], 'uq_availability_window');

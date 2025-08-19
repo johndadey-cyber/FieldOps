@@ -87,4 +87,40 @@ final class Job
             return [];
         }
     }
+
+    /**
+     * Mark a job as started. Sets status to in_progress, records start time and location.
+     * Returns true if the row was updated.
+     */
+    public static function start(PDO $pdo, int $jobId, ?float $lat, ?float $lng): bool
+    {
+        $st = $pdo->prepare(
+            'UPDATE jobs
+             SET status = "in_progress", started_at = NOW(), location_lat = :lat, location_lng = :lng, updated_at = NOW()
+             WHERE id = :id AND status = "assigned" AND started_at IS NULL'
+        );
+        if ($st === false) {
+            return false;
+        }
+        $st->execute([':lat' => $lat, ':lng' => $lng, ':id' => $jobId]);
+        return $st->rowCount() > 0;
+    }
+
+    /**
+     * Mark a job as completed. Sets status to completed, records completion time and location.
+     * Returns true if the row was updated.
+     */
+    public static function complete(PDO $pdo, int $jobId, ?float $lat, ?float $lng): bool
+    {
+        $st = $pdo->prepare(
+            'UPDATE jobs
+             SET status = "completed", completed_at = NOW(), location_lat = :lat, location_lng = :lng, updated_at = NOW()
+             WHERE id = :id AND status = "in_progress" AND completed_at IS NULL'
+        );
+        if ($st === false) {
+            return false;
+        }
+        $st->execute([':lat' => $lat, ':lng' => $lng, ':id' => $jobId]);
+        return $st->rowCount() > 0;
+    }
 }
