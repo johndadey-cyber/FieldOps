@@ -67,7 +67,11 @@
           try{localStorage.setItem('employeesUpdated',Date.now().toString());}catch(_){ }
           try{window.dispatchEvent(new Event('employees:updated'));}catch(_){ }
           showToast(mode === 'edit' ? 'Employee updated' : 'Employee saved');
-          setTimeout(function(){window.location.href='employees.php';},800);
+          setTimeout(function(){
+            var dest = 'employees.php';
+            if (mode === 'add' && data && data.id) { dest = 'availability_onboard.php?employee_id=' + encodeURIComponent(data.id); }
+            window.location.href = dest;
+          },800);
           return;
         }
         var errs = [];
