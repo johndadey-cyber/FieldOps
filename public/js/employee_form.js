@@ -69,7 +69,13 @@
           showToast(mode === 'edit' ? 'Employee updated' : 'Employee saved');
           setTimeout(function(){
             var dest = 'employees.php';
-            if (mode === 'add' && data && data.id) { dest = 'availability_onboard.php?employee_id=' + encodeURIComponent(data.id); }
+            if (mode === 'add' && data && data.id) {
+              var today = new Date();
+              var diff = today.getDay() === 0 ? -6 : 1 - today.getDay();
+              today.setDate(today.getDate() + diff);
+              var weekStart = today.toISOString().slice(0,10);
+              dest = 'availability_onboard.php?employee_id=' + encodeURIComponent(data.id) + '&week_start=' + weekStart;
+            }
             window.location.href = dest;
           },800);
           return;

@@ -7,7 +7,9 @@ require_once __DIR__ . '/_csrf.php';
 function s(?string $v): string { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 
 $employeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 0;
-$weekStart  = date('Y-m-d', strtotime('monday this week'));
+$weekStart  = isset($_GET['week_start']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$_GET['week_start'])
+    ? (string)$_GET['week_start']
+    : date('Y-m-d', strtotime('monday this week'));
 $__csrf     = csrf_token();
 ?>
 <!doctype html>
@@ -51,6 +53,7 @@ $__csrf     = csrf_token();
     const dayTitle = document.getElementById('dayTitle');
     const startInput = document.getElementById('startTime');
     const endInput = document.getElementById('endTime');
+    const weekInput = document.getElementById('weekStart');
     const nextBtn = document.getElementById('nextBtn');
 
     function showDay(){
@@ -77,7 +80,8 @@ $__csrf     = csrf_token();
         if(idx < days.length){
           showDay();
         } else {
-          window.location.href = 'availability_manager.php?employee_id=' + encodeURIComponent(empId);
+          const qs = 'employee_id=' + encodeURIComponent(empId) + '&week_start=' + encodeURIComponent(weekInput.value);
+          window.location.href = 'availability_manager.php?' + qs;
         }
       }).catch(()=>alert('Request failed'));
     }
