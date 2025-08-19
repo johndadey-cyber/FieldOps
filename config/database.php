@@ -1,4 +1,9 @@
 <?php
+
+/**
+ * Database connection bootstrap.
+ */
+
 declare(strict_types=1);
 
 /**
@@ -9,6 +14,7 @@ declare(strict_types=1);
  *
  * NOTE: Do NOT auto-append "_test". Set DB_NAME explicitly in local.env.php or env.
  */
+
 if (!function_exists('getPDO')) {
     function getPDO(): PDO
     {
@@ -21,8 +27,8 @@ if (!function_exists('getPDO')) {
         $cfg = [
             'DB_HOST' => '127.0.0.1',
             'DB_PORT' => '8889',
-            // Default to the integration DB when running in test env
-            'DB_NAME' => getenv('APP_ENV') === 'test' ? 'fieldops_integration' : 'fieldops_test',
+            // Default to the integration DB in tests, otherwise use the development DB
+            'DB_NAME' => getenv('APP_ENV') === 'test' ? 'fieldops_integration' : 'fieldops_development',
             'DB_USER' => 'root',
             'DB_PASS' => 'root',
             'APP_ENV' => getenv('APP_ENV') ?: 'dev',

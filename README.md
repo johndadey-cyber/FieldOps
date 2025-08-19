@@ -12,3 +12,17 @@ The employees view displays a badge describing each worker's schedule status. Th
 - **No Hours** – no availability is defined for that day.
 
 These badges mirror the `status` and `summary` computed in `Availability::statusForEmployeesOnDate`.
+
+## Development Database
+
+To keep development data separate from integration tests, create a local MySQL
+database and run the schema migrations against it:
+
+```
+mysql -u root -p -e 'CREATE DATABASE IF NOT EXISTS fieldops_development;'
+php scripts/migrate_dev_db.php
+```
+
+The application defaults to `fieldops_development` when `APP_ENV` is `dev`.
+Connection settings can be overridden in `config/local.env.php` or via
+environment variables.
