@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 require __DIR__ . '/../_cli_guard.php';
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
 require_once __DIR__ . '/../_auth.php';
 require_role('admin');
 require_once __DIR__ . '/../../config/database.php';
