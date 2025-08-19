@@ -6,10 +6,10 @@ require __DIR__ . '/../_cli_guard.php';
 require __DIR__ . '/../_auth.php';
 require __DIR__ . '/../_csrf.php';
 require __DIR__ . '/../../config/database.php';
-require __DIR__ . '/../../models/Job.php';
-require __DIR__ . '/../../models/JobNote.php';
-require __DIR__ . '/../../models/JobPhoto.php';
-require __DIR__ . '/../../models/JobCompletion.php';
+require_once __DIR__ . '/../../models/Job.php';
+require_once __DIR__ . '/../../models/JobNote.php';
+require_once __DIR__ . '/../../models/JobPhoto.php';
+require_once __DIR__ . '/../../models/JobCompletion.php';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 if ($method !== 'POST') {
