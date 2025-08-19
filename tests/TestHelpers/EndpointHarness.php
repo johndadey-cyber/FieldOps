@@ -32,7 +32,7 @@ final class EndpointHarness
             session_write_close();
         }
         $_SESSION = [];
-        session_id('t_' . bin2hex(random_bytes(3)));
+        session_id('t-' . bin2hex(random_bytes(3)));
         session_start();
 
         // Seed session vars
