@@ -22,7 +22,7 @@ if (!function_exists('getPDO')) {
             'DB_HOST' => '127.0.0.1',
             'DB_PORT' => '8889',
             // Default to the integration DB when running in test env
-            'DB_NAME' => getenv('APP_ENV') === 'test' ? 'fieldops_integration' : 'fieldops',
+            'DB_NAME' => getenv('APP_ENV') === 'fieldops_test' ? 'fieldops_integration' : 'fieldops',
             'DB_USER' => 'root',
             'DB_PASS' => 'root',
             'APP_ENV' => getenv('APP_ENV') ?: 'dev',
