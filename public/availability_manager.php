@@ -161,6 +161,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
             <a href="#" class="btn btn-outline-primary disabled" id="btnProfile" aria-label="View selected employee profile" aria-disabled="true">View Profile</a>
             <button type="button" class="btn btn-success ms-2" id="btnAdd">Add Window</button>
             <button type="button" class="btn btn-warning ms-2" id="btnAddOverride">Add Override</button>
+            <button type="button" class="btn btn-outline-warning ms-2" id="btnQuickPTO">PTO</button>
             <button type="button" class="btn btn-outline-info ms-2" id="btnExport">Export</button>
             <button type="button" class="btn btn-outline-secondary ms-2" id="btnPrint">Print</button>
 
@@ -323,11 +324,11 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
               <?php endforeach; ?>
             </select>
           </div>
-          <div class="col-6">
+          <div class="col-6 ov-time">
             <label class="form-label">Start</label>
             <input type="time" class="form-control" id="ov_start_time">
           </div>
-          <div class="col-6">
+          <div class="col-6 ov-time">
             <label class="form-label">End</label>
             <input type="time" class="form-control" id="ov_end_time">
           </div>

@@ -15,6 +15,7 @@ const resultSelect = document.getElementById('employeeResults');
 const btnProfile = document.getElementById('btnProfile');
 const btnAdd = document.getElementById('btnAdd');
 const btnAddOverride = document.getElementById('btnAddOverride');
+const btnQuickPTO = document.getElementById('btnQuickPTO');
 
 const weekStartInput = document.getElementById('weekStart');
 const weekDisplay = document.getElementById('weekDisplay');
@@ -546,6 +547,7 @@ ovForm.addEventListener('submit', async (e) => {
 
 document.getElementById('btnAdd').addEventListener('click', openAdd);
 btnAddOverride.addEventListener('click', () => openOvAdd(currentWeekStart()));
+btnQuickPTO?.addEventListener('click', () => openOvAdd(currentWeekStart(), { status: 'UNAVAILABLE', type: 'PTO', reason: 'Vacation' }));
 
 btnExport.addEventListener('click', () => {
   const eid = currentEmployeeId();

@@ -13,7 +13,18 @@ const ovStatus = document.getElementById('ov_status');
 const ovType = document.getElementById('ov_type');
 const ovReason = document.getElementById('ov_reason');
 
-export function openOvAdd(weekStart) {
+function updateOvTimeFields() {
+  const show = ovStatus.value === 'PARTIAL';
+  ovStartTime.closest('.ov-time').classList.toggle('d-none', !show);
+  ovEndTime.closest('.ov-time').classList.toggle('d-none', !show);
+  if (!show) {
+    ovStartTime.value = '';
+    ovEndTime.value = '';
+  }
+}
+ovStatus.addEventListener('change', updateOvTimeFields);
+
+export function openOvAdd(weekStart, opts = {}) {
   ovTitle.textContent = 'Add Override';
   ovId.value = '';
   ovStartDate.value = weekStart;
@@ -21,9 +32,10 @@ export function openOvAdd(weekStart) {
   Array.from(ovDays.options).forEach(o => { o.selected = false; });
   ovStartTime.value = '';
   ovEndTime.value = '';
-  ovStatus.value = 'UNAVAILABLE';
-  ovType.value = 'PTO';
-  ovReason.value = '';
+  ovStatus.value = opts.status ?? 'UNAVAILABLE';
+  ovType.value = opts.type ?? 'PTO';
+  ovReason.value = opts.reason ?? '';
+  updateOvTimeFields();
   ovModal.show();
 }
 
@@ -38,6 +50,7 @@ export function openOvEdit(ov) {
   ovStatus.value = ov.status || 'UNAVAILABLE';
   ovType.value = ov.type || 'PTO';
   ovReason.value = ov.reason || '';
+  updateOvTimeFields();
   ovModal.show();
 }
 
