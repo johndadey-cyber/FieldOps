@@ -36,9 +36,9 @@ final class AssignmentsDataTest extends TestCase
         ");
 
         $this->pdo->exec("
-            INSERT INTO employees (id, person_id)
-            VALUES (9301,9201), (9302,9202)
-            ON DUPLICATE KEY UPDATE person_id=VALUES(person_id);
+            INSERT INTO employees (id, person_id, employment_type)
+            VALUES (9301,9201,'full_time'), (9302,9202,'full_time')
+            ON DUPLICATE KEY UPDATE person_id=VALUES(person_id), employment_type=VALUES(employment_type);
         ");
     }
 
