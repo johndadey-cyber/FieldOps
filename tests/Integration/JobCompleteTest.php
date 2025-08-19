@@ -1,11 +1,18 @@
 <?php
+
 declare(strict_types=1);
 
-use PHPUnit\Framework\TestCase;
+namespace {
+    require_once __DIR__ . '/../../config/database.php';
+    require_once __DIR__ . '/../TestHelpers/EndpointHarness.php';
+    require_once __DIR__ . '/../support/TestDataFactory.php';
+}
 
-require_once __DIR__ . '/../../config/database.php';
-require_once __DIR__ . '/../TestHelpers/EndpointHarness.php';
-require_once __DIR__ . '/../support/TestDataFactory.php';
+namespace Tests\Integration;
+
+use EndpointHarness;
+use PHPUnit\Framework\TestCase;
+use TestDataFactory;
 
 final class JobCompleteTest extends TestCase
 {
@@ -31,6 +38,25 @@ final class JobCompleteTest extends TestCase
         $this->jobId  = TestDataFactory::createJob($this->pdo, $customerId, 'Test job', '2025-01-01', '09:00:00', 60, 'in_progress');
     }
 
+    protected function tearDown(): void
+    {
+        $base = __DIR__ . '/../../public/uploads';
+        foreach (['jobs', 'signatures'] as $sub) {
+            $dir = $base . '/' . $sub;
+            if (is_dir($dir)) {
+                foreach (glob($dir . '/*') ?: [] as $file) {
+                    if (is_file($file)) {
+                        unlink($file);
+                    }
+                }
+                rmdir($dir);
+            }
+        }
+        if (is_dir($base)) {
+            rmdir($base);
+        }
+    }
+
     private function sampleImage(): string
     {
         return 'data:image/png;base64,' .
@@ -42,7 +68,7 @@ final class JobCompleteTest extends TestCase
         $img = $this->sampleImage();
         $res = EndpointHarness::run(__DIR__ . '/../../public/api/job_complete.php', [
             'job_id'        => $this->jobId,
-            'technician_id'=> $this->techId,
+            'technician_id' => $this->techId,
             'location_lat' => '1',
             'location_lng' => '2',
             'final_note'   => 'All done',
@@ -57,9 +83,14 @@ final class JobCompleteTest extends TestCase
         $this->assertSame(1, $noteCount);
         $photoCount = (int)$this->pdo->query('SELECT COUNT(*) FROM job_photos WHERE job_id=' . $this->jobId)->fetchColumn();
         $this->assertSame(1, $photoCount);
+        $photoPath = $this->pdo->query('SELECT path FROM job_photos WHERE job_id=' . $this->jobId . ' LIMIT 1')->fetchColumn();
+        $this->assertIsString($photoPath);
+        $this->assertNotSame('', $photoPath);
+        $this->assertFileExists(__DIR__ . '/../../public/' . $photoPath);
         $sigPath = $this->pdo->query('SELECT signature_path FROM job_completion WHERE job_id=' . $this->jobId)->fetchColumn();
         $this->assertIsString($sigPath);
         $this->assertNotSame('', $sigPath);
+        $this->assertFileExists(__DIR__ . '/../../public/' . $sigPath);
     }
 
     public function testCompletionRequiresNoteAndPhoto(): void
@@ -68,7 +99,7 @@ final class JobCompleteTest extends TestCase
 
         $noNote = EndpointHarness::run(__DIR__ . '/../../public/api/job_complete.php', [
             'job_id'        => $this->jobId,
-            'technician_id'=> $this->techId,
+            'technician_id' => $this->techId,
             'location_lat' => '1',
             'location_lng' => '2',
             'final_note'   => '',
@@ -80,7 +111,7 @@ final class JobCompleteTest extends TestCase
 
         $noPhoto = EndpointHarness::run(__DIR__ . '/../../public/api/job_complete.php', [
             'job_id'        => $this->jobId,
-            'technician_id'=> $this->techId,
+            'technician_id' => $this->techId,
             'location_lat' => '1',
             'location_lng' => '2',
             'final_note'   => 'done',
