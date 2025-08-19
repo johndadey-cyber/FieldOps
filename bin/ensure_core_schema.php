@@ -314,6 +314,22 @@ if (!tableExists($pdo, 'job_skill')) {
     out('[OK] job_skill created');
 }
 
+// Ensure job_notes table
+if (!tableExists($pdo, 'job_notes')) {
+    out('[..] Creating table job_notes ...');
+    $pdo->exec(
+        "CREATE TABLE `job_notes` (
+            `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `job_id` INT NOT NULL,
+            `technician_id` INT NOT NULL,
+            `note` TEXT NOT NULL,
+            `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+    );
+    out('[OK] job_notes created');
+}
+
 // Drop deprecated job_jobtype table if present
 if (tableExists($pdo, 'job_jobtype')) {
     out('[..] Dropping table job_jobtype ...');
@@ -362,6 +378,9 @@ ensureFk($pdo, 'jobtype_skills', 'skill_id', 'skills', 'id', 'fk_jobtype_skills_
 
 ensureFk($pdo, 'job_skill', 'job_id', 'jobs', 'id', 'fk_job_skill_job', 'CASCADE', 'RESTRICT');
 ensureFk($pdo, 'job_skill', 'skill_id', 'skills', 'id', 'fk_job_skill_skill', 'RESTRICT', 'CASCADE');
+
+ensureFk($pdo, 'job_notes', 'job_id', 'jobs', 'id', 'fk_job_notes_job', 'CASCADE', 'RESTRICT');
+ensureFk($pdo, 'job_notes', 'technician_id', 'employees', 'id', 'fk_job_notes_technician', 'RESTRICT', 'RESTRICT');
 
 
 ensureFk($pdo, 'job_employee_assignment', 'job_id', 'jobs', 'id', 'fk_jea_job', 'CASCADE', 'RESTRICT');
