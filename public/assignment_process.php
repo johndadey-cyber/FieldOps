@@ -21,45 +21,54 @@ if (in_array($action, ['assign','unassign','list'], true) && (!isset($_SESSION['
 }
 
 /* ---- helper: update status based on current crew ---- */
-function updateJobStatus(PDO $pdo, int $jobId): string {
-  // lock row
-  $s = $pdo->prepare("SELECT status FROM jobs WHERE id=? FOR UPDATE");
-  $s->execute([$jobId]);
-  $cur = $s->fetchColumn();
-  if ($cur === false) return 'unknown';
+if (!function_exists('updateJobStatus')) {
+  function updateJobStatus(PDO $pdo, int $jobId): string {
+    // lock row
+    $s = $pdo->prepare("SELECT status FROM jobs WHERE id=? FOR UPDATE");
+    $s->execute([$jobId]);
+    $cur = $s->fetchColumn();
+    if ($cur === false) return 'unknown';
 
-  $cnt = (int)$pdo->query("SELECT COUNT(*) FROM job_employee_assignment WHERE job_id = ".(int)$jobId)->fetchColumn();
+    $cnt = (int)$pdo->query("SELECT COUNT(*) FROM job_employee_assignment WHERE job_id = ".(int)$jobId)->fetchColumn();
 
-  $locked = ['in_progress','completed','closed','cancelled'];
-  $target = $cur;
+    $locked = ['in_progress','completed','closed','cancelled'];
+    $target = $cur;
 
-  if (!in_array($cur, $locked, true)) {
-    if ($cnt > 0 && ($cur === 'draft' || $cur === 'scheduled')) $target = 'assigned';
-    elseif ($cnt === 0 && $cur === 'assigned') $target = 'scheduled';
+    if (!in_array($cur, $locked, true)) {
+      if ($cnt > 0 && ($cur === 'draft' || $cur === 'scheduled')) $target = 'assigned';
+      elseif ($cnt === 0 && $cur === 'assigned') $target = 'scheduled';
+    }
+
+    if ($target !== $cur) {
+      $u = $pdo->prepare("UPDATE jobs SET status=?, updated_at=NOW() WHERE id=?");
+      $u->execute([$target, $jobId]);
+    }
+    return $target;
   }
-
-  if ($target !== $cur) {
-    $u = $pdo->prepare("UPDATE jobs SET status=?, updated_at=NOW() WHERE id=?");
-    $u->execute([$target, $jobId]);
-  }
-  return $target;
 }
 
 try {
   switch ($action) {
     case 'assign': {
       $jobId = (int)($data['job_id'] ?? 0);
-      $eid   = (int)($data['employee_id'] ?? 0);
-
-      if ($jobId <= 0 || $eid <= 0) throw new RuntimeException('Invalid job/employee');
+      $empIds = array_map('intval', (array)($data['employee_ids'] ?? ($data['employee_id'] ?? [])));
+      $replace = !empty($data['replace']);
+      if ($jobId <= 0 || empty($empIds)) throw new RuntimeException('Invalid job/employee');
 
       $pdo->beginTransaction();
-      $ins = $pdo->prepare("INSERT IGNORE INTO job_employee_assignment (job_id, employee_id, assigned_at) VALUES (?,?,NOW())");
-      $ins->execute([$jobId, $eid]);
+      if ($replace) {
+        $pdo->prepare('DELETE FROM job_employee_assignment WHERE job_id=?')->execute([$jobId]);
+      }
+      $ins = $pdo->prepare('INSERT IGNORE INTO job_employee_assignment (job_id, employee_id, assigned_at) VALUES (?,?,NOW())');
+      $changed = 0;
+      foreach ($empIds as $eid) {
+        $ins->execute([$jobId, $eid]);
+        $changed += $ins->rowCount();
+      }
       $status = updateJobStatus($pdo, $jobId);
       $pdo->commit();
 
-      echo json_encode(['ok'=>true,'changed'=>$ins->rowCount(),'status'=>$status]);
+      echo json_encode(['ok'=>true, 'action'=>'assigned', 'changed'=>$changed, 'status'=>$status]);
       break;
     }
 
