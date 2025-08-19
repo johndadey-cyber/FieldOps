@@ -95,7 +95,7 @@ final class EmployeeDataProvider
                    COALESCE(
                        GROUP_CONCAT(
                            DISTINCT CONCAT(s.name, '|', COALESCE(es.proficiency, ''))
-                           ORDER BY s.name SEPARATOR ','
+                           ORDER BY s.name
                        ),
                        ''
                    ) AS skills,
