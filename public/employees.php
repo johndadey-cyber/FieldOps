@@ -108,6 +108,7 @@ $searchQuery = $search !== null && $search !== '' ? '&search=' . urlencode($sear
   <div class="d-flex align-items-center mb-3">
     <h1 class="h4 m-0 me-2">Employees</h1>
     <a href="add_employee.php" class="btn btn-sm btn-primary ms-auto">Add New</a>
+    <a href="/admin/skill_list.php" class="btn btn-sm btn-secondary ms-2">Skills</a>
   </div>
   <div class="mb-3">
     <select id="skill-filter" class="form-select" multiple>
