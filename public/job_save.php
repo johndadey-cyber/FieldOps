@@ -54,6 +54,7 @@ $statusIn        = trim((string)($_POST['status'] ?? ''));
 $skillIds        = isset($_POST['skills']) && is_array($_POST['skills'])
     ? array_values(array_filter(array_map('intval', $_POST['skills']), static fn($v) => $v > 0))
     : [];
+$jobTypeId      = isset($_POST['job_type_id']) ? (int)$_POST['job_type_id'] : 0;
 
 // Normalize status to canonical ENUM values (lowercase)
 $map = [
@@ -98,6 +99,7 @@ if ($errors) {
 }
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../models/JobChecklistItem.php';
 
 try {
   $pdo = getPDO();
@@ -140,6 +142,10 @@ try {
       foreach ($skillIds as $sid) {
           $ins->execute([':jid' => $jobId, ':sid' => $sid]);
       }
+  }
+
+  if ($id <= 0 && $jobTypeId > 0) {
+      JobChecklistItem::seedDefaults($pdo, $jobId, $jobTypeId);
   }
 
   $pdo->commit();
