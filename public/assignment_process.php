@@ -51,9 +51,22 @@ try {
   switch ($action) {
     case 'assign': {
       $jobId = (int)($data['job_id'] ?? 0);
-      $empIds = array_map('intval', (array)($data['employee_ids'] ?? ($data['employee_id'] ?? [])));
+
+      $empIds = [];
+      if (isset($data['employee_ids']) && is_array($data['employee_ids'])) {
+        $empIds = array_map('intval', $data['employee_ids']);
+      } elseif (isset($data['employee_id'])) {
+        $empIds = [(int)$data['employee_id']];
+      }
+
       $replace = !empty($data['replace']);
-      if ($jobId <= 0 || empty($empIds)) throw new RuntimeException('Invalid job/employee');
+
+      error_log('assign data: ' . var_export($data, true));
+      error_log('assign empIds: ' . var_export($empIds, true));
+
+      if ($jobId <= 0 || count($empIds) === 0) {
+        throw new RuntimeException('Invalid job/employee');
+      }
 
       $check = $pdo->prepare('SELECT 1 FROM jobs WHERE id = ?');
       $check->execute([$jobId]);
@@ -71,6 +84,13 @@ try {
         $ins->execute([$jobId, $eid]);
         $changed += $ins->rowCount();
       }
+
+      error_log('assign changed: ' . $changed);
+
+      if ($changed <= 0) {
+        throw new RuntimeException('No employees assigned');
+      }
+
       $status = updateJobStatus($pdo, $jobId);
       $pdo->commit();
 
