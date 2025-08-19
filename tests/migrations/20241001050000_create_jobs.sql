@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS jobs (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    customer_id INT NOT NULL,
+    customer_id INT UNSIGNED NOT NULL,
     description TEXT NOT NULL,
     status VARCHAR(50) NOT NULL,
     scheduled_date DATE NOT NULL,

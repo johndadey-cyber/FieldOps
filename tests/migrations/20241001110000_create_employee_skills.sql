@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS employee_skills (
-    employee_id INT NOT NULL,
-    skill_id INT NOT NULL,
+    employee_id INT UNSIGNED NOT NULL,
+    skill_id INT UNSIGNED NOT NULL,
     proficiency VARCHAR(20) NULL,
     CONSTRAINT fk_es_employee FOREIGN KEY (employee_id) REFERENCES employees(id)
         ON DELETE RESTRICT ON UPDATE CASCADE,

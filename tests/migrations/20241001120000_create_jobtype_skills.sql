@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS jobtype_skills (
-    job_type_id INT NOT NULL,
-    skill_id INT NOT NULL,
+    job_type_id INT UNSIGNED NOT NULL,
+    skill_id INT UNSIGNED NOT NULL,
     CONSTRAINT fk_jobtype_skills_jobtype FOREIGN KEY (job_type_id) REFERENCES job_types(id)
         ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT fk_jobtype_skills_skill FOREIGN KEY (skill_id) REFERENCES skills(id)

@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS employee_availability_overrides (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
+    employee_id INT UNSIGNED NOT NULL,
     date DATE NOT NULL,
     status VARCHAR(20) NOT NULL,
     type VARCHAR(20) NOT NULL DEFAULT 'CUSTOM',
