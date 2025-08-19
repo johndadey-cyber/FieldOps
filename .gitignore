@@ -1,2 +1,8 @@
 # Local API keys
 config/api_keys.php
+
+# Uploaded files
+public/uploads/
+
+# PHPUnit cache
+.phpunit.cache/
