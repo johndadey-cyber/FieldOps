@@ -299,7 +299,7 @@ function openAdd() {
   clearBlocks();
   addBlock('09:00', '17:00');
   winRecurring.checked = true;
-  winStartDate.value = '';
+  winStartDate.value = currentWeekStart();
   winEndDate.value = '';
   toggleRecurring();
   winModal.show();
@@ -319,7 +319,8 @@ function openEditDay(day) {
     addBlock('09:00', '17:00');
   }
   winRecurring.checked = true;
-  winStartDate.value = '';
+  let sd = arr[0] && arr[0].start_date ? arr[0].start_date : currentWeekStart();
+  winStartDate.value = sd;
   winEndDate.value = '';
   toggleRecurring();
   winModal.show();
@@ -388,15 +389,16 @@ winForm.addEventListener('submit', async (e) => {
   for (let i=0;i<blocks.length-1;i++) {
     if (blocks[i].end_time > blocks[i+1].start_time) { showAlert('warning','Blocks overlap or out of order.'); return; }
   }
+  if (!winStartDate.value) { showAlert('warning', 'Start date required.'); return; }
 
   const payload = {
     csrf_token: CSRF,
     employee_id: eid,
     day_of_week: days,
-    blocks
+    blocks,
+    start_date: winStartDate.value
   };
   if (!winRecurring.checked) {
-    if (winStartDate.value) payload.start_date = winStartDate.value;
     if (winEndDate.value) payload.end_date = winEndDate.value;
   }
   if (winReplaceIds.value) {

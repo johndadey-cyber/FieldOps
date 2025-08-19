@@ -43,7 +43,21 @@ try {
         return $isInt;
     }
 
-    $st = $pdo->prepare("SELECT id, day_of_week, DATE_FORMAT(start_time,'%H:%i') AS start_time, DATE_FORMAT(end_time,'%H:%i') AS end_time FROM employee_availability WHERE employee_id = :eid ORDER BY day_of_week, start_time");
+    function has_start_date(PDO $pdo): bool {
+        static $has = null;
+        if ($has !== null) return $has;
+        try {
+            $row = $pdo->query("SHOW COLUMNS FROM employee_availability LIKE 'start_date'")
+                ->fetch(PDO::FETCH_ASSOC);
+            $has = $row !== false;
+        } catch (Throwable $e) {
+            $has = false;
+        }
+        return $has;
+    }
+
+    $sdSel = has_start_date($pdo) ? ", DATE_FORMAT(start_date,'%Y-%m-%d') AS start_date" : "";
+    $st = $pdo->prepare("SELECT id, day_of_week, DATE_FORMAT(start_time,'%H:%i') AS start_time, DATE_FORMAT(end_time,'%H:%i') AS end_time{$sdSel} FROM employee_availability WHERE employee_id = :eid ORDER BY day_of_week, start_time");
     $st->execute([':eid' => $eid]);
     $avail = $st->fetchAll(PDO::FETCH_ASSOC);
 

@@ -273,9 +273,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
               <label class="form-check-label" for="win_recurring">Recurring?</label>
             </div>
           </div>
-          <div class="col-6 date-range d-none">
-            <label class="form-label">Start Date</label>
-            <input type="date" class="form-control" id="win_start_date">
+          <div class="col-6">
+            <label class="form-label">Effective from</label>
+            <input type="date" class="form-control" id="win_start_date" required>
           </div>
           <div class="col-6 date-range d-none">
             <label class="form-label">End Date</label>
