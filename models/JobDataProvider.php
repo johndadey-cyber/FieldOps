@@ -47,8 +47,9 @@ class JobDataProvider
         $params = [];
 
         if ($days !== null) {
-            $where[] = 'j.scheduled_date <= DATE_ADD(CURDATE(), INTERVAL :days DAY)';
-            $params[':days'] = $days;
+            $futureDate = (new DateTimeImmutable())->modify("+{$days} days")->format('Y-m-d');
+            $where[] = 'j.scheduled_date <= :future_date';
+            $params[':future_date'] = $futureDate;
         }
         if ($status !== null && $status !== '') {
             $where[] = 'j.status = :status';
