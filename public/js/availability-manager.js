@@ -14,6 +14,7 @@ const btnEmpSearch = document.getElementById('btnEmpSearch');
 const resultSelect = document.getElementById('employeeResults');
 const btnProfile = document.getElementById('btnProfile');
 const btnAdd = document.getElementById('btnAdd');
+const btnAddShift = document.getElementById('btnAddShift');
 const btnAddOverride = document.getElementById('btnAddOverride');
 const btnQuickPTO = document.getElementById('btnQuickPTO');
 
@@ -55,6 +56,14 @@ const winStartDateGroup = document.getElementById('winStartDateGroup');
 const winOrigStartDate = document.getElementById('win_orig_start_date');
 
 const ovForm = document.getElementById('ovForm');
+
+const shiftModalEl = document.getElementById('shiftModal');
+const shiftModal = new bootstrap.Modal(shiftModalEl);
+const shiftForm = document.getElementById('shiftForm');
+const shiftDate = document.getElementById('shift_date');
+const shiftStart = document.getElementById('shift_start');
+const shiftEnd = document.getElementById('shift_end');
+const shiftReason = document.getElementById('shift_reason');
 
 const copyModalEl = document.getElementById('copyModal');
 const copyModal = new bootstrap.Modal(copyModalEl);
@@ -316,6 +325,14 @@ function openAdd() {
   winModal.show();
 }
 
+function openShift() {
+  shiftDate.value = currentWeekStart();
+  shiftStart.value = '';
+  shiftEnd.value = '';
+  shiftReason.value = '';
+  shiftModal.show();
+}
+
 function openEditDay(day, startDate = '') {
   winTitle.textContent = 'Edit Window';
   winId.value = '';
@@ -555,7 +572,35 @@ ovForm.addEventListener('submit', async (e) => {
   }
 });
 
+shiftForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const eid = currentEmployeeId();
+  if (!eid) { showAlert('warning', 'Select an employee first.'); return; }
+  const date = shiftDate.value;
+  const start = shiftStart.value;
+  const end = shiftEnd.value;
+  if (!date || !start || !end) { showAlert('warning', 'Date, start, and end required.'); return; }
+  const payload = { csrf_token: CSRF, employee_id: eid, date, start_time: start, end_time: end };
+  const reason = shiftReason.value.trim();
+  if (reason) payload.reason = reason;
+  const res = await fetch('availability_add_shift.php', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (data && data.ok) {
+    showAlert('success', 'Saved.');
+    shiftModal.hide();
+    await loadAvailability();
+  } else {
+    showAlert('danger', 'Save failed');
+  }
+});
+
 document.getElementById('btnAdd').addEventListener('click', openAdd);
+btnAddShift?.addEventListener('click', openShift);
 btnAddOverride.addEventListener('click', () => openOvAdd(currentWeekStart()));
 btnQuickPTO?.addEventListener('click', () => openOvAdd(currentWeekStart(), { status: 'UNAVAILABLE', type: 'PTO', reason: 'Vacation' }));
 
