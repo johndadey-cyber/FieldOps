@@ -38,6 +38,9 @@ function dow_is_int(PDO $pdo): bool {
 }
 
 $__csrf = csrf_token();
+$weekStart = isset($_GET['week_start']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$_GET['week_start'])
+    ? (string)$_GET['week_start']
+    : date('Y-m-d', strtotime('monday this week'));
 
 // JSON list endpoint for AJAX reloads
 if (($_GET['action'] ?? '') === 'list') {
@@ -133,7 +136,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         <div id="weekDisplay" class="text-muted small"></div>
       </div>
       <a href="availability_form.php" class="btn btn-outline-secondary btn-sm">Classic Form</a>
-      <a href="availability_onboard.php?employee_id=<?= $selectedEmployeeId ?: '' ?>" class="btn btn-outline-primary btn-sm ms-2">Setup Wizard</a>
+      <a href="availability_onboard.php?employee_id=<?= $selectedEmployeeId ?: '' ?>&week_start=<?= s($weekStart) ?>" class="btn btn-outline-primary btn-sm ms-2">Setup Wizard</a>
     </div>
 
     <div id="alertBox" class="alert d-none" role="alert"></div>
@@ -152,7 +155,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           </div>
           <div class="col-sm-5 col-md-4 col-lg-3">
             <label class="form-label">Week of</label>
-            <input type="date" id="weekStart" class="form-control">
+            <input type="date" id="weekStart" class="form-control" value="<?= s($weekStart) ?>">
           </div>
           <div class="col-auto">
             <a href="#" class="btn btn-outline-primary disabled" id="btnProfile" aria-label="View selected employee profile" aria-disabled="true">View Profile</a>
