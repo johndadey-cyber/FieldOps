@@ -39,7 +39,7 @@ $sql = [
     "CREATE TABLE IF NOT EXISTS employees (
         id INT AUTO_INCREMENT PRIMARY KEY,
         person_id INT NOT NULL,
-        employment_type VARCHAR(50) NOT NULL,
+        employment_type VARCHAR(50) NOT NULL DEFAULT 'full_time',
         hire_date DATE NOT NULL,
         status VARCHAR(20) NOT NULL,
         is_active TINYINT(1) NOT NULL DEFAULT 1
