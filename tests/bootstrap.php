@@ -50,6 +50,22 @@ if (file_exists($autoload)) {
     require $autoload;
 }
 
+// Ensure the integration test database schema is up to date.
+$migrateScript = __DIR__ . '/../scripts/migrate_test_db.php';
+$testPdo       = __DIR__ . '/support/TestPdo.php';
+if (file_exists($migrateScript) && file_exists($testPdo)) {
+    require_once $testPdo;
+    require_once $migrateScript;
+    try {
+        // Suppress any output from migrations; top-level buffer handles echoes.
+        $pdo = createTestPdo();
+        migrateTestDb($pdo);
+    } catch (Throwable $e) {
+        // Log to STDERR so failures don't pollute STDOUT.
+        error_log('[TEST BOOTSTRAP] Migration failed: ' . $e->getMessage());
+    }
+}
+
 // If your tests rely on a test env file, load it here
 $localEnv = __DIR__ . '/../config/local.env.php';
 if (file_exists($localEnv)) {
