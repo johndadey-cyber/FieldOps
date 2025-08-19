@@ -58,6 +58,19 @@ function dow_is_int(PDO $pdo): bool {
     return $isInt;
 }
 
+function has_start_date(PDO $pdo): bool {
+    static $has = null;
+    if ($has !== null) return $has;
+    try {
+        $row = $pdo->query("SHOW COLUMNS FROM employee_availability LIKE 'start_date'")
+            ->fetch(PDO::FETCH_ASSOC);
+        $has = $row !== false;
+    } catch (Throwable $e) {
+        $has = false;
+    }
+    return $has;
+}
+
 /**
  * @param list<string> $days
  * @return list<string>
@@ -124,6 +137,7 @@ if (!empty($data['replace_ids']) && is_array($data['replace_ids'])) {
     }
 }
 $id   = isset($data['id']) ? (int)$data['id'] : 0; // backward compat
+$startDate = (string)($data['start_date'] ?? '');
 
 $validDays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday','0','1','2','3','4','5','6'];
 $err = [];
@@ -144,6 +158,7 @@ for ($i=0; $i<count($blocks); $i++) {
     if ($s >= $e) { $err[] = 'range'; break; }
     if ($i > 0 && $blocks[$i-1]['end'] > $s) { $err[] = 'overlap'; break; }
 }
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate)) $err[] = 'start_date';
 
 if ($err) {
     http_response_code(422);
@@ -172,10 +187,17 @@ try {
         }
     }
     $ids = [];
-    $stIns = $pdo->prepare("INSERT INTO employee_availability (employee_id, day_of_week, start_time, end_time) VALUES (:eid,:dow,:st,:et)");
+    $hasStart = has_start_date($pdo);
+    if ($hasStart) {
+        $stIns = $pdo->prepare("INSERT INTO employee_availability (employee_id, day_of_week, start_time, end_time, start_date) VALUES (:eid,:dow,:st,:et,:sd)");
+    } else {
+        $stIns = $pdo->prepare("INSERT INTO employee_availability (employee_id, day_of_week, start_time, end_time) VALUES (:eid,:dow,:st,:et)");
+    }
     foreach ($days as $d) {
         foreach ($blocksUtc as $b) {
-            $stIns->execute([':eid'=>$eid,':dow'=>$d,':st'=>$b['start'],':et'=>$b['end']]);
+            $params = [':eid'=>$eid,':dow'=>$d,':st'=>$b['start'],':et'=>$b['end']];
+            if ($hasStart) { $params[':sd'] = $startDate; }
+            $stIns->execute($params);
             $ids[] = (int)$pdo->lastInsertId();
         }
     }
@@ -190,7 +212,7 @@ try {
 
 try {
     $uid = $_SESSION['user']['id'] ?? null;
-    $det = json_encode(['ids'=>$ids,'days'=>$days,'blocks'=>$blocks], JSON_UNESCAPED_UNICODE);
+    $det = json_encode(['ids'=>$ids,'days'=>$days,'blocks'=>$blocks,'start_date'=>$startDate], JSON_UNESCAPED_UNICODE);
     $pdo->prepare('INSERT INTO availability_audit (employee_id, user_id, action, details) VALUES (:eid,:uid,:act,:det)')
         ->execute([':eid'=>$eid, ':uid'=>$uid, ':act'=>'create', ':det'=>$det]);
 } catch (Throwable $e) {
