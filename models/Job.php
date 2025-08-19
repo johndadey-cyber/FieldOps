@@ -51,7 +51,9 @@ final class Job
      */
     public static function delete(PDO $pdo, int $jobId): int
     {
-        $st = $pdo->prepare("DELETE FROM jobs WHERE id = :id LIMIT 1");
+        $driver = (string)$pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        $limitClause = in_array($driver, ['mysql', 'mariadb'], true) ? ' LIMIT 1' : '';
+        $st = $pdo->prepare('DELETE FROM jobs WHERE id = :id' . $limitClause);
         if ($st === false) {
             return 0;
         }
