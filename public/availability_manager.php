@@ -160,6 +160,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
           <div class="col-auto">
             <a href="#" class="btn btn-outline-primary disabled" id="btnProfile" aria-label="View selected employee profile" aria-disabled="true">View Profile</a>
             <button type="button" class="btn btn-success ms-2" id="btnAdd">Add Window</button>
+            <button type="button" class="btn btn-primary ms-2" id="btnAddShift">Add Shift</button>
             <button type="button" class="btn btn-warning ms-2" id="btnAddOverride">Add Override</button>
             <button type="button" class="btn btn-outline-warning ms-2" id="btnQuickPTO">PTO</button>
             <button type="button" class="btn btn-outline-info ms-2" id="btnExport">Export</button>
@@ -359,6 +360,39 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
           <button type="submit" class="btn btn-primary" id="ovSubmit">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal fade" id="shiftModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content" id="shiftForm">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Shift</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body row g-3">
+          <div class="col-12">
+            <label class="form-label">Date</label>
+            <input type="date" class="form-control" id="shift_date" required>
+          </div>
+          <div class="col-6">
+            <label class="form-label">Start</label>
+            <input type="time" class="form-control" id="shift_start" required>
+          </div>
+          <div class="col-6">
+            <label class="form-label">End</label>
+            <input type="time" class="form-control" id="shift_end" required>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Reason</label>
+            <input type="text" class="form-control" id="shift_reason">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
         </div>
       </form>
     </div>
