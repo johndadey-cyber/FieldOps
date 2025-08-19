@@ -52,8 +52,14 @@ $destPath     = $uploadDir . $filename;
 $relativePath = 'uploads/jobs/' . $filename;
 
 if (!move_uploaded_file((string)$file['tmp_name'], $destPath)) {
-    JsonResponse::json(['ok' => false, 'error' => 'Upload failed', 'code' => \ErrorCodes::SERVER_ERROR], 500);
-    return;
+    if (PHP_SAPI === 'cli' && !empty($GLOBALS['__FIELDOPS_TEST_CALL__']) &&
+        @rename((string)$file['tmp_name'], $destPath)
+    ) {
+        // allow tests to bypass move_uploaded_file restrictions
+    } else {
+        JsonResponse::json(['ok' => false, 'error' => 'Upload failed', 'code' => \ErrorCodes::SERVER_ERROR], 500);
+        return;
+    }
 }
 
 try {
