@@ -12,7 +12,7 @@ final class JobNote
     public static function listForJob(PDO $pdo, int $jobId): array
     {
         $st = $pdo->prepare(
-            'SELECT id, job_id, technician_id, note, created_at
+            'SELECT id, job_id, technician_id, note, is_final, created_at
              FROM job_notes
              WHERE job_id = :jid
              ORDER BY created_at DESC, id DESC'
@@ -29,6 +29,7 @@ final class JobNote
                 'job_id' => (int)$r['job_id'],
                 'technician_id' => (int)$r['technician_id'],
                 'note' => (string)$r['note'],
+                'is_final' => (bool)$r['is_final'],
                 'created_at' => (string)$r['created_at'],
             ],
             $rows
@@ -38,12 +39,12 @@ final class JobNote
     /**
      * Add a new note for a job. Returns inserted id.
      */
-    public static function add(PDO $pdo, int $jobId, int $technicianId, string $note): int
+    public static function add(PDO $pdo, int $jobId, int $technicianId, string $note, bool $final = false): int
     {
         $st = $pdo->prepare(
-            'INSERT INTO job_notes (job_id, technician_id, note) VALUES (:jid, :tid, :n)'
+            'INSERT INTO job_notes (job_id, technician_id, note, is_final) VALUES (:jid, :tid, :n, :f)'
         );
-        $st->execute([':jid' => $jobId, ':tid' => $technicianId, ':n' => $note]);
+        $st->execute([':jid' => $jobId, ':tid' => $technicianId, ':n' => $note, ':f' => $final ? 1 : 0]);
         return (int)$pdo->lastInsertId();
     }
 

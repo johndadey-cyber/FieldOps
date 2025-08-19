@@ -6,6 +6,9 @@ require __DIR__ . '/../_auth.php';
 require __DIR__ . '/../_csrf.php';
 require __DIR__ . '/../../config/database.php';
 require __DIR__ . '/../../models/Job.php';
+require __DIR__ . '/../../models/JobNote.php';
+require __DIR__ . '/../../models/JobPhoto.php';
+require __DIR__ . '/../../models/JobCompletion.php';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 if ($method !== 'POST') {
@@ -26,24 +29,82 @@ if (current_role() === 'guest') {
     return;
 }
 
-$jobId = isset($data['job_id']) ? (int)$data['job_id'] : 0;
-$lat   = isset($data['location_lat']) ? (float)$data['location_lat'] : (isset($data['lat']) ? (float)$data['lat'] : null);
-$lng   = isset($data['location_lng']) ? (float)$data['location_lng'] : (isset($data['lng']) ? (float)$data['lng'] : null);
+$jobId        = isset($data['job_id']) ? (int)$data['job_id'] : 0;
+$technicianId = isset($data['technician_id']) ? (int)$data['technician_id'] : 0;
+$lat          = isset($data['location_lat']) ? (float)$data['location_lat'] : (isset($data['lat']) ? (float)$data['lat'] : null);
+$lng          = isset($data['location_lng']) ? (float)$data['location_lng'] : (isset($data['lng']) ? (float)$data['lng'] : null);
+$finalNote    = trim((string)($data['final_note'] ?? ''));
+$photos       = $data['final_photos'] ?? [];
+$signature    = (string)($data['signature'] ?? '');
 
-if ($jobId <= 0 || $lat === null || $lng === null) {
+if ($jobId <= 0 || $technicianId <= 0 || $lat === null || $lng === null || $finalNote === '' || !is_array($photos) || count($photos) === 0 || $signature === '') {
     JsonResponse::json(['ok' => false, 'error' => 'Missing parameters', 'code' => \ErrorCodes::VALIDATION_ERROR], 422);
     return;
 }
 
 try {
     $pdo = getPDO();
-    $ok  = Job::complete($pdo, $jobId, $lat, $lng);
+    $pdo->beginTransaction();
+
+    JobNote::add($pdo, $jobId, $technicianId, $finalNote, true);
+
+    $uploadDir = __DIR__ . '/../uploads/jobs/';
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0777, true);
+    }
+    foreach ($photos as $p) {
+        if (!is_string($p) || $p === '') {
+            throw new RuntimeException('Invalid photo');
+        }
+        $ext = 'png';
+        if (preg_match('/^data:image\/(\w+);base64,/', $p, $m)) {
+            $p   = substr($p, strpos($p, ',') + 1);
+            $ext = strtolower($m[1]);
+            if ($ext === 'jpeg') { $ext = 'jpg'; }
+        }
+        $img = base64_decode($p, true);
+        if ($img === false) {
+            throw new RuntimeException('Invalid photo');
+        }
+        $filename     = 'job_' . $jobId . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+        $destPath     = $uploadDir . $filename;
+        $relativePath = 'uploads/jobs/' . $filename;
+        file_put_contents($destPath, $img);
+        JobPhoto::add($pdo, $jobId, $technicianId, $relativePath, 'final');
+    }
+
+    $sigDir = __DIR__ . '/../uploads/signatures/';
+    if (!is_dir($sigDir)) {
+        mkdir($sigDir, 0777, true);
+    }
+    $sigExt = 'png';
+    if (preg_match('/^data:image\/(\w+);base64,/', $signature, $sm)) {
+        $signature = substr($signature, strpos($signature, ',') + 1);
+        $sigExt    = strtolower($sm[1]);
+        if ($sigExt === 'jpeg') { $sigExt = 'jpg'; }
+    }
+    $sigBin = base64_decode($signature, true);
+    if ($sigBin === false) {
+        throw new RuntimeException('Invalid signature');
+    }
+    $sigFile     = 'job_' . $jobId . '_signature_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $sigExt;
+    $sigDest     = $sigDir . $sigFile;
+    $sigRelPath  = 'uploads/signatures/' . $sigFile;
+    file_put_contents($sigDest, $sigBin);
+    JobCompletion::save($pdo, $jobId, $sigRelPath);
+
+    $ok = Job::complete($pdo, $jobId, $lat, $lng);
     if ($ok) {
+        $pdo->commit();
         JsonResponse::json(['ok' => true, 'status' => 'completed']);
     } else {
+        $pdo->rollBack();
         JsonResponse::json(['ok' => false, 'error' => 'Invalid status', 'code' => \ErrorCodes::VALIDATION_ERROR], 422);
     }
 } catch (Throwable $e) {
+    if (isset($pdo) && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     JsonResponse::json(['ok' => false, 'error' => 'Server error', 'code' => \ErrorCodes::SERVER_ERROR], 500);
 }
 
