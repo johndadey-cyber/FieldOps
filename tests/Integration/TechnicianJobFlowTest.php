@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 
+require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../TestHelpers/EndpointHarness.php';
 require_once __DIR__ . '/../support/TestDataFactory.php';
 
@@ -15,7 +16,6 @@ final class TechnicianJobFlowTest extends TestCase
 
     protected function setUp(): void
     {
-        require_once __DIR__ . '/../../config/database.php';
         $this->pdo = getPDO();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
