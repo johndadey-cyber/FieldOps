@@ -39,6 +39,7 @@ require_once __DIR__ . '/nav.php';
           <td><?= htmlspecialchars((string)$t['name'], ENT_QUOTES, 'UTF-8') ?></td>
           <td class="text-end">
             <a href="/admin/job_type_form.php?id=<?= (int)$t['id'] ?>" class="btn btn-sm btn-outline-secondary">Edit</a>
+            <a href="/admin/job_type_skill_map.php?job_type_id=<?= (int)$t['id'] ?>" class="btn btn-sm btn-outline-primary">Skills</a>
             <form method="post" action="/admin/job_type_save.php" class="d-inline" onsubmit="return confirm('Delete this job type?');">
               <input type="hidden" name="id" value="<?= (int)$t['id'] ?>">
               <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($__csrf, ENT_QUOTES, 'UTF-8') ?>">
