@@ -61,8 +61,8 @@ try {
 
       $replace = !empty($data['replace']);
 
-      error_log('assign data: ' . var_export($data, true));
-      error_log('assign empIds: ' . var_export($empIds, true));
+      // error_log('assign data: ' . var_export($data, true));
+      // error_log('assign empIds: ' . var_export($empIds, true));
 
       if ($jobId <= 0 || count($empIds) === 0) {
         throw new RuntimeException('Invalid job/employee');
@@ -85,7 +85,7 @@ try {
         $changed += $ins->rowCount();
       }
 
-      error_log('assign changed: ' . $changed);
+      // error_log('assign changed: ' . $changed);
 
       if ($changed <= 0) {
         throw new RuntimeException('No employees assigned');
