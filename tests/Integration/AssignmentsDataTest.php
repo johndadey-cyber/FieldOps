@@ -36,9 +36,17 @@ final class AssignmentsDataTest extends TestCase
         ");
 
         $this->pdo->exec("
-            INSERT INTO employees (id, person_id, employment_type)
-            VALUES (9301,9201,'full_time'), (9302,9202,'full_time')
-            ON DUPLICATE KEY UPDATE person_id=VALUES(person_id), employment_type=VALUES(employment_type);
+            INSERT INTO employees (id, person_id, employment_type, hire_date, status, is_active, created_at, updated_at)
+            VALUES
+                (9301, 9201, 'full_time', CURRENT_DATE, 'active', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+                (9302, 9202, 'full_time', CURRENT_DATE, 'active', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON DUPLICATE KEY UPDATE
+                person_id=VALUES(person_id),
+                employment_type=VALUES(employment_type),
+                hire_date=VALUES(hire_date),
+                status=VALUES(status),
+                is_active=VALUES(is_active),
+                updated_at=VALUES(updated_at);
         ");
     }
 
