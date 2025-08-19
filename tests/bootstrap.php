@@ -8,6 +8,13 @@ declare(strict_types=1);
  * - You can enable trace with FIELDOPS_TRACE=1 to see suppressed call stacks in error_log.
  */
 
+// Ensure session files are written to a writable location
+$sessionPath = sys_get_temp_dir() . '/fieldops_sessions';
+if (!is_dir($sessionPath)) {
+    mkdir($sessionPath, 0777, true);
+}
+ini_set('session.save_path', $sessionPath);
+
 if (getenv('APP_ENV') === false) {
     // Ensure config/database.php sees APP_ENV=test
     putenv('APP_ENV=test');
