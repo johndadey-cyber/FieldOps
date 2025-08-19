@@ -10,7 +10,6 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/EmployeeDataProvider.php';
 require_once __DIR__ . '/../models/Skill.php';
 require_once __DIR__ . '/../models/Availability.php';
-require_once __DIR__ . '/../models/EmployeeScheduleStatusProvider.php';
 
 /** HTML escape */
 function s(?string $v): string {
@@ -77,12 +76,13 @@ $skills = array_values(array_filter(array_map('strval', (array)($_GET['skills'] 
 $data = EmployeeDataProvider::getFiltered($pdo, $skills, $page, $perPage, $sort, $direction, $search);
 $rows = $data['rows'];
 $ids = array_map(static fn(array $r): int => (int)$r['employee_id'], $rows);
-$summaries = Availability::summaryForEmployeesOnDate($pdo, $ids, date('Y-m-d'));
-$scheduleStatuses = EmployeeScheduleStatusProvider::forDate($pdo, $ids, date('Y-m-d'));
+$todayStatus = Availability::statusForEmployeesOnDate($pdo, $ids, date('Y-m-d'));
+// Status now derives from availability plus jobs
 foreach ($rows as &$r) {
     $eid = (int)$r['employee_id'];
-    $r['availability'] = $summaries[$eid] ?? 'Off';
-    $r['schedule_status'] = $scheduleStatuses[$eid] ?? 'No Hours';
+    $info = $todayStatus[$eid] ?? ['summary' => 'Off', 'status' => 'No Hours'];
+    $r['availability'] = $info['summary'];
+    $r['schedule_status'] = $info['status'];
 }
 unset($r);
 $total = $data['total'];
@@ -230,6 +230,7 @@ $searchQuery = $search !== null && $search !== '' ? '&search=' . urlencode($sear
 </div>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/toast.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 $(function(){
@@ -264,7 +265,10 @@ $(function(){
     const ids=$('.emp-check:checked').map((_,el)=>el.value).get();
     if(!action||ids.length===0){return;}
     $.post('employee_bulk_update.php',{action:action,ids:ids,csrf_token:'<?= $CSRF ?>'},function(res){
-      if(res.ok){location.reload();}else{alert(res.error||'Error');}
+      if(res.ok){location.reload();}else{
+        const msg=res.error||'Error';
+        if(window.FieldOpsToast){FieldOpsToast.show(msg,'danger');}else{alert(msg);}
+      }
     },'json');
   });
 

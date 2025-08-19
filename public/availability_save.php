@@ -120,8 +120,10 @@ try {
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
     if ($method !== 'POST') { json_out(['ok'=>false,'error'=>'Method not allowed'], 405); }
 
-    $token = (string)($_POST['csrf_token'] ?? '');
-    if (!csrf_verify($token)) { json_out(['ok'=>false,'error'=>'Invalid CSRF token'], 422); }
+    $raw   = file_get_contents('php://input');
+    $data  = array_merge($_GET, $_POST);
+    $token = (string)($data['csrf_token'] ?? '');
+    if (!csrf_verify($token)) { csrf_log_failure_payload($raw, $data); json_out(['ok'=>false,'error'=>'Invalid CSRF token'], 422); }
 
     $employeeId = isset($_POST['employee_id']) ? (int)$_POST['employee_id'] : 0;
     $dayInput   = $_POST['day_of_week'] ?? [];
@@ -154,11 +156,13 @@ try {
         $ins->execute([':eid'=>$employeeId, ':dow'=>$d, ':st'=>$start, ':et'=>$end]);
     }
     $newId = (int)$pdo->lastInsertId();
+    $isInitial = isset($_POST['initial_setup']) && ((string)$_POST['initial_setup'] === '1' || strtolower((string)$_POST['initial_setup']) === 'true');
     try {
         $uid = $_SESSION['user']['id'] ?? null;
         $det = json_encode(['id'=>$newId,'days'=>$days,'start'=>$start,'end'=>$end], JSON_UNESCAPED_UNICODE);
+        $action = $isInitial ? 'initial_create' : 'create';
         $pdo->prepare('INSERT INTO availability_audit (employee_id, user_id, action, details) VALUES (:eid,:uid,:act,:det)')
-            ->execute([':eid'=>$employeeId, ':uid'=>$uid, ':act'=>'create', ':det'=>$det]);
+            ->execute([':eid'=>$employeeId, ':uid'=>$uid, ':act'=>$action, ':det'=>$det]);
     } catch (Throwable $e) {
         // ignore audit errors
     }

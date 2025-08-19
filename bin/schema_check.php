@@ -126,13 +126,14 @@ $required = [
   'people' => ['id','first_name','last_name'],
   'employees' => ['id','person_id','is_active'],
   'customers' => ['id','first_name','last_name','company','notes'],
-  'jobs' => ['id','customer_id','description','status','scheduled_date','scheduled_time','duration_minutes'],
+  'jobs' => ['id','customer_id','description','status','scheduled_date','scheduled_time','duration_minutes','started_at','completed_at','location_lat','location_lng'],
   'job_types' => ['id','name'],
   'skills' => ['id','name','description'],
   'employee_skills' => ['employee_id','skill_id','proficiency'],
   'jobtype_skills' => ['job_type_id','skill_id'],
   'employee_availability' => ['id','employee_id','day_of_week','start_time','end_time'],
   'job_employee_assignment' => ['id','job_id','employee_id','assigned_at'],
+  'job_checklist_items' => ['id','job_id','description','is_completed','completed_at'],
 ];
 
 foreach ($required as $t => $colsNeed) {
@@ -144,7 +145,7 @@ foreach ($required as $t => $colsNeed) {
 }
 
 // AUTO_INCREMENT PKs
-foreach (['people','employees','customers','jobs','job_types','skills','employee_availability','job_employee_assignment'] as $t) {
+foreach (['people','employees','customers','jobs','job_types','skills','employee_availability','job_employee_assignment','job_checklist_items'] as $t) {
     if (!tableExists($pdo, $t)) continue;
     if (!hasAutoPk(columns($pdo, $t), 'id')) {
         $issues[] = "Primary key AUTO_INCREMENT missing or not primary on $t.id";
@@ -166,6 +167,9 @@ $fkExpect = [
   'job_employee_assignment' => [
       ['cols'=>['job_id'],'ref'=>'jobs','refcols'=>['id']],
       ['cols'=>['employee_id'],'ref'=>'employees','refcols'=>['id']],
+  ],
+  'job_checklist_items' => [
+      ['cols'=>['job_id'],'ref'=>'jobs','refcols'=>['id']],
   ],
 ];
 foreach ($fkExpect as $t=>$list) {

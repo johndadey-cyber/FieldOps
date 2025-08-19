@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS job_checklist_items (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    job_id INT UNSIGNED NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    is_completed TINYINT(1) NOT NULL DEFAULT 0,
+    completed_at DATETIME NULL,
+    CONSTRAINT fk_job_checklist_job FOREIGN KEY (job_id) REFERENCES jobs(id)
+        ON DELETE CASCADE ON UPDATE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

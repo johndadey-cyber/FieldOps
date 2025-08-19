@@ -53,8 +53,10 @@ if ($method !== 'POST') {
 
 $pdo = getPDO();
 
-$token = (string)($_POST['csrf_token'] ?? '');
-if (!csrf_verify($token)) { $log('Invalid CSRF token'); json_out(['ok'=>false,'error'=>'Invalid CSRF token'], 422); }
+$raw   = file_get_contents('php://input');
+$data  = array_merge($_GET, $_POST);
+$token = (string)($data['csrf_token'] ?? '');
+if (!csrf_verify($token)) { csrf_log_failure_payload($raw, $data); $log('Invalid CSRF token'); json_out(['ok'=>false,'error'=>'Invalid CSRF token'], 422); }
 $log('CSRF token verified');
 
 $id             = isset($_POST['id']) ? (int)$_POST['id'] : 0;

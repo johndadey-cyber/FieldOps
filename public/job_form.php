@@ -7,6 +7,7 @@ require_once __DIR__ . '/_csrf.php';
 require_once __DIR__ . '/../models/Skill.php';
 require_once __DIR__ . '/../models/Job.php';
 require_once __DIR__ . '/../models/Customer.php';
+require_once __DIR__ . '/../models/JobChecklistItem.php';
 
 $pdo = getPDO();
 $__csrf = csrf_token();
@@ -19,6 +20,7 @@ $isEdit      = $mode === 'edit';
 $skills    = Skill::all($pdo);
 $statuses  = $isEdit ? Job::allowedStatuses() : array_intersect(['scheduled','draft'], Job::allowedStatuses());
 $customers = (new Customer($pdo))->getAll();
+$jobTypes  = $pdo->query('SELECT id, name FROM job_types ORDER BY name')->fetchAll(PDO::FETCH_ASSOC);
 $today     = date('Y-m-d');
 
 /** HTML escape */
@@ -47,7 +49,6 @@ function stickyArr(string $name, array $default = []): array {
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 </head>
 <body>
-  <div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer"></div>
   <div class="container mt-4">
     <h1 class="mb-4"><?= $isEdit ? 'Edit Job' : 'Add Job' ?></h1>
     <?php if ($isEdit && !$job): ?>
@@ -97,6 +98,17 @@ function stickyArr(string $name, array $default = []): array {
           <div class="invalid-feedback d-block" id="jobSkillError" style="display:none">Select at least one skill.</div>
         </div>
         <div class="mb-3">
+          <label for="job_type_id" class="form-label">Job Type</label>
+          <?php $selJobType = sticky('job_type_id', ''); ?>
+          <select name="job_type_id" id="job_type_id" class="form-select">
+            <option value="">-- Select --</option>
+            <?php foreach ($jobTypes as $jt): ?>
+              <?php $jtId = (string)$jt['id']; ?>
+              <option value="<?= s($jtId) ?>" <?= $selJobType === $jtId ? 'selected' : '' ?>><?= s($jt['name']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="mb-3">
           <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
           <?php $selStatus = sticky('status', $isEdit ? ($job['status'] ?? 'draft') : 'scheduled'); ?>
           <select name="status" id="status" class="form-select" required aria-required="true">
@@ -139,6 +151,7 @@ function stickyArr(string $name, array $default = []): array {
     <?php endif; ?>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/toast.js"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
   <script src="js/job_form.js"></script>

@@ -2,65 +2,40 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../../config/database.php';
-
+require_once __DIR__ . '/../../../models/EmployeeDataProvider.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-$q  = trim((string)($_GET['q'] ?? ''));
+$q  = trim((string)($_GET['search'] ?? $_GET['q'] ?? ''));
 
 try {
     $pdo = getPDO();
-    // Optional filter by is_active if column exists
-    $hasIsActive = false;
-    try {
-        $chk = $pdo->query("SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='employees' AND COLUMN_NAME='is_active' LIMIT 1");
-        $hasIsActive = (bool)($chk ? $chk->fetchColumn() : false);
-    } catch (Throwable $e) {
-        $hasIsActive = false;
-    }
 
+    // Fetch a single employee by ID
     if ($id > 0) {
         $sql = "SELECT e.id, CONCAT(p.first_name,' ',p.last_name) AS name FROM employees e JOIN people p ON p.id=e.person_id WHERE e.id=:id";
-        if ($hasIsActive) { $sql .= " AND e.is_active=1"; }
         $st = $pdo->prepare($sql);
-        $st->execute([':id'=>$id]);
+        $st->execute([':id' => $id]);
         $row = $st->fetch(PDO::FETCH_ASSOC);
-        echo json_encode(['ok' => true, 'item' => $row ? ['id'=>(int)$row['id'], 'name'=>$row['name']] : null], JSON_UNESCAPED_SLASHES);
+        echo json_encode(['ok' => true, 'item' => $row ? ['id' => (int)$row['id'], 'name' => $row['name']] : null], JSON_UNESCAPED_SLASHES);
         exit;
     }
 
     if (strlen($q) < 2) {
-        echo json_encode(['ok'=>true,'items'=>[]], JSON_UNESCAPED_SLASHES);
+        echo json_encode(['ok' => true, 'items' => []], JSON_UNESCAPED_SLASHES);
         exit;
     }
 
-    $params = [
-        ':q1' => "%{$q}%",
-        ':q2' => "%{$q}%",
-        ':q3' => "%{$q}%",
-    ];
-    $coll   = 'utf8mb4_unicode_ci';
-    $where  = "p.first_name COLLATE {$coll} LIKE :q1"
-            . " OR p.last_name COLLATE {$coll} LIKE :q2"
-            . " OR CONCAT(p.first_name,' ',p.last_name) COLLATE {$coll} LIKE :q3";
-    if (ctype_digit($q)) {
-        $where .= " OR e.id = :eid";
-        $params[':eid'] = (int)$q;
-    }
-    $sql = "SELECT e.id, CONCAT(p.first_name,' ',p.last_name) AS name FROM employees e JOIN people p ON p.id=e.person_id WHERE {$where}";
-    if ($hasIsActive) { $sql .= " AND e.is_active=1"; }
-    $sql .= " ORDER BY p.last_name, p.first_name LIMIT 20";
-    $st = $pdo->prepare($sql);
-    $st->execute($params);
+    $data = EmployeeDataProvider::getFiltered($pdo, null, 1, 20, null, null, $q);
     $rows = [];
-    foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
-        $rows[] = ['id'=>(int)$r['id'], 'name'=>$r['name']];
+    foreach ($data['rows'] as $r) {
+        $rows[] = ['id' => (int)$r['employee_id'], 'name' => $r['first_name'] . ' ' . $r['last_name']];
     }
-    echo json_encode(['ok'=>true,'items'=>$rows], JSON_UNESCAPED_SLASHES);
+    echo json_encode(['ok' => true, 'items' => $rows], JSON_UNESCAPED_SLASHES);
 } catch (Throwable $e) {
     error_log($e->getMessage());
     http_response_code(200);
-    echo json_encode(['ok'=>false,'error'=>'Database query failed'], JSON_UNESCAPED_SLASHES);
+    echo json_encode(['ok' => false, 'error' => 'Database query failed'], JSON_UNESCAPED_SLASHES);
     exit;
 }

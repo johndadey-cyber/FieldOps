@@ -12,6 +12,24 @@ require_once __DIR__ . '/../../../config/database.php';
 $pdo = getPDO();
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+/**
+ * Determine if the employee_availability_overrides table has a `type` column.
+ */
+function overrides_have_type(PDO $pdo): bool {
+    static $has = null;
+    if ($has !== null) {
+        return $has;
+    }
+    try {
+        $row = $pdo->query("SHOW COLUMNS FROM employee_availability_overrides LIKE 'type'")
+            ->fetch(PDO::FETCH_ASSOC);
+        $has = $row !== false;
+    } catch (Throwable $e) {
+        $has = false;
+    }
+    return $has;
+}
+
 $eid = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 0;
 $weekStart = isset($_GET['week_start']) ? (string)$_GET['week_start'] : '';
 
@@ -41,7 +59,13 @@ $st->execute([':eid' => $eid]);
 $avail = $st->fetchAll(PDO::FETCH_ASSOC);
 
 // Overrides within week range
-$st2 = $pdo->prepare("SELECT date, DATE_FORMAT(start_time,'%H:%i') AS start_time, DATE_FORMAT(end_time,'%H:%i') AS end_time, status, reason FROM employee_availability_overrides WHERE employee_id=:eid AND date BETWEEN :ws AND :we ORDER BY date, start_time");
+$typeSql = overrides_have_type($pdo) ? 'type' : "'CUSTOM' AS type";
+$st2 = $pdo->prepare(
+    "SELECT date, DATE_FORMAT(start_time,'%H:%i') AS start_time, " .
+    "DATE_FORMAT(end_time,'%H:%i') AS end_time, status, {$typeSql}, reason " .
+    "FROM employee_availability_overrides " .
+    "WHERE employee_id=:eid AND date BETWEEN :ws AND :we ORDER BY date, start_time"
+);
 $st2->execute([':eid' => $eid, ':ws' => $ws->format('Y-m-d'), ':we' => $we]);
 $overrides = $st2->fetchAll(PDO::FETCH_ASSOC);
 
@@ -52,15 +76,16 @@ $esc = static function (?string $v): string {
     return '"' . $v . '"';
 };
 
-$lines = ['employee,day,start,end,status,reason'];
+  $lines = ['employee,day,start,end,status,type,reason'];
 foreach ($avail as $a) {
     $lines[] = implode(',', [
         $esc($empName),
         $esc($a['day_of_week'] ?? ''),
         $esc($a['start_time'] ?? ''),
-        $esc($a['end_time'] ?? ''),
-        $esc(''),
-        $esc(''),
+          $esc($a['end_time'] ?? ''),
+          $esc(''),
+          $esc(''),
+          $esc(''),
     ]);
 }
 
@@ -70,8 +95,9 @@ foreach ($overrides as $ov) {
         $esc($ov['date'] ?? ''),
         $esc($ov['start_time'] ?? ''),
         $esc($ov['end_time'] ?? ''),
-        $esc($ov['status'] ?? ''),
-        $esc($ov['reason'] ?? ''),
+          $esc($ov['status'] ?? ''),
+          $esc($ov['type'] ?? ''),
+          $esc($ov['reason'] ?? ''),
     ]);
 }
 

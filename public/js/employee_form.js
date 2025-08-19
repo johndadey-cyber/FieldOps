@@ -36,18 +36,8 @@
       errBox.innerHTML = html;
     }
     function showToast(msg){
-      var container=document.getElementById('toastContainer');
-      if(!container||typeof bootstrap==='undefined') return;
-      var el=document.createElement('div');
-      el.className='toast align-items-center text-bg-success border-0';
-      el.setAttribute('role','alert');
-      el.setAttribute('aria-live','assertive');
-      el.setAttribute('aria-atomic','true');
-      el.innerHTML='<div class="d-flex"><div class="toast-body"></div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>';
-      el.querySelector('.toast-body').textContent=msg;
-      container.appendChild(el);
-      var toast=new bootstrap.Toast(el,{delay:2000});
-      toast.show();
+      if (window.FieldOpsToast) { FieldOpsToast.show(msg,'success'); }
+      else { alert(msg); }
     }
     form.addEventListener('submit', function(e){
       e.preventDefault();
@@ -77,7 +67,17 @@
           try{localStorage.setItem('employeesUpdated',Date.now().toString());}catch(_){ }
           try{window.dispatchEvent(new Event('employees:updated'));}catch(_){ }
           showToast(mode === 'edit' ? 'Employee updated' : 'Employee saved');
-          setTimeout(function(){window.location.href='employees.php';},800);
+          setTimeout(function(){
+            var dest = 'employees.php';
+            if (mode === 'add' && data && data.id) {
+              var today = new Date();
+              var diff = today.getDay() === 0 ? -6 : 1 - today.getDay();
+              today.setDate(today.getDate() + diff);
+              var weekStart = today.toISOString().slice(0,10);
+              dest = 'availability_onboard.php?employee_id=' + encodeURIComponent(data.id) + '&week_start=' + weekStart;
+            }
+            window.location.href = dest;
+          },800);
           return;
         }
         var errs = [];

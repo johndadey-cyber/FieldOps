@@ -1,5 +1,20 @@
 <?php declare(strict_types=1);
 
+/**
+ * Utilities for querying employee availability and deriving schedule details.
+ *
+ * Status and summary information are computed by loading an employee's
+ * availability blocks for a given day and subtracting any jobs scheduled for
+ * that same period. The remaining free time determines both values:
+ *
+ * - "No Hours"         when no availability is defined.
+ * - "Booked"           when jobs consume all available time.
+ * - "Available"        when availability exists with no overlapping jobs.
+ * - "Partially Booked" when some, but not all, availability remains.
+ *
+ * The summary is a human-readable list of the free time ranges or "Off" when
+ * none are left.
+ */
 final class Availability
 {
     /**
@@ -134,14 +149,41 @@ final class Availability
      * Return availability summary for each employee on a specific date.
      *
      * The summary lists remaining free time blocks after subtracting any jobs
-     * scheduled on the given date. If an employee has no availability defined,
-     * "Unknown" is returned. If they have availability but no free time after
-     * assignments, "Off" is returned.
+     * scheduled on the given date. When an employee has no remaining free time,
+     * including when no availability is defined, "Off" is returned.
      *
      * @param list<int> $employeeIds
      * @return array<int,string> Map of employee id to summary string
      */
     public static function summaryForEmployeesOnDate(PDO $pdo, array $employeeIds, string $date): array
+    {
+        $map = self::statusForEmployeesOnDate($pdo, $employeeIds, $date);
+        $out = [];
+        foreach ($map as $eid => $info) {
+            $out[$eid] = $info['summary'];
+        }
+        return $out;
+    }
+
+    /**
+     * Return availability status and summary for each employee on a specific date.
+     *
+     * For each employee, availability blocks and assigned jobs on the given date
+     * are loaded to determine both a status string and remaining free time
+     * summary. The status values are:
+     *
+     *  - "No Hours"         when the employee has no availability defined.
+     *  - "Available"        when availability exists and no jobs overlap.
+     *  - "Booked"           when jobs fully cover the available time.
+     *  - "Partially Booked" when jobs cover only part of the availability.
+     *
+     * The summary lists remaining free intervals in a human readable form or
+     * "Off" when none are left.
+     *
+     * @param list<int> $employeeIds
+     * @return array<int,array{status:string,summary:string}> Map of employee id to status/summary
+     */
+    public static function statusForEmployeesOnDate(PDO $pdo, array $employeeIds, string $date): array
     {
         $ids = array_values(array_unique(array_map('intval', $employeeIds)));
         $ids = array_filter($ids, static fn(int $v): bool => $v > 0);
@@ -229,11 +271,13 @@ final class Availability
         foreach ($ids as $eid) {
             $blocks = $avail[$eid] ?? null;
             if ($blocks === null) {
-                $out[$eid] = 'Unknown';
+                $out[$eid] = ['status' => 'No Hours', 'summary' => 'Off'];
                 continue;
             }
+
             $free = $blocks;
-            foreach ($jobs[$eid] ?? [] as [$js, $je]) {
+            $jobList = $jobs[$eid] ?? [];
+            foreach ($jobList as [$js, $je]) {
                 $next = [];
                 foreach ($free as [$fs, $fe]) {
                     if ($je <= $fs || $js >= $fe) {
@@ -254,9 +298,10 @@ final class Availability
             }
 
             if ($free === []) {
-                $out[$eid] = 'Off';
+                $out[$eid] = ['status' => 'Booked', 'summary' => 'Off'];
                 continue;
             }
+
             usort($free, static fn(array $a, array $b): int => $a[0] <=> $b[0]);
             $parts = [];
             foreach ($free as [$s, $e]) {
@@ -264,7 +309,17 @@ final class Availability
                     . '–'
                     . self::formatTime(sprintf('%02d:%02d', intdiv($e, 60), $e % 60));
             }
-            $out[$eid] = implode(', ', $parts);
+            $summary = implode(', ', $parts);
+
+            if ($jobList === []) {
+                $status = 'Available';
+            } elseif ($free === $blocks) {
+                $status = 'Available';
+            } else {
+                $status = 'Partially Booked';
+            }
+
+            $out[$eid] = ['status' => $status, 'summary' => $summary];
         }
 
         return $out;

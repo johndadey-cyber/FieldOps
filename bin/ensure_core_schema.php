@@ -216,6 +216,18 @@ function ensureIndex(PDO $pdo, string $table, array $cols, string $name): void {
     out("[OK] INDEX added");
 }
 
+function ensureColumn(PDO $pdo, string $table, string $col, string $definition): void {
+    if (!tableExists($pdo, $table)) { out("[-] Table missing: {$table}"); return; }
+    $cols = columns($pdo, $table);
+    if (!array_key_exists($col, $cols)) {
+        out("[..] Adding {$table}.{$col} ...");
+        $pdo->exec("ALTER TABLE `{$table}` ADD COLUMN `{$col}` {$definition}");
+        out("[OK] {$table}.{$col} added");
+    } else {
+        out("[OK] {$table}.{$col} present");
+    }
+}
+
 // ---- New tables (idempotent) ----
 if (!tableExists($pdo, 'employee_availability_overrides')) {
     out('[..] Creating table employee_availability_overrides ...');
@@ -225,6 +237,7 @@ if (!tableExists($pdo, 'employee_availability_overrides')) {
             `employee_id` INT NOT NULL,
             `date` DATE NOT NULL,
             `status` VARCHAR(20) NOT NULL,
+            `type` VARCHAR(20) NOT NULL DEFAULT 'CUSTOM',
             `start_time` TIME NULL,
             `end_time` TIME NULL,
             `reason` VARCHAR(255) NULL
@@ -313,6 +326,55 @@ if (!tableExists($pdo, 'job_skill')) {
     out('[OK] job_skill created');
 }
 
+// Ensure job_notes table
+if (!tableExists($pdo, 'job_notes')) {
+    out('[..] Creating table job_notes ...');
+    $pdo->exec(
+        "CREATE TABLE `job_notes` (
+            `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `job_id` INT NOT NULL,
+            `technician_id` INT NOT NULL,
+            `note` TEXT NOT NULL,
+            `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+    );
+    out('[OK] job_notes created');
+}
+
+// Ensure job_photos table
+if (!tableExists($pdo, 'job_photos')) {
+    out('[..] Creating table job_photos ...');
+    $pdo->exec(
+        "CREATE TABLE `job_photos` (
+            `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `job_id` INT NOT NULL,
+            `technician_id` INT NOT NULL,
+            `path` VARCHAR(255) NOT NULL,
+            `label` VARCHAR(255) NOT NULL DEFAULT '',
+            `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+    );
+    out('[OK] job_photos created');
+}
+
+// Ensure job_checklist_items table
+if (!tableExists($pdo, 'job_checklist_items')) {
+    out('[..] Creating table job_checklist_items ...');
+    $pdo->exec(
+        "CREATE TABLE `job_checklist_items` (
+            `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `job_id` INT NOT NULL,
+            `description` VARCHAR(255) NOT NULL,
+            `is_completed` TINYINT(1) NOT NULL DEFAULT 0,
+            `completed_at` DATETIME NULL,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+    );
+    out('[OK] job_checklist_items created');
+}
+
 // Drop deprecated job_jobtype table if present
 if (tableExists($pdo, 'job_jobtype')) {
     out('[..] Dropping table job_jobtype ...');
@@ -333,8 +395,16 @@ if (tableExists($pdo, 'customers')) {
     }
 }
 
+if (tableExists($pdo, 'employee_availability_overrides')) {
+    $cols = columns($pdo, 'employee_availability_overrides');
+    if (!array_key_exists('type', $cols)) {
+        out('[..] Adding `type` column to employee_availability_overrides ...');
+        $pdo->exec("ALTER TABLE `employee_availability_overrides` ADD COLUMN `type` VARCHAR(20) NOT NULL DEFAULT 'CUSTOM' AFTER `status`");
+    }
+}
+
 out("== Ensuring PRIMARY KEYS ==");
-foreach (['people','employees','job_types','employee_availability_overrides','availability_audit'] as $t) {
+foreach (['people','employees','job_types','employee_availability_overrides','availability_audit','job_checklist_items'] as $t) {
     ensureAutoPk($pdo, $t);
 }
 
@@ -354,6 +424,14 @@ ensureFk($pdo, 'jobtype_skills', 'skill_id', 'skills', 'id', 'fk_jobtype_skills_
 ensureFk($pdo, 'job_skill', 'job_id', 'jobs', 'id', 'fk_job_skill_job', 'CASCADE', 'RESTRICT');
 ensureFk($pdo, 'job_skill', 'skill_id', 'skills', 'id', 'fk_job_skill_skill', 'RESTRICT', 'CASCADE');
 
+ensureFk($pdo, 'job_notes', 'job_id', 'jobs', 'id', 'fk_job_notes_job', 'CASCADE', 'RESTRICT');
+ensureFk($pdo, 'job_notes', 'technician_id', 'employees', 'id', 'fk_job_notes_technician', 'RESTRICT', 'RESTRICT');
+
+ensureFk($pdo, 'job_photos', 'job_id', 'jobs', 'id', 'fk_job_photos_job', 'CASCADE', 'RESTRICT');
+ensureFk($pdo, 'job_photos', 'technician_id', 'employees', 'id', 'fk_job_photos_technician', 'RESTRICT', 'RESTRICT');
+
+ensureFk($pdo, 'job_checklist_items', 'job_id', 'jobs', 'id', 'fk_job_checklist_job', 'CASCADE', 'RESTRICT');
+
 
 ensureFk($pdo, 'job_employee_assignment', 'job_id', 'jobs', 'id', 'fk_jea_job', 'CASCADE', 'RESTRICT');
 ensureFk($pdo, 'job_employee_assignment', 'employee_id', 'employees', 'id', 'fk_jea_employee', 'RESTRICT', 'RESTRICT');
@@ -365,6 +443,12 @@ out(PHP_EOL . "== Ensuring people name columns and index ==");
 ensureVarchar100NotNull($pdo, 'people', 'first_name');
 ensureVarchar100NotNull($pdo, 'people', 'last_name');
 ensureIndex($pdo, 'people', ['first_name','last_name'], 'idx_people_first_last');
+
+out(PHP_EOL . "== Ensuring job timing/location columns ==");
+ensureColumn($pdo, 'jobs', 'started_at', 'DATETIME NULL');
+ensureColumn($pdo, 'jobs', 'completed_at', 'DATETIME NULL');
+ensureColumn($pdo, 'jobs', 'location_lat', 'DECIMAL(10,6) NULL');
+ensureColumn($pdo, 'jobs', 'location_lng', 'DECIMAL(10,6) NULL');
 
 out(PHP_EOL . "== Ensuring UNIQUE indexes ==");
 ensureUnique($pdo, 'employee_availability', ['employee_id','day_of_week','start_time','end_time'], 'uq_availability_window');

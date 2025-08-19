@@ -90,8 +90,10 @@ if (!in_array($method, ['POST','PUT','PATCH'], true)) {
     json_out(['ok'=>false,'error'=>'Method not allowed'], 405);
 }
 
-$token = (string)($_POST['csrf_token'] ?? ($_GET['csrf_token'] ?? ''));
-if (!csrf_verify($token)) { json_out(['ok'=>false,'error'=>'Invalid CSRF token'], 422); }
+$raw   = file_get_contents('php://input');
+$data  = array_merge($_GET, $_POST);
+$token = (string)($data['csrf_token'] ?? '');
+if (!csrf_verify($token)) { csrf_log_failure_payload($raw, $data); json_out(['ok'=>false,'error'=>'Invalid CSRF token'], 422); }
 
 $id         = isset($_POST['id']) ? (int)$_POST['id'] : (isset($_GET['id']) ? (int)$_GET['id'] : 0);
 $employeeId = isset($_POST['employee_id']) ? (int)$_POST['employee_id'] : (isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 0);

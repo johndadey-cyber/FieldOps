@@ -2,16 +2,19 @@ name: CI
 
 on:
   push:
+
   pull_request:
 
 jobs:
   test:
+
     runs-on: ubuntu-latest
     services:
       mysql:
         image: mysql:8
         env:
           MYSQL_ROOT_PASSWORD: root
+
           MYSQL_DATABASE: fieldops_integration
         ports:
           - 3306:3306
@@ -59,4 +62,5 @@ jobs:
           DB_NAME: fieldops_integration
           DB_USER: root
           DB_PASS: root
+
         run: vendor/bin/phpunit

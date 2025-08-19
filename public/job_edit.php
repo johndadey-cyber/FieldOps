@@ -77,8 +77,8 @@ $statuses = ['draft','scheduled','assigned','in_progress','completed','closed','
     </div>
   </form>
 
-  <div id="alert" class="alert d-none mt-3"></div>
-</div>
+  </div>
+<script src="/js/toast.js"></script>
 <script>
 document.getElementById('jobForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
@@ -89,12 +89,12 @@ document.getElementById('jobForm').addEventListener('submit', async (e)=>{
     body: data.toString()
   });
   const j = await r.json();
-  const a = document.getElementById('alert');
   if (j.ok) {
-    a.className='alert alert-success'; a.textContent='Saved.'; a.classList.remove('d-none');
+    if (window.FieldOpsToast) { FieldOpsToast.show('Saved.', 'success'); } else { alert('Saved.'); }
     setTimeout(()=>{ window.location.href='/jobs.php'; }, 800);
   } else {
-    a.className='alert alert-danger'; a.textContent=(j.error||'Error'); a.classList.remove('d-none');
+    const msg = j.error || 'Error';
+    if (window.FieldOpsToast) { FieldOpsToast.show(msg, 'danger'); } else { alert(msg); }
   }
 });
 </script>

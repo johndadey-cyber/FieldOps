@@ -87,4 +87,53 @@ final class Job
             return [];
         }
     }
+
+    /**
+     * Mark a job as started. Sets status to in_progress, records start time and location.
+     * Returns true if the row was updated.
+     */
+    public static function start(PDO $pdo, int $jobId, ?float $lat, ?float $lng): bool
+    {
+        $st = $pdo->prepare(
+            'UPDATE jobs
+             SET status = "in_progress", started_at = NOW(), location_lat = :lat, location_lng = :lng, updated_at = NOW()
+             WHERE id = :id AND status = "assigned" AND started_at IS NULL'
+        );
+        if ($st === false) {
+            return false;
+        }
+        $st->execute([':lat' => $lat, ':lng' => $lng, ':id' => $jobId]);
+        return $st->rowCount() > 0;
+    }
+
+    /**
+     * Mark a job as completed. Sets status to completed, records completion time and location.
+     * Returns true if the row was updated.
+     */
+    public static function complete(PDO $pdo, int $jobId, ?float $lat, ?float $lng): bool
+    {
+        $noteSt  = $pdo->prepare('SELECT COUNT(*) FROM job_notes WHERE job_id = :id AND is_final = 1');
+        $photoSt = $pdo->prepare('SELECT COUNT(*) FROM job_photos WHERE job_id = :id');
+        $sigSt   = $pdo->prepare('SELECT COUNT(*) FROM job_completion WHERE job_id = :id AND signature_path <> ""');
+        if ($noteSt === false || $photoSt === false || $sigSt === false) {
+            return false;
+        }
+        $noteSt->execute([':id' => $jobId]);
+        $photoSt->execute([':id' => $jobId]);
+        $sigSt->execute([':id' => $jobId]);
+        if ((int)$noteSt->fetchColumn() <= 0 || (int)$photoSt->fetchColumn() <= 0 || (int)$sigSt->fetchColumn() <= 0) {
+            return false;
+        }
+
+        $st = $pdo->prepare(
+            'UPDATE jobs
+             SET status = "completed", completed_at = NOW(), location_lat = :lat, location_lng = :lng, updated_at = NOW()
+             WHERE id = :id AND status = "in_progress" AND completed_at IS NULL'
+        );
+        if ($st === false) {
+            return false;
+        }
+        $st->execute([':lat' => $lat, ':lng' => $lng, ':id' => $jobId]);
+        return $st->rowCount() > 0;
+    }
 }
