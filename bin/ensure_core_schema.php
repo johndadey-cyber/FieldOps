@@ -359,6 +359,22 @@ if (!tableExists($pdo, 'job_photos')) {
     out('[OK] job_photos created');
 }
 
+// Ensure job_checklist_items table
+if (!tableExists($pdo, 'job_checklist_items')) {
+    out('[..] Creating table job_checklist_items ...');
+    $pdo->exec(
+        "CREATE TABLE `job_checklist_items` (
+            `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `job_id` INT NOT NULL,
+            `description` VARCHAR(255) NOT NULL,
+            `is_completed` TINYINT(1) NOT NULL DEFAULT 0,
+            `completed_at` DATETIME NULL,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+    );
+    out('[OK] job_checklist_items created');
+}
+
 // Drop deprecated job_jobtype table if present
 if (tableExists($pdo, 'job_jobtype')) {
     out('[..] Dropping table job_jobtype ...');
@@ -388,7 +404,7 @@ if (tableExists($pdo, 'employee_availability_overrides')) {
 }
 
 out("== Ensuring PRIMARY KEYS ==");
-foreach (['people','employees','job_types','employee_availability_overrides','availability_audit'] as $t) {
+foreach (['people','employees','job_types','employee_availability_overrides','availability_audit','job_checklist_items'] as $t) {
     ensureAutoPk($pdo, $t);
 }
 
@@ -413,6 +429,8 @@ ensureFk($pdo, 'job_notes', 'technician_id', 'employees', 'id', 'fk_job_notes_te
 
 ensureFk($pdo, 'job_photos', 'job_id', 'jobs', 'id', 'fk_job_photos_job', 'CASCADE', 'RESTRICT');
 ensureFk($pdo, 'job_photos', 'technician_id', 'employees', 'id', 'fk_job_photos_technician', 'RESTRICT', 'RESTRICT');
+
+ensureFk($pdo, 'job_checklist_items', 'job_id', 'jobs', 'id', 'fk_job_checklist_job', 'CASCADE', 'RESTRICT');
 
 
 ensureFk($pdo, 'job_employee_assignment', 'job_id', 'jobs', 'id', 'fk_jea_job', 'CASCADE', 'RESTRICT');
