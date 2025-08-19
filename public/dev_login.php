@@ -59,7 +59,7 @@ if ($appEnv !== 'dev' && !$loose) {
 
 // Seed role
 $role = $_GET['role'] ?? 'dispatcher';
-if (!in_array($role, ['dispatcher','field_tech'], true)) {
+if (!in_array($role, ['dispatcher','field_tech','admin'], true)) {
     $role = 'dispatcher';
 }
 $id = (isset($_GET['id']) && ctype_digit($_GET['id'])) ? (int)$_GET['id'] : null;
