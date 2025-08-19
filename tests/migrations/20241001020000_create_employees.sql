@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS employees (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    person_id INT NOT NULL,
+    employment_type VARCHAR(50) NOT NULL,
+    hire_date DATE NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    role_id INT NULL,
+    CONSTRAINT fk_employees_person FOREIGN KEY (person_id) REFERENCES people(id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_employees_role FOREIGN KEY (role_id) REFERENCES roles(id)
+        ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
