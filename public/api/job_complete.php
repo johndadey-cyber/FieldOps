@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require __DIR__ . '/../_cli_guard.php';
@@ -60,7 +61,9 @@ try {
         if (preg_match('/^data:image\/(\w+);base64,/', $p, $m)) {
             $p   = substr($p, strpos($p, ',') + 1);
             $ext = strtolower($m[1]);
-            if ($ext === 'jpeg') { $ext = 'jpg'; }
+            if ($ext === 'jpeg') {
+                $ext = 'jpg';
+            }
         }
         $img = base64_decode($p, true);
         if ($img === false) {
@@ -69,6 +72,9 @@ try {
         $filename     = 'job_' . $jobId . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
         $destPath     = $uploadDir . $filename;
         $relativePath = 'uploads/jobs/' . $filename;
+        if (!is_string($destPath) || !is_string($relativePath)) {
+            throw new RuntimeException('Invalid photo path');
+        }
         file_put_contents($destPath, $img);
         JobPhoto::add($pdo, $jobId, $technicianId, $relativePath, 'final');
     }
@@ -81,7 +87,9 @@ try {
     if (preg_match('/^data:image\/(\w+);base64,/', $signature, $sm)) {
         $signature = substr($signature, strpos($signature, ',') + 1);
         $sigExt    = strtolower($sm[1]);
-        if ($sigExt === 'jpeg') { $sigExt = 'jpg'; }
+        if ($sigExt === 'jpeg') {
+            $sigExt = 'jpg';
+        }
     }
     $sigBin = base64_decode($signature, true);
     if ($sigBin === false) {
@@ -90,6 +98,9 @@ try {
     $sigFile     = 'job_' . $jobId . '_signature_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $sigExt;
     $sigDest     = $sigDir . $sigFile;
     $sigRelPath  = 'uploads/signatures/' . $sigFile;
+    if (!is_string($sigDest) || !is_string($sigRelPath)) {
+        throw new RuntimeException('Invalid signature path');
+    }
     file_put_contents($sigDest, $sigBin);
     JobCompletion::save($pdo, $jobId, $sigRelPath);
 
@@ -121,4 +132,3 @@ try {
     }
     JsonResponse::json(['ok' => false, 'error' => 'Server error', 'code' => \ErrorCodes::SERVER_ERROR], 500);
 }
-
