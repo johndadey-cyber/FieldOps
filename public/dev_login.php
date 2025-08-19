@@ -1,12 +1,17 @@
 <?php
-declare(strict_types=1);
+
 /**
  * DEV-ONLY login shim
  * /dev_login.php?role=dispatcher
  * /dev_login.php?role=field_tech&id=123
- * Add &loose=1 to bypass APP_ENV=test requirement if on localhost.
+ * Add &loose=1 to bypass APP_ENV=dev requirement if on localhost.
  */
-if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
+
+declare(strict_types=1);
+
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
 
 $ip = $_SERVER['REMOTE_ADDR'] ?? '';
 $isLocal = in_array($ip, ['127.0.0.1','::1'], true);
@@ -32,28 +37,38 @@ header('Content-Type: application/json; charset=utf-8');
 
 // Enforce localhost always
 if (!$isLocal) {
-  http_response_code(403);
-  echo json_encode(['ok'=>false,'error'=>'Forbidden: not localhost','remote_addr'=>$ip], JSON_UNESCAPED_SLASHES);
-  exit;
+    http_response_code(403);
+    echo json_encode([
+        'ok' => false,
+        'error' => 'Forbidden: not localhost',
+        'remote_addr' => $ip,
+    ], JSON_UNESCAPED_SLASHES);
+    exit;
 }
 
-// Require test env unless loose=1
-if ($appEnv !== 'test' && !$loose) {
-  http_response_code(403);
-  echo json_encode(['ok'=>false,'error'=>'Forbidden: APP_ENV must be test (or pass loose=1)','app_env'=>$appEnv], JSON_UNESCAPED_SLASHES);
-  exit;
+// Require dev env unless loose=1
+if ($appEnv !== 'dev' && !$loose) {
+    http_response_code(403);
+    echo json_encode([
+        'ok' => false,
+        'error' => 'Forbidden: APP_ENV must be dev (or pass loose=1)',
+        'app_env' => $appEnv,
+    ], JSON_UNESCAPED_SLASHES);
+    exit;
 }
 
 // Seed role
 $role = $_GET['role'] ?? 'dispatcher';
-if (!in_array($role, ['dispatcher','field_tech'], true)) { $role = 'dispatcher'; }
+if (!in_array($role, ['dispatcher','field_tech'], true)) {
+    $role = 'dispatcher';
+}
 $id = (isset($_GET['id']) && ctype_digit($_GET['id'])) ? (int)$_GET['id'] : null;
 
 $_SESSION['APP_ENV'] = $appEnv;
 $_SESSION['role'] = $role;
 $_SESSION['user'] = ['role' => $role];
 if ($role === 'field_tech' && $id) {
-  $_SESSION['user']['id'] = $id; // convention: employee id for field_tech
+    $_SESSION['user']['id'] = $id; // convention: employee id for field_tech
 }
 $_SESSION['csrf_token'] = $_SESSION['csrf_token'] ?? bin2hex(random_bytes(16));
 
