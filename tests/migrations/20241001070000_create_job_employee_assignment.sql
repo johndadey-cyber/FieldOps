@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS job_employee_assignment (
-    job_id INT NOT NULL,
-    employee_id INT NOT NULL,
+    job_id INT UNSIGNED NOT NULL,
+    employee_id INT UNSIGNED NOT NULL,
     PRIMARY KEY (job_id, employee_id),
     CONSTRAINT fk_jea_job FOREIGN KEY (job_id) REFERENCES jobs(id)
         ON DELETE CASCADE ON UPDATE RESTRICT,

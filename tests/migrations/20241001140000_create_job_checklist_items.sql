@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS job_checklist_items (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    job_id INT NOT NULL,
+    job_id INT UNSIGNED NOT NULL,
     description VARCHAR(255) NOT NULL,
     is_completed TINYINT(1) NOT NULL DEFAULT 0,
     completed_at DATETIME NULL,

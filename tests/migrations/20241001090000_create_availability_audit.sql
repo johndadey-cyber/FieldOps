@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS availability_audit (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    employee_id INT NOT NULL,
-    user_id INT NULL,
+    employee_id INT UNSIGNED NOT NULL,
+    user_id INT UNSIGNED NULL,
     action VARCHAR(50) NOT NULL,
     details TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
