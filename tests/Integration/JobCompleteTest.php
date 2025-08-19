@@ -2,17 +2,13 @@
 
 declare(strict_types=1);
 
-namespace {
-    require_once __DIR__ . '/../../config/database.php';
-    require_once __DIR__ . '/../TestHelpers/EndpointHarness.php';
-    require_once __DIR__ . '/../support/TestDataFactory.php';
-}
-
 namespace Tests\Integration;
 
-use EndpointHarness;
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../TestHelpers/EndpointHarness.php';
+require_once __DIR__ . '/../support/TestDataFactory.php';
+
 use PHPUnit\Framework\TestCase;
-use TestDataFactory;
 
 final class JobCompleteTest extends TestCase
 {
