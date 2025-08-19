@@ -28,25 +28,43 @@ if (!defined('APP_ENV')) {
 ob_start();
 
 /**
- * Optional: log what we suppressed when FIELDOPS_TRACE=1 is set.
- * We do not print to STDOUT (that would corrupt PHPUnit output);
- * we only log to STDERR via error_log for debugging.
+ * Discard any buffered bootstrap output unless tracing is enabled.
+ */
+function fieldopsBootstrapFlush(): void
+{
+    if (ob_get_level() === 0) {
+        return;
+    }
+    $buf = ob_get_contents();
+    if ($buf !== false && $buf !== '' && getenv('FIELDOPS_TRACE')) {
+        error_log('[TEST BOOTSTRAP] Suppressed output length=' . strlen($buf));
+        // If you want to inspect the first part of the blob:
+        error_log('[TEST BOOTSTRAP] Head: ' . substr($buf, 0, 200));
+    }
+    ob_end_clean();
+}
+
+/**
+ * If a fatal error occurs during bootstrap, emit whatever we captured so far
+ * so debugging information is not lost. Otherwise discard the buffer.
  */
 register_shutdown_function(function () {
-    $buf = ob_get_contents();
-    if ($buf !== false && $buf !== '') {
-        if (getenv('FIELDOPS_TRACE')) {
-            error_log('[TEST BOOTSTRAP] Suppressed output length=' . strlen($buf));
-            // If you want to inspect the first part of the blob:
-            error_log('[TEST BOOTSTRAP] Head: ' . substr($buf, 0, 200));
+    if (ob_get_level() === 0) {
+        return;
+    }
+
+    $error = error_get_last();
+    $fatal = $error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true);
+
+    if ($fatal) {
+        $buf = ob_get_contents();
+        if ($buf !== false && $buf !== '') {
+            // Send to STDERR so it shows up alongside the fatal error message
+            fwrite(STDERR, $buf);
         }
-        // Discard the buffer content
-        ob_end_clean();
+        ob_end_flush();
     } else {
-        // Nothing to discard; just end the buffer cleanly
-        if (ob_get_level() > 0) {
-            ob_end_clean();
-        }
+        fieldopsBootstrapFlush();
     }
 });
 
@@ -79,5 +97,8 @@ if (file_exists($localEnv)) {
     // Let your database.php read it; we just ensure it exists
     // and APP_ENV is set to 'test'
 }
+
+// Bootstrap is complete; close the buffer so PHPUnit output is visible.
+fieldopsBootstrapFlush();
 
 // Nothing else should echo here. Real test code begins when PHPUnit executes the test files.
