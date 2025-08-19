@@ -133,6 +133,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
         <div id="weekDisplay" class="text-muted small"></div>
       </div>
       <a href="availability_form.php" class="btn btn-outline-secondary btn-sm">Classic Form</a>
+      <a href="availability_onboard.php?employee_id=<?= $selectedEmployeeId ?: '' ?>" class="btn btn-outline-primary btn-sm ms-2">Setup Wizard</a>
     </div>
 
     <div id="alertBox" class="alert d-none" role="alert"></div>
