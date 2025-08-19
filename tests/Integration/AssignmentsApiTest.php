@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 
-require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../support/TestPdo.php';
 require_once __DIR__ . '/../TestHelpers/EndpointHarness.php';
 
 final class AssignmentsApiTest extends TestCase
@@ -12,11 +12,11 @@ final class AssignmentsApiTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->pdo = getPDO();
+        $this->pdo = createTestPdo();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
         // Start clean for what we touch
-        $this->pdo->exec("DELETE FROM assignments");
+        $this->pdo->exec("DELETE FROM job_employee_assignment");
         $this->pdo->exec("DELETE FROM jobs");
         $this->pdo->exec("DELETE FROM customers");
 
@@ -67,7 +67,7 @@ final class AssignmentsApiTest extends TestCase
         $this->assertTrue($res['ok'] ?? false, 'assign should succeed');
         $this->assertSame('assigned', $res['action'] ?? null);
 
-        $count = (int)$this->pdo->query("SELECT COUNT(*) FROM assignments WHERE job_id = {$jobId}")->fetchColumn();
+        $count = (int)$this->pdo->query("SELECT COUNT(*) FROM job_employee_assignment WHERE job_id = {$jobId}")->fetchColumn();
         $this->assertSame(2, $count, 'two employees should be assigned');
     }
 
@@ -114,7 +114,7 @@ final class AssignmentsApiTest extends TestCase
         ], ['role' => 'dispatcher']);
         $this->assertTrue($res2['ok'] ?? false);
 
-        $count = (int)$this->pdo->query("SELECT COUNT(*) FROM assignments WHERE job_id = {$jobId}")->fetchColumn();
+        $count = (int)$this->pdo->query("SELECT COUNT(*) FROM job_employee_assignment WHERE job_id = {$jobId}")->fetchColumn();
         $this->assertSame(1, $count, 'replace should leave exactly one assignment');
     }
 }
