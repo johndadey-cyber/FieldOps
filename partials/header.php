@@ -4,6 +4,8 @@ if (!defined('HEADER_INCLUDED')) {
     define('HEADER_INCLUDED', true);
 }
 $title = $title ?? 'FieldOps';
+$headExtra = $headExtra ?? '';
+$bodyAttrs = isset($bodyAttrs) && $bodyAttrs !== '' ? ' ' . $bodyAttrs : '';
 ?>
 <!doctype html>
 <html lang="en">
@@ -21,8 +23,10 @@ $title = $title ?? 'FieldOps';
   <!-- Optional: app styles -->
   <link rel="stylesheet" href="/css/app.css">
   <link rel="icon" type="image/png" href="/favicon.png">
+  <?= $headExtra ?>
 </head>
-<body class="bg-light">
+<body class="bg-light"<?= $bodyAttrs ?>>
+  <?php require __DIR__ . '/navbar.php'; ?>
   <div class="container-fluid py-4">
     <header class="mb-4">
       <h1 class="h3"><?= htmlspecialchars($title) ?></h1>

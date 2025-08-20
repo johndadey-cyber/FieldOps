@@ -92,22 +92,17 @@ $skillQuery = '';
 foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
 $searchQuery = $search !== null && $search !== '' ? '&search=' . urlencode($search) : '';
 ?>
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Employees</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+$title = 'Employees';
+$headExtra = <<<HTML
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-  <link href="css/skills.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-<div class="container py-3">
-  <div class="d-flex align-items-center mb-3">
-    <h1 class="h4 m-0 me-2">Employees</h1>
-    <a href="add_employee.php" class="btn btn-sm btn-primary ms-auto">Add New</a>
+  <link href="/css/skills.css" rel="stylesheet">
+HTML;
+require __DIR__ . '/../partials/header.php';
+?>
+
+  <div class="mb-3 text-end">
+    <a href="add_employee.php" class="btn btn-sm btn-primary">Add New</a>
     <a href="/admin/skill_list.php" class="btn btn-sm btn-secondary ms-2">Skills</a>
   </div>
   <div class="mb-3">
@@ -228,13 +223,15 @@ $searchQuery = $search !== null && $search !== '' ? '&search=' . urlencode($sear
     <span class="badge bg-danger ms-3 me-1">Booked</span> Booked
     <span class="badge bg-warning text-dark ms-3 me-1">Partially Booked</span> Partially Booked
   </div>
-</div>
+$pageScripts = <<<HTML
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="/js/toast.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="/js/employees.js"></script>
+HTML;
+ob_start();
+?>
 <script>
-$(function(){
+document.addEventListener('DOMContentLoaded', function(){
   const searchForm=document.getElementById('search-form');
   const searchInput=document.getElementById('employee-search');
   searchForm.addEventListener('submit',function(e){
@@ -277,5 +274,7 @@ $(function(){
   tooltipTriggerList.map(el=>new bootstrap.Tooltip(el));
 });
 </script>
-</body>
-</html>
+<?php
+$pageScripts .= ob_get_clean();
+require __DIR__ . '/../partials/footer.php';
+?>

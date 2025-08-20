@@ -5,20 +5,10 @@ require __DIR__ . '/_cli_guard.php';
 if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 if (!isset($_SESSION['csrf_token'])) { $_SESSION['csrf_token'] = bin2hex(random_bytes(16)); }
 $CSRF = $_SESSION['csrf_token'];
+ $title = 'Assignments';
+ require __DIR__ . '/../partials/header.php';
 ?>
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Assignments</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-<div class="container py-3">
-  <div class="d-flex align-items-center mb-3">
-    <h1 class="h4 m-0 me-2">Assignments</h1>
-  </div>
+
   <div class="mb-3">
     <input type="search" id="filter-search" class="form-control form-control-sm" placeholder="Search jobs or customers">
   </div>
@@ -39,10 +29,12 @@ $CSRF = $_SESSION['csrf_token'];
       </table>
     </div>
   </div>
-</div>
+
 <?php include __DIR__ . '/../partials/assignments_modal.php'; ?>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<?php
+$pageScripts = <<<HTML
 <script src="/js/assignments.js"></script>
 <script src="/js/assignments-page.js"></script>
-</body>
-</html>
+HTML;
+require __DIR__ . '/../partials/footer.php';
+?>

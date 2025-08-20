@@ -1,0 +1,6 @@
+/* Custom global styles */
+
+/* Highlight active nav link */
+.navbar-nav .nav-link.active {
+    font-weight: 600;
+}
