@@ -208,10 +208,21 @@
         const res=await fetch('/api/job_complete.php',{method:'POST',body:fd,credentials:'same-origin'});
         const data=await res.json();
         if(!data?.ok) throw new Error(data?.error||'Failed');
-        alert('Job completed');
+        if(window.FieldOpsToast && typeof FieldOpsToast.show==='function'){
+          FieldOpsToast.show('Job completed');
+        }else{
+          alert('Job completed');
+        }
+        btnComplete.disabled=true;
+        btnComplete.classList.add('d-none');
+        if(details){
+          const status=document.createElement('div');
+          status.className='mt-2 badge bg-success';
+          status.textContent='Completed';
+          details.appendChild(status);
+        }
       }catch(err){
         alert(err.message||'Failed');
-      }finally{
         btnComplete.disabled=false;
       }
     });
