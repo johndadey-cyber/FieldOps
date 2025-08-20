@@ -47,6 +47,8 @@ try {
     $pdo = getPDO();
     $pdo->beginTransaction();
 
+    $files = [];
+
     JobNote::add($pdo, $jobId, $technicianId, $finalNote, true);
 
     $uploadDir = __DIR__ . '/../uploads/jobs/';
@@ -76,6 +78,7 @@ try {
             throw new RuntimeException('Invalid photo path');
         }
         file_put_contents($destPath, $img);
+        $files[] = $destPath;
         JobPhoto::add($pdo, $jobId, $technicianId, $relativePath, 'final');
     }
 
@@ -102,6 +105,7 @@ try {
         throw new RuntimeException('Invalid signature path');
     }
     file_put_contents($sigDest, $sigBin);
+    $files[] = $sigDest;
     JobCompletion::save($pdo, $jobId, $sigRelPath);
 
     $ok = Job::complete($pdo, $jobId, $lat, $lng);
@@ -124,11 +128,23 @@ try {
         JsonResponse::json(['ok' => true, 'status' => 'completed']);
     } else {
         $pdo->rollBack();
+        foreach ($files as $f) {
+            if (is_file($f)) {
+                @unlink($f);
+            }
+        }
         JsonResponse::json(['ok' => false, 'error' => 'Invalid status', 'code' => \ErrorCodes::VALIDATION_ERROR], 422);
     }
 } catch (Throwable $e) {
     if (isset($pdo) && $pdo->inTransaction()) {
         $pdo->rollBack();
+    }
+    if (isset($files)) {
+        foreach ($files as $f) {
+            if (is_file($f)) {
+                @unlink($f);
+            }
+        }
     }
     JsonResponse::json(['ok' => false, 'error' => 'Server error', 'code' => \ErrorCodes::SERVER_ERROR], 500);
 }
