@@ -30,10 +30,12 @@
 <div class="text-muted">${h(j.customer?.address_line1||'')}</div>
 <div id="job-status" class="text-muted"></div>`;
         statusEl=document.getElementById('job-status');
+
+        if(statusEl){statusEl.textContent=`Status: ${fmtStatus(j.status)}`;}
         const status=(j.status||'').toLowerCase();
-        if(statusEl){statusEl.textContent=`Status: ${fmtStatus(status)}`;}
         if(status==='assigned'){btnStart.classList.remove('d-none');}
         if(status==='in_progress'){btnComplete.classList.remove('d-none');}
+
       })
       .catch(err=>{details.innerHTML=`<div class="text-danger">${h(err.message)}</div>`;});
 
@@ -49,12 +51,10 @@
           .then(r=>r.json())
           .then(res=>{
             if(!res?.ok) throw new Error(res?.error||'Failed');
-            const status=(res.status||'').toLowerCase();
-            if(status==='in_progress'){
-              btnStart.classList.add('d-none');
-              btnComplete.classList.remove('d-none');
-            }
-            if(statusEl){statusEl.textContent=`Status: ${fmtStatus(status||'in_progress')}`;}
+
+            btnStart.classList.add('d-none');
+            btnComplete.classList.remove('d-none');
+            if(statusEl){statusEl.textContent=`Status: ${fmtStatus(res.status||'in_progress')}`;}
           })
           .catch(err=>{alert(err.message||'Failed');btnStart.disabled=false;});
       },()=>{alert('Location required');btnStart.disabled=false;});
