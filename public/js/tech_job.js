@@ -19,6 +19,7 @@
     const btnChecklist=document.getElementById('btn-checklist');
     const btnComplete=document.getElementById('btn-complete');
     let scheduledStart=null;
+    let notesCache=[];
     const fileInput=document.createElement('input');
     fileInput.type='file';
     fileInput.accept='image/*';
@@ -79,7 +80,7 @@
     function fetchNotes(){
       fetch(`/api/job_notes_list.php?job_id=${jobId}&csrf_token=${encodeURIComponent(csrf)}`,{credentials:'same-origin'})
         .then(r=>r.json())
-        .then(data=>{if(!data?.ok) throw new Error();renderNotes(data.notes||[]);})
+        .then(data=>{if(!data?.ok) throw new Error();notesCache=data.notes||[];renderNotes(notesCache);})
         .catch(()=>{if(notesEl) notesEl.innerHTML='<div class="text-muted">No notes</div>';});
     }
 
@@ -174,12 +175,27 @@
       fd.append('technician_id',techId);
       fd.append('note',note);
       fd.append('csrf_token',csrf);
-
+      const addLocal=id=>{
+        notesCache.unshift({id:id,job_id:jobId,technician_id:techId,note,created_at:new Date().toISOString(),is_final:false});
+        renderNotes(notesCache);
+      };
       const send=()=>fetch('/api/job_notes_add.php',{method:'POST',body:fd,credentials:'same-origin'}).then(r=>r.json());
       if(navigator.onLine){
-        try{const res=await send();if(!res?.ok) throw new Error(res?.error||'Failed');alert('Note added');}
-        catch(e){queueOffline({type:'note',job_id:jobId,technician_id:techId,note,csrf_token:csrf});alert('Note saved offline');}
-      }else{queueOffline({type:'note',job_id:jobId,technician_id:techId,note,csrf_token:csrf});alert('Note saved offline');}
+        try{
+          const res=await send();
+          if(!res?.ok) throw new Error(res?.error||'Failed');
+          addLocal(res.id);
+          alert('Note added');
+        }catch(e){
+          queueOffline({type:'note',job_id:jobId,technician_id:techId,note,csrf_token:csrf});
+          addLocal(Date.now());
+          alert('Note saved offline');
+        }
+      }else{
+        queueOffline({type:'note',job_id:jobId,technician_id:techId,note,csrf_token:csrf});
+        addLocal(Date.now());
+        alert('Note saved offline');
+      }
     });
 
     btnPhoto?.addEventListener('click',()=>fileInput.click());
