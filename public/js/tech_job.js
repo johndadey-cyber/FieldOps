@@ -187,8 +187,10 @@
 
     btnComplete?.addEventListener('click',async()=>{
       if(!confirm('Mark job complete?')) return;
-      const finalNote=prompt('Enter final note:')||'';
+      const finalNote=(prompt('Enter final note:')||'').trim();
+      if(!finalNote){alert('Final note is required');return;}
       const photos=await pickFinalPhotos();
+      if(!photos?.length){alert('At least one completion photo is required');return;}
       const signature=await captureSignature();
       if(!signature){alert('Signature required');return;}
       btnComplete.disabled=true;
