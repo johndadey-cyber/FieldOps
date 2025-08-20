@@ -8,8 +8,8 @@ final class Job
      */
     public static function getJobAndCustomerDetails(PDO $pdo, int $jobId): ?array
     {
-        $st = $pdo->prepare("
-            SELECT
+        $st = $pdo->prepare(
+            "SELECT
                 j.id,
                 j.customer_id,
                 j.description,
@@ -17,22 +17,53 @@ final class Job
                 j.scheduled_date,
                 j.scheduled_time,
                 j.duration_minutes,
-                c.id   AS customer_id_actual,
-                CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
-                c.email AS customer_email,
-                c.phone AS customer_phone
+                c.id            AS customer_id_actual,
+                c.first_name    AS customer_first_name,
+                c.last_name     AS customer_last_name,
+                c.email         AS customer_email,
+                c.phone         AS customer_phone,
+                c.address_line1,
+                c.address_line2,
+                c.city,
+                c.state,
+                c.postal_code,
+                c.country
             FROM jobs j
             JOIN customers c ON c.id = j.customer_id
             WHERE j.id = :id
-            LIMIT 1
-        ");
+            LIMIT 1"
+        );
         if ($st === false) {
             return null;
         }
         $st->execute([':id' => $jobId]);
         /** @var array<string,mixed>|false $row */
         $row = $st->fetch(PDO::FETCH_ASSOC);
-        return $row !== false ? $row : null;
+        if ($row === false) {
+            return null;
+        }
+        return [
+            'id' => (int)$row['id'],
+            'customer_id' => (int)$row['customer_id'],
+            'description' => $row['description'],
+            'status' => $row['status'],
+            'scheduled_date' => $row['scheduled_date'],
+            'scheduled_time' => $row['scheduled_time'],
+            'duration_minutes' => $row['duration_minutes'] !== null ? (int)$row['duration_minutes'] : null,
+            'customer' => [
+                'id' => (int)$row['customer_id_actual'],
+                'first_name' => $row['customer_first_name'],
+                'last_name' => $row['customer_last_name'],
+                'email' => $row['customer_email'],
+                'phone' => $row['customer_phone'],
+                'address_line1' => $row['address_line1'],
+                'address_line2' => $row['address_line2'],
+                'city' => $row['city'],
+                'state' => $row['state'],
+                'postal_code' => $row['postal_code'],
+                'country' => $row['country'],
+            ],
+        ];
     }
 
     /**
