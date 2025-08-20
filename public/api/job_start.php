@@ -39,15 +39,39 @@ try {
     $pdo    = getPDO();
     $userId = isset($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : 0;
 
-    $st = $pdo->prepare('SELECT technician_id FROM jobs WHERE id = :id');
-    if ($st === false) {
-        throw new RuntimeException('Failed to prepare statement');
+    // Verify that the logged-in technician is assigned to this job. Some
+    // deployments use a `technician_id` column on `jobs`; others use the
+    // `job_employee_assignment` join table. Detect which schema is present.
+    $hasTechColumn = false;
+    try {
+        $pdo->query('SELECT technician_id FROM jobs LIMIT 0');
+        $hasTechColumn = true;
+    } catch (Throwable $ignore) {
+        $hasTechColumn = false;
     }
-    $st->execute([':id' => $jobId]);
-    $techId = (int)$st->fetchColumn();
-    if ($techId !== $userId) {
-        JsonResponse::json(['ok' => false, 'error' => 'Forbidden', 'code' => \ErrorCodes::FORBIDDEN], 403);
-        return;
+
+    if ($hasTechColumn) {
+        $st = $pdo->prepare('SELECT technician_id FROM jobs WHERE id = :id');
+        if ($st === false) {
+            throw new RuntimeException('Failed to prepare statement');
+        }
+        $st->execute([':id' => $jobId]);
+        $techId = (int)$st->fetchColumn();
+        if ($techId !== $userId) {
+            JsonResponse::json(['ok' => false, 'error' => 'Forbidden', 'code' => \ErrorCodes::FORBIDDEN], 403);
+            return;
+        }
+    } else {
+        // Fallback: check assignment via join table
+        $st = $pdo->prepare('SELECT 1 FROM job_employee_assignment WHERE job_id = :jid AND employee_id = :eid LIMIT 1');
+        if ($st === false) {
+            throw new RuntimeException('Failed to prepare assignment check');
+        }
+        $st->execute([':jid' => $jobId, ':eid' => $userId]);
+        if ($st->fetchColumn() === false) {
+            JsonResponse::json(['ok' => false, 'error' => 'Forbidden', 'code' => \ErrorCodes::FORBIDDEN], 403);
+            return;
+        }
     }
 
     $ok = Job::start($pdo, $jobId, $lat, $lng);
@@ -57,6 +81,7 @@ try {
         JsonResponse::json(['ok' => false, 'error' => 'Invalid status', 'code' => \ErrorCodes::VALIDATION_ERROR], 422);
     }
 } catch (Throwable $e) {
+    error_log('job_start: ' . $e->getMessage());
     JsonResponse::json(['ok' => false, 'error' => 'Server error', 'code' => \ErrorCodes::SERVER_ERROR], 500);
 }
 
