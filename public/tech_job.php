@@ -27,6 +27,7 @@ $jobId  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 </head>
 <body class="bg-light">
 <div class="container py-3">
+  <div id="network-banner" class="alert text-center small d-none"></div>
   <div id="status-banner" class="alert alert-secondary mb-3 d-none"></div>
   <button class="btn btn-primary mb-3 d-none" id="btn-start-job">Start Job</button>
   <div id="job-details" class="mb-4"></div>
@@ -52,7 +53,11 @@ $jobId  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
   window.TECH_ID = <?= $techId ?>;
   window.JOB_ID = <?= $jobId ?>;
 </script>
+<script>
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js');}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/offline.js"></script>
 <script src="/js/tech_job.js?v=<?=date('Ymd')?>"></script>
 </body>
 </html>

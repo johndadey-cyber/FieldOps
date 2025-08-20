@@ -28,6 +28,7 @@ $jobId  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 </head>
 <body class="bg-light">
 <div class="container py-3">
+  <div id="network-banner" class="alert text-center small d-none"></div>
   <div class="mb-3">
     <label for="final-note" class="form-label">Summary Note</label>
     <textarea class="form-control" id="final-note" rows="4"></textarea>
@@ -52,7 +53,11 @@ $jobId  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
   window.TECH_ID = <?= $techId ?>;
   window.JOB_ID = <?= $jobId ?>;
 </script>
+<script>
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js');}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/offline.js"></script>
 <script src="/js/tech_job_complete.js?v=<?=date('Ymd')?>"></script>
 </body>
 </html>
