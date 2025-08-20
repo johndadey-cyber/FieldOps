@@ -14,7 +14,7 @@ if ($method !== 'POST') {
 }
 
 $raw  = file_get_contents('php://input');
-$data = array_merge($_GET, $_POST);
+$data = $_POST;
 if (!verify_csrf_token($data['csrf_token'] ?? null)) {
     csrf_log_failure_payload($raw, $data);
     JsonResponse::json(['ok' => false, 'error' => 'Invalid CSRF token', 'code' => \ErrorCodes::CSRF_INVALID], 400);
