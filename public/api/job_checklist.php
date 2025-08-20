@@ -29,6 +29,14 @@ if ($jobId <= 0) {
 try {
     $pdo = getPDO();
     $items = JobChecklistItem::listForJob($pdo, $jobId);
+    $items = array_map(
+        static fn(array $it): array => [
+            'id' => $it['id'],
+            'description' => $it['description'],
+            'completed' => $it['is_completed'],
+        ],
+        $items
+    );
     JsonResponse::json(['ok' => true, 'items' => $items]);
 } catch (Throwable $e) {
     JsonResponse::json(['ok' => false, 'error' => 'Server error', 'code' => \ErrorCodes::SERVER_ERROR], 500);
