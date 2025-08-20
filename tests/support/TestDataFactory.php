@@ -60,19 +60,32 @@ final class TestDataFactory
         }
     }
 
-    public static function createJob(PDO $pdo, int $customerId, string $desc, string $date, string $time, int $duration = 60, string $status = 'scheduled'): int
-    {
-        $stmt = $pdo->prepare("
-            INSERT INTO jobs (customer_id, description, status, scheduled_date, scheduled_time, duration_minutes)
-            VALUES (:c,:d,:s,:dt,:tm,:dur)
-        ");
+    public static function createJob(
+        PDO $pdo,
+        int $customerId,
+        string $desc,
+        string $date,
+        string $time,
+        int $duration = 60,
+        string $status = 'scheduled',
+        ?int $technicianId = null
+    ): int {
+        $hasTech = self::hasColumn($pdo, 'jobs', 'technician_id');
+        $sql     = $hasTech
+            ? 'INSERT INTO jobs (customer_id, description, status, scheduled_date, scheduled_time, duration_minutes, technician_id)
+                VALUES (:c,:d,:s,:dt,:tm,:dur,:tid)'
+            : 'INSERT INTO jobs (customer_id, description, status, scheduled_date, scheduled_time, duration_minutes)
+                VALUES (:c,:d,:s,:dt,:tm,:dur)';
+
+        $stmt = $pdo->prepare($sql);
         $stmt->execute([
-            ':c' => $customerId,
-            ':d' => $desc,
-            ':s' => $status,
-            ':dt'=> $date,
-            ':tm'=> $time,
-            ':dur'=> $duration,
+            ':c'   => $customerId,
+            ':d'   => $desc,
+            ':s'   => $status,
+            ':dt'  => $date,
+            ':tm'  => $time,
+            ':dur' => $duration,
+            ...($hasTech ? [':tid' => $technicianId] : []),
         ]);
         return (int)$pdo->lastInsertId();
     }

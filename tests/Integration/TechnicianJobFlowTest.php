@@ -30,14 +30,15 @@ final class TechnicianJobFlowTest extends TestCase
 
         $customerId   = TestDataFactory::createCustomer($this->pdo);
         $this->techId = TestDataFactory::createEmployee($this->pdo);
-        $this->jobId  = TestDataFactory::createJob(
+        $this->jobId = TestDataFactory::createJob(
             $this->pdo,
             $customerId,
             'Technician flow job',
             '2025-01-01',
             '09:00:00',
             60,
-            'assigned'
+            'assigned',
+            $this->techId
         );
 
         $st = $this->pdo->prepare('INSERT INTO job_checklist_items (job_id, description, is_completed) VALUES (:j,:d,0)');
@@ -74,7 +75,7 @@ final class TechnicianJobFlowTest extends TestCase
                 'location_lat' => '1',
                 'location_lng' => '2',
             ],
-            ['role' => 'technician']
+            ['role' => 'technician', 'user' => ['id' => $this->techId]]
         );
         $this->assertTrue($start['ok'] ?? false);
         $this->assertSame('in_progress', $start['status'] ?? null);
