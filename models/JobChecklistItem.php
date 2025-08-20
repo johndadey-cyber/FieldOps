@@ -26,6 +26,16 @@ final class JobChecklistItem
     ];
 
     /**
+     * Expose default templates for job types.
+     *
+     * @return array<int, list<string>>
+     */
+    public static function defaultTemplates(): array
+    {
+        return self::DEFAULT_TEMPLATES;
+    }
+
+    /**
      * Fetch checklist items for a job.
      * @return list<array{id:int,job_id:int,description:string,is_completed:bool,completed_at:?string}>
      */
