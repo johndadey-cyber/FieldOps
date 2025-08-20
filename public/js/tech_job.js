@@ -20,6 +20,30 @@
     fileInput.style.display='none';
     document.body.appendChild(fileInput);
 
+    function debugStep(msg){
+      console.log('[tech_job]',msg);
+      let log=document.getElementById('debug-log');
+      if(!log){
+        log=document.createElement('div');
+        log.id='debug-log';
+        log.style.position='fixed';
+        log.style.bottom='0';
+        log.style.left='0';
+        log.style.right='0';
+        log.style.background='rgba(0,0,0,0.7)';
+        log.style.color='#0f0';
+        log.style.fontSize='12px';
+        log.style.maxHeight='50vh';
+        log.style.overflowY='auto';
+        log.style.zIndex='9999';
+        log.style.padding='4px';
+        document.body.appendChild(log);
+      }
+      const div=document.createElement('div');
+      div.textContent=msg;
+      log.appendChild(div);
+    }
+
     fetch(`/api/get_job_details.php?id=${jobId}`,{credentials:'same-origin'})
       .then(r=>r.json())
       .then(data=>{
@@ -163,17 +187,19 @@
           const res=[];
           for(const f of files){res.push(await fileToBase64(f));}
           cleanup();
+          debugStep(`Selected ${files.length} photo(s)`);
           resolve(res);
         });
 
         // If the user cancels the dialog, resolve with null so callers can
         // handle the "no photos" case instead of hanging forever
-        input.addEventListener('cancel',()=>{cleanup();resolve(null);});
+        input.addEventListener('cancel',()=>{cleanup();debugStep('Photo selection cancelled');resolve(null);});
         // Fallback for browsers without "cancel" event
         input.addEventListener('blur',()=>{
-          if(!input.files.length){cleanup();resolve(null);}
+          if(!input.files.length){cleanup();debugStep('Photo selection cancelled');resolve(null);}
         });
 
+        debugStep('Opening photo picker');
         input.click();
       });
     }
@@ -205,9 +231,10 @@
         canvas.addEventListener('touchmove',draw);
         canvas.addEventListener('touchend',end);
         const bsModal=new bootstrap.Modal(modal);
-        modal.addEventListener('hidden.bs.modal',()=>{modal.remove();resolve(null);});
+        modal.addEventListener('hidden.bs.modal',()=>{modal.remove();debugStep('Signature dialog closed');resolve(null);});
         modal.querySelector('#sig-clear').addEventListener('click',()=>{ctx.clearRect(0,0,canvas.width,canvas.height);});
-        modal.querySelector('#sig-save').addEventListener('click',()=>{const data=canvas.toDataURL('image/png');bsModal.hide();resolve(data);});
+        modal.querySelector('#sig-save').addEventListener('click',()=>{const data=canvas.toDataURL('image/png');bsModal.hide();debugStep('Signature captured');resolve(data);});
+        debugStep('Opening signature dialog');
         bsModal.show();
       });
     }
@@ -217,16 +244,23 @@
     }
 
     btnComplete?.addEventListener('click',async()=>{
-      if(!confirm('Mark job complete?')) return;
+      debugStep('Complete button clicked');
+      if(!confirm('Mark job complete?')){debugStep('User cancelled completion');return;}
+      debugStep('User confirmed completion');
       const finalNote=(prompt('Enter final note:')||'').trim();
-      if(!finalNote){alert('Final note is required');return;}
+      debugStep('Final note entered');
+      if(!finalNote){alert('Final note is required');debugStep('Final note missing');return;}
+      debugStep('Requesting final photos');
       const photos=await pickFinalPhotos();
-      if(!photos?.length){alert('At least one completion photo is required');return;}
+      if(!photos?.length){alert('At least one completion photo is required');debugStep('No photos selected');return;}
+      debugStep('Requesting signature');
       const signature=await captureSignature();
-      if(!signature){alert('Signature required');return;}
+      if(!signature){alert('Signature required');debugStep('Signature missing');return;}
+      debugStep('Getting location');
       btnComplete.disabled=true;
       try{
         const pos=await getLocation();
+        debugStep('Location received');
         const fd=new FormData();
         fd.append('job_id',jobId);
         fd.append('technician_id',techId);
@@ -236,9 +270,11 @@
         photos.forEach(p=>fd.append('final_photos[]',p));
         fd.append('signature',signature);
         fd.append('csrf_token',csrf);
+        debugStep('Submitting completion to server');
         const res=await fetch('/api/job_complete.php',{method:'POST',body:fd,credentials:'same-origin'});
         const data=await res.json();
         if(!data?.ok) throw new Error(data?.error||'Failed');
+        debugStep('Server responded success');
         if(window.FieldOpsToast && typeof FieldOpsToast.show==='function'){
           FieldOpsToast.show('Job completed');
         }else{
@@ -252,8 +288,10 @@
           status.textContent='Completed';
           details.appendChild(status);
         }
+        debugStep('Completion workflow finished');
       }catch(err){
         alert(err.message||'Failed');
+        debugStep(`Completion failed: ${err.message||'Unknown error'}`);
         btnComplete.disabled=false;
       }
     });
