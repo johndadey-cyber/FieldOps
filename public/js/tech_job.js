@@ -30,9 +30,11 @@
 <div class="text-muted">${h(j.customer?.address_line1||'')}</div>
 <div id="job-status" class="text-muted"></div>`;
         statusEl=document.getElementById('job-status');
+
         if(statusEl){statusEl.textContent=`Status: ${fmtStatus(j.status)}`;}
         if(j.status==='assigned'){btnStart.classList.remove('d-none');}
         if(j.status==='in_progress'){btnComplete.classList.remove('d-none');}
+
       })
       .catch(err=>{details.innerHTML=`<div class="text-danger">${h(err.message)}</div>`;});
 
@@ -48,6 +50,7 @@
           .then(r=>r.json())
           .then(res=>{
             if(!res?.ok) throw new Error(res?.error||'Failed');
+
             btnStart.classList.add('d-none');
             btnComplete.classList.remove('d-none');
             if(statusEl){statusEl.textContent=`Status: ${fmtStatus(res.status||'in_progress')}`;}

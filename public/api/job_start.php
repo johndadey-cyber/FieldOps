@@ -81,7 +81,9 @@ try {
         JsonResponse::json(['ok' => false, 'error' => 'Invalid status', 'code' => \ErrorCodes::VALIDATION_ERROR], 422);
     }
 } catch (Throwable $e) {
+
     error_log('job_start: ' . $e->getMessage());
+
     JsonResponse::json(['ok' => false, 'error' => 'Server error', 'code' => \ErrorCodes::SERVER_ERROR], 500);
 }
 
