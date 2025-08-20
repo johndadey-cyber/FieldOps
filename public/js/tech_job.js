@@ -20,8 +20,68 @@
     const fileInput=document.createElement('input');
     fileInput.type='file';
     fileInput.accept='image/*';
+    fileInput.multiple=true;
     fileInput.style.display='none';
     document.body.appendChild(fileInput);
+
+    const offlineKey='techJobQueue';
+    function queueOffline(item){
+      const list=JSON.parse(localStorage.getItem(offlineKey)||'[]');
+      list.push(item);
+      localStorage.setItem(offlineKey,JSON.stringify(list));
+    }
+    async function processQueue(){
+      if(!navigator.onLine) return;
+      const list=JSON.parse(localStorage.getItem(offlineKey)||'[]');
+      const remaining=[];
+      for(const item of list){
+        try{
+          if(item.type==='note'){
+            const fd=new FormData();
+            fd.append('job_id',item.job_id);
+            fd.append('technician_id',item.technician_id);
+            fd.append('note',item.note);
+            fd.append('csrf_token',csrf);
+            const r=await fetch('/api/job_notes_add.php',{method:'POST',body:fd,credentials:'same-origin'});
+            const j=await r.json();
+            if(!j?.ok) throw new Error();
+          }else if(item.type==='photo'){
+            const fd=new FormData();
+            fd.append('job_id',item.job_id);
+            fd.append('technician_id',item.technician_id);
+            fd.append('csrf_token',csrf);
+            fd.append('tags[]',item.tag);
+            fd.append('annotations[]',item.annotation||'');
+            fd.append('photos[]',dataURLtoBlob(item.photo),'photo.png');
+            const r=await fetch('/api/job_photos_upload.php',{method:'POST',body:fd,credentials:'same-origin'});
+            const j=await r.json();
+            if(!j?.ok) throw new Error();
+          }else if(item.type==='checklist'){
+            const fd=new FormData();
+            fd.append('job_id',item.job_id);
+            fd.append('items',JSON.stringify(item.items));
+            fd.append('csrf_token',csrf);
+            const r=await fetch('/api/job_checklist_update.php',{method:'POST',body:fd,credentials:'same-origin'});
+            const j=await r.json();
+            if(!j?.ok) throw new Error();
+          }
+        }catch(e){
+          remaining.push(item);
+        }
+      }
+      localStorage.setItem(offlineKey,JSON.stringify(remaining));
+    }
+    window.addEventListener('online',processQueue);
+    processQueue();
+
+    const fab=document.createElement('div');
+    fab.className='fab';
+    fab.innerHTML=`<div class="fab-menu d-none"><button class="btn btn-light" id="fab-note">Note</button><button class="btn btn-light" id="fab-photo">Photo</button></div><button class="btn btn-primary fab-main">+</button>`;
+    document.body.appendChild(fab);
+    const fabMenu=fab.querySelector('.fab-menu');
+    fab.querySelector('.fab-main').addEventListener('click',()=>fabMenu.classList.toggle('d-none'));
+    fab.querySelector('#fab-note').addEventListener('click',()=>{fabMenu.classList.add('d-none');btnNote?.click();});
+    fab.querySelector('#fab-photo').addEventListener('click',()=>{fabMenu.classList.add('d-none');btnPhoto?.click();});
 
     function debugStep(msg){
       console.log('[tech_job]',msg);
@@ -150,30 +210,42 @@
       },()=>{alert('Location required');btnStart.disabled=false;});
     });
 
-    btnNote?.addEventListener('click',()=>{
-      const note=prompt('Enter note:');
+    btnNote?.addEventListener('click',async()=>{
+      const note=await showNoteModal();
       if(!note) return;
       const fd=new FormData();
       fd.append('job_id',jobId);
       fd.append('technician_id',techId);
       fd.append('note',note);
       fd.append('csrf_token',csrf);
-      fetch('/api/job_notes_add.php',{method:'POST',body:fd,credentials:'same-origin'})
-        .then(r=>r.json()).then(res=>{if(!res?.ok) throw new Error(res?.error||'Failed');fetchNotes();})
-        .catch(err=>alert(err.message||'Failed'));
+
+      const send=()=>fetch('/api/job_notes_add.php',{method:'POST',body:fd,credentials:'same-origin'}).then(r=>r.json());
+      if(navigator.onLine){
+        try{const res=await send();if(!res?.ok) throw new Error(res?.error||'Failed');alert('Note added');}
+        catch(e){queueOffline({type:'note',job_id:jobId,technician_id:techId,note});alert('Note saved offline');}
+      }else{queueOffline({type:'note',job_id:jobId,technician_id:techId,note});alert('Note saved offline');}
     });
 
     btnPhoto?.addEventListener('click',()=>fileInput.click());
-    fileInput.addEventListener('change',()=>{
-      if(!fileInput.files[0]) return;
-      const fd=new FormData();
-      fd.append('job_id',jobId);
-      fd.append('technician_id',techId);
-      fd.append('photo',fileInput.files[0]);
-      fd.append('csrf_token',csrf);
-      fetch('/api/job_photos_upload.php',{method:'POST',body:fd,credentials:'same-origin'})
-        .then(r=>r.json()).then(res=>{if(!res?.ok) throw new Error(res?.error||'Failed');fileInput.value='';fetchPhotos();})
-        .catch(err=>{alert(err.message||'Upload failed');fileInput.value='';});
+    fileInput.addEventListener('change',async()=>{
+      const files=Array.from(fileInput.files||[]);
+      if(!files.length) return;
+      const info=await showPhotoModal(files);
+      fileInput.value='';
+      if(!info) return;
+      const send=async(list)=>{
+        const fd=new FormData();
+        fd.append('job_id',jobId);
+        fd.append('technician_id',techId);
+        fd.append('csrf_token',csrf);
+        list.forEach(it=>{fd.append('photos[]',it.file);fd.append('tags[]',it.tag);fd.append('annotations[]',it.annotation||'');});
+        const r=await fetch('/api/job_photos_upload.php',{method:'POST',body:fd,credentials:'same-origin'});
+        return r.json();
+      };
+      if(navigator.onLine){
+        try{const res=await send(info);if(!res?.ok) throw new Error(res?.error||'Failed');alert('Photo uploaded');}
+        catch(e){for(const it of info){const b64=await fileToBase64(it.file);queueOffline({type:'photo',job_id:jobId,technician_id:techId,photo:b64,tag:it.tag,annotation:it.annotation||''});}alert('Photo saved offline');}
+      }else{for(const it of info){const b64=await fileToBase64(it.file);queueOffline({type:'photo',job_id:jobId,technician_id:techId,photo:b64,tag:it.tag,annotation:it.annotation||''});}alert('Photo saved offline');}
     });
 
     btnChecklist?.addEventListener('click',async()=>{
@@ -187,10 +259,11 @@
         fd.append('job_id',jobId);
         fd.append('items',JSON.stringify(checked));
         fd.append('csrf_token',csrf);
-        const res2=await fetch('/api/job_checklist_update.php',{method:'POST',body:fd,credentials:'same-origin'});
-        const data2=await res2.json();
-        if(!data2?.ok) throw new Error(data2?.error||'Failed');
-        alert('Checklist saved');
+        const send=()=>fetch('/api/job_checklist_update.php',{method:'POST',body:fd,credentials:'same-origin'}).then(r=>r.json());
+        if(navigator.onLine){
+          try{const data2=await send();if(!data2?.ok) throw new Error(data2?.error||'Failed');alert('Checklist saved');}
+          catch(e){queueOffline({type:'checklist',job_id:jobId,items:checked});alert('Checklist saved offline');}
+        }else{queueOffline({type:'checklist',job_id:jobId,items:checked});alert('Checklist saved offline');}
       }catch(err){alert(err.message||'Checklist failed');}
     });
 
@@ -224,6 +297,56 @@
       });
     }
 
+    async function showNoteModal(){
+      return new Promise(resolve=>{
+        const modal=document.createElement('div');
+        modal.className='modal fade';
+        modal.innerHTML=`<div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Add Note</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><textarea class="form-control" id="note-text" rows="4"></textarea><button type="button" class="btn btn-sm btn-secondary mt-2" id="voice-btn">Voice</button></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" id="note-save">Save</button></div></div></div>`;
+        document.body.appendChild(modal);
+        const bsModal=new bootstrap.Modal(modal);
+        const textarea=modal.querySelector('#note-text');
+        let recog;
+        modal.addEventListener('hidden.bs.modal',()=>{modal.remove();if(recog)recog.stop();resolve(null);});
+        modal.querySelector('#note-save').addEventListener('click',()=>{const val=textarea.value.trim();bsModal.hide();resolve(val);});
+        modal.querySelector('#voice-btn').addEventListener('click',()=>{
+          const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+          if(!SR){alert('Speech recognition not supported');return;}
+          recog=new SR();
+          recog.lang='en-US';
+          recog.onresult=e=>{const t=Array.from(e.results).map(r=>r[0].transcript).join(' ');textarea.value+=(textarea.value?' ':'')+t;};
+          recog.start();
+        });
+        bsModal.show();
+      });
+    }
+
+    async function showPhotoModal(files){
+      return new Promise(resolve=>{
+        const modal=document.createElement('div');
+        modal.className='modal fade';
+        let bodyHtml='';
+        files.forEach((f,i)=>{
+          const url=URL.createObjectURL(f);
+          bodyHtml+=`<div class="mb-3"><img src="${url}" class="img-fluid mb-1"><select class="form-select mb-1" data-idx="${i}"><option>Before</option><option>After</option><option>Other</option></select><input type="text" class="form-control" placeholder="Annotation (optional)" data-anno="${i}"></div>`;
+        });
+        modal.innerHTML=`<div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Upload Photos</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">${bodyHtml}</div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" id="photo-save">Upload</button></div></div></div>`;
+        document.body.appendChild(modal);
+        const bsModal=new bootstrap.Modal(modal);
+        modal.addEventListener('hidden.bs.modal',()=>{modal.remove();resolve(null);});
+        modal.querySelector('#photo-save').addEventListener('click',()=>{
+          const list=[];
+          files.forEach((f,i)=>{
+            const tag=modal.querySelector(`select[data-idx="${i}"]`).value;
+            const annotation=modal.querySelector(`input[data-anno="${i}"]`).value;
+            list.push({file:f,tag,annotation});
+          });
+          bsModal.hide();
+          resolve(list);
+        });
+        bsModal.show();
+      });
+    }
+
     function fileToBase64(file){
       return new Promise((resolve,reject)=>{
         const reader=new FileReader();
@@ -231,6 +354,14 @@
         reader.onerror=()=>reject(new Error('Read failed'));
         reader.readAsDataURL(file);
       });
+    }
+
+    function dataURLtoBlob(dataUrl){
+      const arr=dataUrl.split(',');
+      const mime=(arr[0].match(/:(.*?);/)||[])[1]||'application/octet-stream';
+      const bstr=atob(arr[1]);
+      let n=bstr.length;const u8=new Uint8Array(n);
+      while(n--){u8[n]=bstr.charCodeAt(n);}return new Blob([u8],{type:mime});
     }
 
     async function pickFinalPhotos(){

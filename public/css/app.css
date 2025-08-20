@@ -4,3 +4,26 @@
 .navbar-nav .nav-link.active {
     font-weight: 600;
 }
+
+/* Floating Action Button */
+.fab {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 1050;
+}
+.fab-main {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+.fab-menu {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-bottom: .5rem;
+}
+.fab-menu .btn {
+    margin-top: .5rem;
+}
