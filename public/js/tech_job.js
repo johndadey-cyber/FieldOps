@@ -32,8 +32,9 @@
         statusEl=document.getElementById('job-status');
 
         if(statusEl){statusEl.textContent=`Status: ${fmtStatus(j.status)}`;}
-        if(j.status==='assigned'){btnStart.classList.remove('d-none');}
-        if(j.status==='in_progress'){btnComplete.classList.remove('d-none');}
+        const status=(j.status||'').toLowerCase();
+        if(status==='assigned'){btnStart.classList.remove('d-none');}
+        if(status==='in_progress'){btnComplete.classList.remove('d-none');}
 
       })
       .catch(err=>{details.innerHTML=`<div class="text-danger">${h(err.message)}</div>`;});
