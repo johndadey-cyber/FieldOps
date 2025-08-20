@@ -26,3 +26,9 @@ php scripts/migrate_dev_db.php
 The application defaults to `fieldops_development` when `APP_ENV` is `dev`.
 Connection settings can be overridden in `config/local.env.php` or via
 environment variables.
+
+## CDN Scripts
+
+When including scripts from a CDN, always add an `integrity` hash and
+`crossorigin="anonymous"` attribute. These enable Subresource Integrity (SRI),
+helping ensure the fetched resources have not been tampered with.
