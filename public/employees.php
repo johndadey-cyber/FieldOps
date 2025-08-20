@@ -93,7 +93,7 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
 $searchQuery = $search !== null && $search !== '' ? '&search=' . urlencode($search) : '';
 ?>
 $title = 'Employees';
-$headExtra = <<<HTML
+$headExtra = <<<'HTML'
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <link href="/css/skills.css" rel="stylesheet">
@@ -224,7 +224,7 @@ require __DIR__ . '/../partials/header.php';
     <span class="badge bg-warning text-dark ms-3 me-1">Partially Booked</span> Partially Booked
   </div>
 <?php
-$pageScripts = <<<HTML
+$pageScripts = <<<'HTML'
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="/js/employees.js"></script>
