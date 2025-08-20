@@ -45,6 +45,16 @@ if ($jobId <= 0 || $technicianId <= 0 || $lat === null || $lng === null || $fina
 
 try {
     $pdo = getPDO();
+
+    $st = $pdo->prepare('SELECT COUNT(*) FROM job_checklist_items WHERE job_id = :jid AND is_completed = 0');
+    if ($st !== false) {
+        $st->execute([':jid' => $jobId]);
+        if ((int)$st->fetchColumn() > 0) {
+            JsonResponse::json(['ok' => false, 'error' => 'Checklist incomplete', 'code' => \ErrorCodes::VALIDATION_ERROR], 422);
+            return;
+        }
+    }
+
     $pdo->beginTransaction();
 
     $files = [];
