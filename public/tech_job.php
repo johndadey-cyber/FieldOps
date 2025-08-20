@@ -21,14 +21,18 @@ $jobId  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
   <style>
     body{padding-bottom:6rem}
     .action-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #dee2e6;padding:.75rem;z-index:1000}
+    .action-bar .d-flex{gap:1rem}
     .action-bar .btn{padding:1rem;font-size:1.25rem}
+    .btn{min-width:44px;min-height:44px}
+    .form-check-input,.form-check-label{min-width:44px;min-height:44px}
+    button:focus-visible,a:focus-visible,input[type="checkbox"]:focus-visible{outline:2px solid #0d6efd;outline-offset:2px}
     #btn-start-job.disabled{opacity:.65;pointer-events:auto}
   </style>
 </head>
 <body class="bg-light">
 <div class="container py-3">
   <div id="status-banner" class="alert alert-secondary mb-3 d-none"></div>
-  <button class="btn btn-primary mb-3 d-none" id="btn-start-job">Start Job</button>
+  <button class="btn btn-primary mb-3 d-none" id="btn-start-job" aria-label="Start job">Start Job</button>
   <div id="job-details" class="mb-4"></div>
   <div id="notes-section" class="mb-4">
     <h2 class="h6">Notes</h2>
@@ -40,11 +44,11 @@ $jobId  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
   </div>
 </div>
 <div class="action-bar">
-  <div class="d-flex gap-2">
-    <button class="btn btn-outline-secondary flex-fill btn-lg" id="btn-add-note">Add Note</button>
-    <button class="btn btn-outline-secondary flex-fill btn-lg" id="btn-add-photo">Add Photo</button>
-    <button class="btn btn-outline-secondary flex-fill btn-lg" id="btn-checklist">Checklist</button>
-    <button class="btn btn-success flex-fill btn-lg d-none" id="btn-complete">Mark as Complete</button>
+  <div class="d-flex">
+    <button class="btn btn-outline-secondary flex-fill btn-lg" id="btn-add-note" aria-label="Add note">Add Note</button>
+    <button class="btn btn-outline-secondary flex-fill btn-lg" id="btn-add-photo" aria-label="Add photo">Add Photo</button>
+    <button class="btn btn-outline-secondary flex-fill btn-lg" id="btn-checklist" aria-label="Open checklist">Checklist</button>
+    <button class="btn btn-success flex-fill btn-lg d-none" id="btn-complete" aria-label="Mark job as complete">Mark as Complete</button>
   </div>
 </div>
 <script>
