@@ -95,13 +95,20 @@ final class TechnicianJobFlowTest extends TestCase
         $noteCount = (int)$this->pdo->query('SELECT COUNT(*) FROM job_notes WHERE job_id=' . $this->jobId)->fetchColumn();
         $this->assertSame(1, $noteCount);
 
-        $_FILES = ['photo' => $this->sampleUpload()];
+        $f = $this->sampleUpload();
+        $_FILES = ['photos' => [
+            'name' => [$f['name']],
+            'type' => [$f['type']],
+            'tmp_name' => [$f['tmp_name']],
+            'error' => [$f['error']],
+            'size' => [$f['size']],
+        ]];
         $photo = EndpointHarness::run(
             __DIR__ . '/../../public/api/job_photos_upload.php',
             [
                 'job_id' => $this->jobId,
                 'technician_id' => $this->techId,
-                'label' => 'before',
+                'tags' => ['Before'],
             ],
             ['role' => 'technician']
         );
