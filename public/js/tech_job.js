@@ -302,9 +302,9 @@
           div.className='form-check mb-2';
           div.setAttribute('role','listitem');
           div.innerHTML=`<input class="form-check-input" type="checkbox" id="${id}" ${it.completed?'checked':''}>
-<label class="form-check-label" for="${id}">${h(it.item||it.description||'')}</label>`;
+<label class="form-check-label" for="${id}">${h(it.description||'')}</label>`;
           const cb=div.querySelector('input');
-          cb.setAttribute('aria-label',it.item||it.description||'');
+          cb.setAttribute('aria-label',it.description||'');
           body.appendChild(div);
         });
         document.body.appendChild(modal);
