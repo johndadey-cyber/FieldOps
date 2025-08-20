@@ -8,7 +8,7 @@
     const techId=window.TECH_ID;
     const today=window.TODAY||new Date().toISOString().slice(0,10);
     try{
-      const res=await fetch(`/api/jobs.php?start=${today}&end=${today}&status=scheduled,in_progress`,{credentials:'same-origin'});
+      const res=await fetch(`/api/jobs.php?start=${today}&end=${today}&status=in_progress,assigned`,{credentials:'same-origin'});
       const data=await res.json();
       if(!Array.isArray(data)) throw new Error('Invalid response');
       const jobs=data.filter(j => (j.assigned_employees||[]).some(e => Number(e.id)===Number(techId)));
