@@ -449,6 +449,7 @@ ensureColumn($pdo, 'jobs', 'started_at', 'DATETIME NULL');
 ensureColumn($pdo, 'jobs', 'completed_at', 'DATETIME NULL');
 ensureColumn($pdo, 'jobs', 'location_lat', 'DECIMAL(10,6) NULL');
 ensureColumn($pdo, 'jobs', 'location_lng', 'DECIMAL(10,6) NULL');
+ensureColumn($pdo, 'jobs', 'technician_id', 'INT NULL');
 
 out(PHP_EOL . "== Ensuring UNIQUE indexes ==");
 ensureUnique($pdo, 'employee_availability', ['employee_id','day_of_week','start_time','end_time'], 'uq_availability_window');

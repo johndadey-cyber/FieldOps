@@ -36,8 +36,21 @@ if ($jobId <= 0 || $lat === null || $lng === null) {
 }
 
 try {
-    $pdo = getPDO();
-    $ok  = Job::start($pdo, $jobId, $lat, $lng);
+    $pdo    = getPDO();
+    $userId = isset($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : 0;
+
+    $st = $pdo->prepare('SELECT technician_id FROM jobs WHERE id = :id');
+    if ($st === false) {
+        throw new RuntimeException('Failed to prepare statement');
+    }
+    $st->execute([':id' => $jobId]);
+    $techId = (int)$st->fetchColumn();
+    if ($techId !== $userId) {
+        JsonResponse::json(['ok' => false, 'error' => 'Forbidden', 'code' => \ErrorCodes::FORBIDDEN], 403);
+        return;
+    }
+
+    $ok = Job::start($pdo, $jobId, $lat, $lng);
     if ($ok) {
         JsonResponse::json(['ok' => true, 'status' => 'in_progress']);
     } else {

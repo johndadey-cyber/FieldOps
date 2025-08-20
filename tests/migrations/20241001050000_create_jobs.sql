@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     scheduled_date DATE NOT NULL,
     scheduled_time TIME NOT NULL,
     duration_minutes INT NOT NULL,
+    technician_id INT UNSIGNED NULL,
     started_at DATETIME NULL,
     completed_at DATETIME NULL,
     location_lat DECIMAL(10,6) NULL,
@@ -13,5 +14,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NULL,
     CONSTRAINT fk_jobs_customer FOREIGN KEY (customer_id) REFERENCES customers(id)
-        ON DELETE RESTRICT ON UPDATE CASCADE
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_jobs_technician FOREIGN KEY (technician_id) REFERENCES employees(id)
+        ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
