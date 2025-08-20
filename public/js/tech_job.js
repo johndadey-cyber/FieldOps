@@ -149,15 +149,31 @@
         input.type='file';
         input.accept='image/*';
         input.multiple=true;
-        input.style.display='none';
+        // hide offscreen instead of display:none so some mobile browsers
+        // still allow the picker to be triggered programmatically
+        input.style.position='absolute';
+        input.style.left='-9999px';
         document.body.appendChild(input);
+
+        const cleanup=()=>{input.remove();};
+
+        // If the user selects files, convert them to base64 strings
         input.addEventListener('change',async()=>{
           const files=Array.from(input.files||[]);
           const res=[];
           for(const f of files){res.push(await fileToBase64(f));}
-          input.remove();
+          cleanup();
           resolve(res);
         });
+
+        // If the user cancels the dialog, resolve with null so callers can
+        // handle the "no photos" case instead of hanging forever
+        input.addEventListener('cancel',()=>{cleanup();resolve(null);});
+        // Fallback for browsers without "cancel" event
+        input.addEventListener('blur',()=>{
+          if(!input.files.length){cleanup();resolve(null);}
+        });
+
         input.click();
       });
     }
