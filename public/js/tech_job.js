@@ -73,7 +73,7 @@
 
     btnChecklist?.addEventListener('click',async()=>{
       try{
-        const res=await fetch(`/api/job_checklist.php?job_id=${jobId}`,{credentials:'same-origin'});
+        const res=await fetch(`/api/job_checklist.php?job_id=${jobId}&csrf_token=${encodeURIComponent(csrf)}`,{credentials:'same-origin'});
         const data=await res.json();
         if(!Array.isArray(data?.items)) throw new Error('No checklist');
         const checked=await showChecklistModal(data.items);
