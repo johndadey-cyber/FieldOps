@@ -2,6 +2,7 @@
 (() => {
   function ready(fn){document.readyState!=='loading'?fn():document.addEventListener('DOMContentLoaded',fn);}
   function h(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML;}
+  function fmtStatus(s){return (s||'').replace(/_/g,' ');}
   const csrf=window.CSRF_TOKEN;
   const jobId=Number(window.JOB_ID);
   const techId=Number(window.TECH_ID);
@@ -12,6 +13,7 @@
     const btnPhoto=document.getElementById('btn-add-photo');
     const btnChecklist=document.getElementById('btn-checklist');
     const btnComplete=document.getElementById('btn-complete');
+    let statusEl;
     const fileInput=document.createElement('input');
     fileInput.type='file';
     fileInput.accept='image/*';
@@ -25,8 +27,12 @@
         const j=data.job;
         details.innerHTML=`<h1 class="h5">${h(j.description||'')}</h1>
 <div>${h(j.customer?.first_name||'')} ${h(j.customer?.last_name||'')}</div>
-<div class="text-muted">${h(j.customer?.address_line1||'')}</div>`;
+<div class="text-muted">${h(j.customer?.address_line1||'')}</div>
+<div id="job-status" class="text-muted"></div>`;
+        statusEl=document.getElementById('job-status');
+        if(statusEl){statusEl.textContent=`Status: ${fmtStatus(j.status)}`;}
         if(j.status==='assigned'){btnStart.classList.remove('d-none');}
+        if(j.status==='in_progress'){btnComplete.classList.remove('d-none');}
       })
       .catch(err=>{details.innerHTML=`<div class="text-danger">${h(err.message)}</div>`;});
 
@@ -40,7 +46,12 @@
         fd.append('csrf_token',csrf);
         fetch('/api/job_start.php',{method:'POST',body:fd,credentials:'same-origin'})
           .then(r=>r.json())
-          .then(res=>{if(!res?.ok) throw new Error(res?.error||'Failed');btnStart.classList.add('d-none');})
+          .then(res=>{
+            if(!res?.ok) throw new Error(res?.error||'Failed');
+            btnStart.classList.add('d-none');
+            btnComplete.classList.remove('d-none');
+            if(statusEl){statusEl.textContent=`Status: ${fmtStatus(res.status||'in_progress')}`;}
+          })
           .catch(err=>{alert(err.message||'Failed');btnStart.disabled=false;});
       },()=>{alert('Location required');btnStart.disabled=false;});
     });
