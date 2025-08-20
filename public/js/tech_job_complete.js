@@ -68,6 +68,12 @@
         }
         const sigData=sigCanvas.toDataURL('image/png');
         const pos=await getLocation();
+        if(!navigator.onLine){
+          await window.offlineQueue.add({type:'completion',job_id:jobId,technician_id:techId,final_note:note,photos,tags,signature:sigData,location:{lat:pos.coords.latitude,lng:pos.coords.longitude},csrf_token:csrf});
+          alert('Submission saved offline');
+          btnSubmit.disabled=false;
+          return;
+        }
         const fd=new FormData();
         fd.append('job_id',jobId);
         fd.append('technician_id',techId);

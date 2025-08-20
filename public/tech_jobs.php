@@ -36,6 +36,7 @@ $today = date('Y-m-d');
   </div>
   <div class="bg-light w-100 text-center small py-1" id="date-banner"></div>
 </nav>
+<div id="network-banner" class="alert text-center small d-none mb-0"></div>
 <div class="container py-3">
   <div id="jobs-list"></div>
 </div>
@@ -52,7 +53,11 @@ $today = date('Y-m-d');
   window.TODAY = "<?= $today ?>";
   window.TODAY_HUMAN = "<?= date('l, F j') ?>";
 </script>
+<script>
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js');}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/offline.js"></script>
 <script src="/js/tech_jobs.js?v=<?=date('Ymd')?>"></script>
 </body>
 </html>

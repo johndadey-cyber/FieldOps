@@ -24,55 +24,9 @@
     fileInput.style.display='none';
     document.body.appendChild(fileInput);
 
-    const offlineKey='techJobQueue';
     function queueOffline(item){
-      const list=JSON.parse(localStorage.getItem(offlineKey)||'[]');
-      list.push(item);
-      localStorage.setItem(offlineKey,JSON.stringify(list));
+      if(window.offlineQueue){window.offlineQueue.add(item);}
     }
-    async function processQueue(){
-      if(!navigator.onLine) return;
-      const list=JSON.parse(localStorage.getItem(offlineKey)||'[]');
-      const remaining=[];
-      for(const item of list){
-        try{
-          if(item.type==='note'){
-            const fd=new FormData();
-            fd.append('job_id',item.job_id);
-            fd.append('technician_id',item.technician_id);
-            fd.append('note',item.note);
-            fd.append('csrf_token',csrf);
-            const r=await fetch('/api/job_notes_add.php',{method:'POST',body:fd,credentials:'same-origin'});
-            const j=await r.json();
-            if(!j?.ok) throw new Error();
-          }else if(item.type==='photo'){
-            const fd=new FormData();
-            fd.append('job_id',item.job_id);
-            fd.append('technician_id',item.technician_id);
-            fd.append('csrf_token',csrf);
-            fd.append('tags[]',item.tag);
-            fd.append('annotations[]',item.annotation||'');
-            fd.append('photos[]',dataURLtoBlob(item.photo),'photo.png');
-            const r=await fetch('/api/job_photos_upload.php',{method:'POST',body:fd,credentials:'same-origin'});
-            const j=await r.json();
-            if(!j?.ok) throw new Error();
-          }else if(item.type==='checklist'){
-            const fd=new FormData();
-            fd.append('job_id',item.job_id);
-            fd.append('items',JSON.stringify(item.items));
-            fd.append('csrf_token',csrf);
-            const r=await fetch('/api/job_checklist_update.php',{method:'POST',body:fd,credentials:'same-origin'});
-            const j=await r.json();
-            if(!j?.ok) throw new Error();
-          }
-        }catch(e){
-          remaining.push(item);
-        }
-      }
-      localStorage.setItem(offlineKey,JSON.stringify(remaining));
-    }
-    window.addEventListener('online',processQueue);
-    processQueue();
 
     const fab=document.createElement('div');
     fab.className='fab';
@@ -222,8 +176,8 @@
       const send=()=>fetch('/api/job_notes_add.php',{method:'POST',body:fd,credentials:'same-origin'}).then(r=>r.json());
       if(navigator.onLine){
         try{const res=await send();if(!res?.ok) throw new Error(res?.error||'Failed');alert('Note added');}
-        catch(e){queueOffline({type:'note',job_id:jobId,technician_id:techId,note});alert('Note saved offline');}
-      }else{queueOffline({type:'note',job_id:jobId,technician_id:techId,note});alert('Note saved offline');}
+        catch(e){queueOffline({type:'note',job_id:jobId,technician_id:techId,note,csrf_token:csrf});alert('Note saved offline');}
+      }else{queueOffline({type:'note',job_id:jobId,technician_id:techId,note,csrf_token:csrf});alert('Note saved offline');}
     });
 
     btnPhoto?.addEventListener('click',()=>fileInput.click());
@@ -244,8 +198,8 @@
       };
       if(navigator.onLine){
         try{const res=await send(info);if(!res?.ok) throw new Error(res?.error||'Failed');alert('Photo uploaded');}
-        catch(e){for(const it of info){const b64=await fileToBase64(it.file);queueOffline({type:'photo',job_id:jobId,technician_id:techId,photo:b64,tag:it.tag,annotation:it.annotation||''});}alert('Photo saved offline');}
-      }else{for(const it of info){const b64=await fileToBase64(it.file);queueOffline({type:'photo',job_id:jobId,technician_id:techId,photo:b64,tag:it.tag,annotation:it.annotation||''});}alert('Photo saved offline');}
+        catch(e){for(const it of info){const b64=await fileToBase64(it.file);queueOffline({type:'photo',job_id:jobId,technician_id:techId,photo:b64,tag:it.tag,annotation:it.annotation||'',csrf_token:csrf});}alert('Photo saved offline');}
+      }else{for(const it of info){const b64=await fileToBase64(it.file);queueOffline({type:'photo',job_id:jobId,technician_id:techId,photo:b64,tag:it.tag,annotation:it.annotation||'',csrf_token:csrf});}alert('Photo saved offline');}
     });
 
     btnChecklist?.addEventListener('click',async()=>{
@@ -262,8 +216,8 @@
         const send=()=>fetch('/api/job_checklist_update.php',{method:'POST',body:fd,credentials:'same-origin'}).then(r=>r.json());
         if(navigator.onLine){
           try{const data2=await send();if(!data2?.ok) throw new Error(data2?.error||'Failed');alert('Checklist saved');}
-          catch(e){queueOffline({type:'checklist',job_id:jobId,items:checked});alert('Checklist saved offline');}
-        }else{queueOffline({type:'checklist',job_id:jobId,items:checked});alert('Checklist saved offline');}
+          catch(e){queueOffline({type:'checklist',job_id:jobId,items:checked,csrf_token:csrf});alert('Checklist saved offline');}
+        }else{queueOffline({type:'checklist',job_id:jobId,items:checked,csrf_token:csrf});alert('Checklist saved offline');}
       }catch(err){alert(err.message||'Checklist failed');}
     });
 
@@ -354,14 +308,6 @@
         reader.onerror=()=>reject(new Error('Read failed'));
         reader.readAsDataURL(file);
       });
-    }
-
-    function dataURLtoBlob(dataUrl){
-      const arr=dataUrl.split(',');
-      const mime=(arr[0].match(/:(.*?);/)||[])[1]||'application/octet-stream';
-      const bstr=atob(arr[1]);
-      let n=bstr.length;const u8=new Uint8Array(n);
-      while(n--){u8[n]=bstr.charCodeAt(n);}return new Blob([u8],{type:mime});
     }
 
     btnComplete?.addEventListener('click',()=>{
