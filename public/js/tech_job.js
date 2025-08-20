@@ -8,12 +8,15 @@
   const techId=Number(window.TECH_ID);
   ready(() => {
     const details=document.getElementById('job-details');
+    const notesEl=document.getElementById('job-notes');
+    const photosEl=document.getElementById('job-photos');
+    const statusBanner=document.getElementById('status-banner');
     const btnStart=document.getElementById('btn-start-job');
     const btnNote=document.getElementById('btn-add-note');
     const btnPhoto=document.getElementById('btn-add-photo');
     const btnChecklist=document.getElementById('btn-checklist');
     const btnComplete=document.getElementById('btn-complete');
-    let statusEl;
+    let scheduledStart=null;
     const fileInput=document.createElement('input');
     fileInput.type='file';
     fileInput.accept='image/*';
@@ -104,26 +107,90 @@
       log.appendChild(div);
     }
 
+    function updateStatus(st){
+      if(!statusBanner) return;
+      const map={assigned:'secondary',in_progress:'warning',completed:'success'};
+      const cls=map[st]||'secondary';
+      statusBanner.className=`alert alert-${cls} mb-3`;
+      statusBanner.textContent=fmtStatus(st);
+      statusBanner.classList.remove('d-none');
+    }
+
+    function isTooEarly(){
+      return scheduledStart && new Date()<scheduledStart;
+    }
+
+    function fetchNotes(){
+      fetch(`/api/job_notes_list.php?job_id=${jobId}&csrf_token=${encodeURIComponent(csrf)}`,{credentials:'same-origin'})
+        .then(r=>r.json())
+        .then(data=>{if(!data?.ok) throw new Error();renderNotes(data.notes||[]);})
+        .catch(()=>{if(notesEl) notesEl.innerHTML='<div class="text-muted">No notes</div>';});
+    }
+
+    function renderNotes(notes){
+      if(!notesEl) return;
+      if(!notes.length){notesEl.innerHTML='<div class="text-muted">No notes</div>';return;}
+      notesEl.innerHTML='';
+      notes.forEach(n=>{
+        const div=document.createElement('div');
+        div.className='mb-2';
+        div.innerHTML=`<div>${h(n.note)}</div><div class="text-muted small">${h(new Date(n.created_at).toLocaleString())}</div>`;
+        notesEl.appendChild(div);
+      });
+    }
+
+    function fetchPhotos(){
+      fetch(`/api/job_photos_list.php?job_id=${jobId}&csrf_token=${encodeURIComponent(csrf)}`,{credentials:'same-origin'})
+        .then(r=>r.json())
+        .then(data=>{if(!data?.ok) throw new Error();renderPhotos(data.photos||[]);})
+        .catch(()=>{if(photosEl) photosEl.innerHTML='<div class="text-muted">No photos</div>';});
+    }
+
+    function renderPhotos(photos){
+      if(!photosEl) return;
+      photosEl.innerHTML='';
+      if(!photos.length){photosEl.innerHTML='<div class="text-muted">No photos</div>';return;}
+      photos.forEach(p=>{
+        const img=document.createElement('img');
+        img.src=`/${p.path}`;
+        img.className='img-thumbnail';
+        img.style.maxWidth='120px';
+        photosEl.appendChild(img);
+      });
+    }
+
     fetch(`/api/get_job_details.php?id=${jobId}`,{credentials:'same-origin'})
       .then(r=>r.json())
       .then(data=>{
         if(!data?.ok) throw new Error('Job not found');
         const j=data.job;
-        details.innerHTML=`<h1 class="h5">${h(j.description||'')}</h1>
-<div>${h(j.customer?.first_name||'')} ${h(j.customer?.last_name||'')}</div>
-<div class="text-muted">${h(j.customer?.address_line1||'')}</div>
-<div id="job-status" class="text-muted"></div>`;
-        statusEl=document.getElementById('job-status');
-
-        if(statusEl){statusEl.textContent=`Status: ${fmtStatus(j.status)}`;}
+        const c=j.customer||{};
+        const addr=[c.address_line1,c.city,c.state,c.postal_code].filter(Boolean).join(', ');
+        const mapUrl=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
+        const callUrl=c.phone?`tel:${c.phone}`:'#';
+        const start=j.scheduled_time?new Date(`${j.scheduled_date}T${j.scheduled_time}`):null;
+        const end=start?new Date(start.getTime()+((j.duration_minutes||60)*60000)):null;
+        const win=start?`${start.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} - ${end.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`:'';
+        details.innerHTML=`<div class="mb-2 fw-bold">Job #${h(j.id)}</div>
+<div>${h(c.first_name||'')} ${h(c.last_name||'')}</div>
+<div>${h(c.address_line1||'')}</div>
+<div class="mb-2"><a class="btn btn-sm btn-outline-primary me-2" href="${mapUrl}" target="_blank">Directions</a>${c.phone?`<a class="btn btn-sm btn-outline-primary" href="${callUrl}">Call</a>`:''}</div>
+<div class="text-muted mb-2">${h(win)}</div>
+<div class="fst-italic">${h(j.description||'')}</div>`;
+        scheduledStart=start;
+        updateStatus(j.status);
         const status=(j.status||'').toLowerCase();
         if(status==='assigned'){btnStart.classList.remove('d-none');}
         if(status==='in_progress'){btnComplete.classList.remove('d-none');}
-
+        if(isTooEarly()){btnStart.classList.add('disabled');}else{btnStart.classList.remove('disabled');}
+        fetchNotes();
+        fetchPhotos();
+        setInterval(()=>{if(btnStart&&btnStart.classList.contains('disabled')&&!isTooEarly())btnStart.classList.remove('disabled');},60000);
       })
       .catch(err=>{details.innerHTML=`<div class="text-danger">${h(err.message)}</div>`;});
 
     btnStart?.addEventListener('click',()=>{
+      if(isTooEarly() && !confirm('Start before scheduled time?')){return;}
       btnStart.disabled=true;
       navigator.geolocation.getCurrentPosition(pos=>{
         const fd=new FormData();
@@ -135,10 +202,9 @@
           .then(r=>r.json())
           .then(res=>{
             if(!res?.ok) throw new Error(res?.error||'Failed');
-
             btnStart.classList.add('d-none');
             btnComplete.classList.remove('d-none');
-            if(statusEl){statusEl.textContent=`Status: ${fmtStatus(res.status||'in_progress')}`;}
+            updateStatus(res.status||'in_progress');
           })
           .catch(err=>{alert(err.message||'Failed');btnStart.disabled=false;});
       },()=>{alert('Location required');btnStart.disabled=false;});
@@ -152,6 +218,7 @@
       fd.append('technician_id',techId);
       fd.append('note',note);
       fd.append('csrf_token',csrf);
+
       const send=()=>fetch('/api/job_notes_add.php',{method:'POST',body:fd,credentials:'same-origin'}).then(r=>r.json());
       if(navigator.onLine){
         try{const res=await send();if(!res?.ok) throw new Error(res?.error||'Failed');alert('Note added');}
@@ -412,12 +479,7 @@
         }
         btnComplete.disabled=true;
         btnComplete.classList.add('d-none');
-        if(details){
-          const status=document.createElement('div');
-          status.className='mt-2 badge bg-success';
-          status.textContent='Completed';
-          details.appendChild(status);
-        }
+        updateStatus('completed');
         debugStep('Completion workflow finished');
       }catch(err){
         alert(err.message||'Failed');
