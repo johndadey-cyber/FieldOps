@@ -93,7 +93,7 @@ foreach ($skills as $s) { $skillQuery .= '&skills[]=' . urlencode($s); }
 $searchQuery = $search !== null && $search !== '' ? '&search=' . urlencode($search) : '';
 ?>
 $title = 'Employees';
-$headExtra = <<<HTML
+$headExtra = <<<'HTML'
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <link href="/css/skills.css" rel="stylesheet">
@@ -224,20 +224,12 @@ require __DIR__ . '/../partials/header.php';
     <span class="badge bg-warning text-dark ms-3 me-1">Partially Booked</span> Partially Booked
   </div>
 <?php
-// Note: When adding new CDN-hosted scripts, always include integrity hashes
-// and crossorigin="anonymous" to enable Subresource Integrity (SRI).
-$pageScripts = <<<HTML
-<script
-  src="https://code.jquery.com/jquery-3.6.0.min.js"
 
-  integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
 
-  crossorigin="anonymous"></script>
-<script
-  src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"
-  integrity="sha256-K+ctZ5MkRUYw35vj0IadB1iKsFcfoTmya4A1NVuMcZV="
-  crossorigin="anonymous"></script>
-<script>window.CSRF_TOKEN = '{$CSRF}';</script>
+$pageScripts = <<<'HTML'
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script src="/js/employees.js"></script>
 HTML;
 
