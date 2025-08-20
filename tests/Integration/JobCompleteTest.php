@@ -117,4 +117,53 @@ final class JobCompleteTest extends TestCase
         $this->assertFalse($noPhoto['ok'] ?? true);
         $this->assertSame(422, $noPhoto['code'] ?? 0);
     }
+
+    public function testFilesRemovedWhenJobCompletionFails(): void
+    {
+        $this->pdo->exec('UPDATE jobs SET status="assigned" WHERE id=' . $this->jobId);
+        $img = $this->sampleImage();
+        $res = EndpointHarness::run(__DIR__ . '/../../public/api/job_complete.php', [
+            'job_id'        => $this->jobId,
+            'technician_id' => $this->techId,
+            'location_lat' => '1',
+            'location_lng' => '2',
+            'final_note'   => 'All done',
+            'final_photos' => [$img],
+            'signature'    => $img,
+        ], ['role' => 'technician']);
+
+        $this->assertFalse($res['ok'] ?? true);
+        $this->assertSame(422, $res['code'] ?? 0);
+
+        $base = __DIR__ . '/../../public/uploads';
+        foreach (['jobs', 'signatures'] as $sub) {
+            $dir   = $base . '/' . $sub;
+            $files = glob($dir . '/*');
+            $this->assertTrue($files === false || $files === []);
+        }
+    }
+
+    public function testFilesRemovedWhenExceptionOccurs(): void
+    {
+        $img = $this->sampleImage();
+        $res = EndpointHarness::run(__DIR__ . '/../../public/api/job_complete.php', [
+            'job_id'        => $this->jobId,
+            'technician_id' => $this->techId,
+            'location_lat' => '1',
+            'location_lng' => '2',
+            'final_note'   => 'All done',
+            'final_photos' => [$img, 'notbase64'],
+            'signature'    => $img,
+        ], ['role' => 'technician']);
+
+        $this->assertFalse($res['ok'] ?? true);
+        $this->assertSame(500, $res['code'] ?? 0);
+
+        $base = __DIR__ . '/../../public/uploads';
+        foreach (['jobs', 'signatures'] as $sub) {
+            $dir   = $base . '/' . $sub;
+            $files = glob($dir . '/*');
+            $this->assertTrue($files === false || $files === []);
+        }
+    }
 }
