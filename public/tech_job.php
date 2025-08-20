@@ -19,21 +19,32 @@ $jobId  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body{padding-bottom:4.5rem}
-    .action-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #dee2e6;padding:.5rem}
+    body{padding-bottom:6rem}
+    .action-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #dee2e6;padding:.75rem;z-index:1000}
+    .action-bar .btn{padding:1rem;font-size:1.25rem}
+    #btn-start-job.disabled{opacity:.65;pointer-events:auto}
   </style>
 </head>
 <body class="bg-light">
 <div class="container py-3">
+  <div id="status-banner" class="alert alert-secondary mb-3 d-none"></div>
   <button class="btn btn-primary mb-3 d-none" id="btn-start-job">Start Job</button>
-  <div id="job-details" class="mb-5"></div>
+  <div id="job-details" class="mb-4"></div>
+  <div id="notes-section" class="mb-4">
+    <h2 class="h6">Notes</h2>
+    <div id="job-notes" class="small"></div>
+  </div>
+  <div id="photos-section" class="mb-4">
+    <h2 class="h6">Photos</h2>
+    <div id="job-photos" class="d-flex flex-wrap gap-2"></div>
+  </div>
 </div>
 <div class="action-bar">
   <div class="d-flex gap-2">
-    <button class="btn btn-outline-secondary flex-fill" id="btn-add-note">Add Note</button>
-    <button class="btn btn-outline-secondary flex-fill" id="btn-add-photo">Add Photo</button>
-    <button class="btn btn-outline-secondary flex-fill" id="btn-checklist">Checklist</button>
-    <button class="btn btn-success flex-fill d-none" id="btn-complete">Mark as Complete</button>
+    <button class="btn btn-outline-secondary flex-fill btn-lg" id="btn-add-note">Add Note</button>
+    <button class="btn btn-outline-secondary flex-fill btn-lg" id="btn-add-photo">Add Photo</button>
+    <button class="btn btn-outline-secondary flex-fill btn-lg" id="btn-checklist">Checklist</button>
+    <button class="btn btn-success flex-fill btn-lg d-none" id="btn-complete">Mark as Complete</button>
   </div>
 </div>
 <script>
