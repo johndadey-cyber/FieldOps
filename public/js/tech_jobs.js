@@ -2,8 +2,10 @@
 (() => {
   function ready(fn){document.readyState!=='loading'?fn():document.addEventListener('DOMContentLoaded',fn);}
   function h(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML;}
-  function fmtStatus(s){return (s||'').replace(/_/g,' ');}  
+  function fmtStatus(s){return (s||'').replace(/_/g,' ');}
   function truncate(str,len){str=String(str||'');return str.length>len?str.slice(0,len-1)+'\u2026':str;}
+  const timeFmt=new Intl.DateTimeFormat([], {hour:'numeric',minute:'numeric'});
+  function formatTime(str){try{const [h,m]=String(str).split(':');const d=new Date();d.setHours(Number(h),Number(m));return timeFmt.format(d);}catch(e){return str;}}
   ready(async () => {
     const list=document.getElementById('jobs-list');
     const banner=document.getElementById('date-banner');
@@ -37,7 +39,7 @@
       jobs.forEach(j => {
         const card=document.createElement('div');
         card.className='card mb-3 shadow-sm';
-        const time=j.scheduled_time?j.scheduled_time.slice(0,5):'Unscheduled';
+        const time=j.scheduled_time?formatTime(j.scheduled_time):'Unscheduled';
         const type=(j.job_skills&&j.job_skills[0]?.name)||'';
         const address=[j.customer.address_line1,j.customer.city].filter(Boolean).join(', ');
         const truncAddr=truncate(address,40);
@@ -51,9 +53,9 @@
             </div>
             <span class="badge bg-${statusColor}">${h(fmtStatus(j.status))}</span>
           </div>
-          <div class="mt-3 d-flex gap-2">
-            <a class="btn btn-outline-primary flex-fill" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}">Go</a>
-            <a class="btn btn-primary flex-fill" href="tech_job.php?id=${j.job_id}">View Details</a>
+          <div class="mt-3 d-flex gap-3">
+            <a class="btn btn-outline-primary flex-fill" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}" aria-label="Open directions">Go</a>
+            <a class="btn btn-primary flex-fill" href="tech_job.php?id=${j.job_id}" aria-label="View details for job ${h(j.job_id)}">View Details</a>
           </div>
         </div>`;
         list.appendChild(card);

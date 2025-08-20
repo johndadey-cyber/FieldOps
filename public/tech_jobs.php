@@ -21,12 +21,15 @@ $today = date('Y-m-d');
   <style>
     body{padding-bottom:4.5rem}
     .action-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #dee2e6;padding:.5rem}
+    .action-bar .d-flex{gap:1rem}
+    .btn,.navbar-toggler{min-width:44px;min-height:44px}
+    button:focus-visible,a:focus-visible{outline:2px solid #0d6efd;outline-offset:2px}
   </style>
 </head>
 <body class="bg-light">
 <nav class="navbar navbar-light bg-white border-bottom sticky-top">
   <div class="container-fluid align-items-center">
-    <button class="navbar-toggler" type="button" id="menu-button">
+    <button class="navbar-toggler" type="button" id="menu-button" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
     <span class="navbar-brand mx-auto">FieldOps</span>
@@ -41,10 +44,10 @@ $today = date('Y-m-d');
   <div id="jobs-list"></div>
 </div>
 <div class="action-bar">
-  <div class="d-flex gap-2">
-    <button class="btn btn-outline-secondary flex-fill py-3" id="btn-add-note">+ Add Note</button>
-    <button class="btn btn-outline-secondary flex-fill py-3" id="btn-add-photo">+ Photo</button>
-    <button class="btn btn-outline-secondary flex-fill py-3" id="btn-map-view">MapView</button>
+  <div class="d-flex">
+    <button class="btn btn-outline-secondary flex-fill py-3" id="btn-add-note" aria-label="Add note">+ Add Note</button>
+    <button class="btn btn-outline-secondary flex-fill py-3" id="btn-add-photo" aria-label="Add photo">+ Photo</button>
+    <button class="btn btn-outline-secondary flex-fill py-3" id="btn-map-view" aria-label="Map view">MapView</button>
   </div>
 </div>
 <script>

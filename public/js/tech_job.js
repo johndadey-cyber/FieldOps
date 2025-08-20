@@ -3,6 +3,8 @@
   function ready(fn){document.readyState!=='loading'?fn():document.addEventListener('DOMContentLoaded',fn);}
   function h(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML;}
   function fmtStatus(s){return (s||'').replace(/_/g,' ');}
+  const timeFmt=new Intl.DateTimeFormat([], {hour:'numeric',minute:'numeric'});
+  const dateTimeFmt=new Intl.DateTimeFormat([], {dateStyle:'medium',timeStyle:'short'});
   const csrf=window.CSRF_TOKEN;
   const jobId=Number(window.JOB_ID);
   const techId=Number(window.TECH_ID);
@@ -30,7 +32,7 @@
 
     const fab=document.createElement('div');
     fab.className='fab';
-    fab.innerHTML=`<div class="fab-menu d-none"><button class="btn btn-light" id="fab-note">Note</button><button class="btn btn-light" id="fab-photo">Photo</button></div><button class="btn btn-primary fab-main">+</button>`;
+    fab.innerHTML=`<div class="fab-menu d-none"><button class="btn btn-light" id="fab-note" aria-label="Add note">Note</button><button class="btn btn-light" id="fab-photo" aria-label="Add photo">Photo</button></div><button class="btn btn-primary fab-main" aria-label="Toggle quick actions">+</button>`;
     document.body.appendChild(fab);
     const fabMenu=fab.querySelector('.fab-menu');
     fab.querySelector('.fab-main').addEventListener('click',()=>fabMenu.classList.toggle('d-none'));
@@ -88,7 +90,7 @@
       notes.forEach(n=>{
         const div=document.createElement('div');
         div.className='mb-2';
-        div.innerHTML=`<div>${h(n.note)}</div><div class="text-muted small">${h(new Date(n.created_at).toLocaleString())}</div>`;
+        div.innerHTML=`<div>${h(n.note)}</div><div class="text-muted small">${h(dateTimeFmt.format(new Date(n.created_at)))}</div>`;
         notesEl.appendChild(div);
       });
     }
@@ -124,7 +126,7 @@
         const callUrl=c.phone?`tel:${c.phone}`:'#';
         const start=j.scheduled_time?new Date(`${j.scheduled_date}T${j.scheduled_time}`):null;
         const end=start?new Date(start.getTime()+((j.duration_minutes||60)*60000)):null;
-        const win=start?`${start.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} - ${end.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`:'';
+        const win=start?`${timeFmt.format(start)} - ${timeFmt.format(end)}`:'';
         details.innerHTML=`<div class="mb-2 fw-bold">Job #${h(j.id)}</div>
 <div>${h(c.first_name||'')} ${h(c.last_name||'')}</div>
 <div>${h(c.address_line1||'')}</div>
@@ -224,19 +226,27 @@
     async function showChecklistModal(items){
       return new Promise(resolve=>{
         const modal=document.createElement('div');
+        const titleId='chkModalTitle';
         modal.className='modal fade';
-        modal.innerHTML=`<div class="modal-dialog"><div class="modal-content">
-<div class="modal-header"><h5 class="modal-title">Checklist</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-<div class="modal-body"></div>
-<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-primary" id="chk-save">Save</button></div>
+        modal.setAttribute('tabindex','-1');
+        modal.setAttribute('role','dialog');
+        modal.setAttribute('aria-modal','true');
+        modal.setAttribute('aria-labelledby',titleId);
+        modal.innerHTML=`<div class="modal-dialog" role="document"><div class="modal-content">
+<div class="modal-header"><h5 id="${titleId}" class="modal-title">Checklist</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+<div class="modal-body" role="list"></div>
+<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal" aria-label="Close">Close</button><button type="button" class="btn btn-primary" id="chk-save" aria-label="Save checklist">Save</button></div>
 </div></div>`;
         const body=modal.querySelector('.modal-body');
         items.forEach((it,i)=>{
           const id='chk'+i;
           const div=document.createElement('div');
-          div.className='form-check';
+          div.className='form-check mb-2';
+          div.setAttribute('role','listitem');
           div.innerHTML=`<input class="form-check-input" type="checkbox" id="${id}" ${it.completed?'checked':''}>
 <label class="form-check-label" for="${id}">${h(it.item||it.description||'')}</label>`;
+          const cb=div.querySelector('input');
+          cb.setAttribute('aria-label',it.item||it.description||'');
           body.appendChild(div);
         });
         document.body.appendChild(modal);
@@ -248,14 +258,20 @@
           bsModal.hide();resolve(res);
         });
         bsModal.show();
+        modal.addEventListener('shown.bs.modal',()=>{modal.querySelector('input,textarea,select,button')?.focus();},{once:true});
       });
     }
 
     async function showNoteModal(){
       return new Promise(resolve=>{
         const modal=document.createElement('div');
+        const titleId='noteModalTitle';
         modal.className='modal fade';
-        modal.innerHTML=`<div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Add Note</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><textarea class="form-control" id="note-text" rows="4"></textarea><button type="button" class="btn btn-sm btn-secondary mt-2" id="voice-btn">Voice</button></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" id="note-save">Save</button></div></div></div>`;
+        modal.setAttribute('tabindex','-1');
+        modal.setAttribute('role','dialog');
+        modal.setAttribute('aria-modal','true');
+        modal.setAttribute('aria-labelledby',titleId);
+        modal.innerHTML=`<div class="modal-dialog" role="document"><div class="modal-content"><div class="modal-header"><h5 id="${titleId}" class="modal-title">Add Note</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><textarea class="form-control" id="note-text" rows="4"></textarea><button type="button" class="btn btn-sm btn-secondary mt-2" id="voice-btn" aria-label="Voice input">Voice</button></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal" aria-label="Cancel">Cancel</button><button type="button" class="btn btn-primary" id="note-save" aria-label="Save note">Save</button></div></div></div>`;
         document.body.appendChild(modal);
         const bsModal=new bootstrap.Modal(modal);
         const textarea=modal.querySelector('#note-text');
@@ -271,6 +287,7 @@
           recog.start();
         });
         bsModal.show();
+        modal.addEventListener('shown.bs.modal',()=>{textarea.focus();},{once:true});
       });
     }
 
@@ -278,12 +295,17 @@
       return new Promise(resolve=>{
         const modal=document.createElement('div');
         modal.className='modal fade';
+        modal.setAttribute('tabindex','-1');
+        modal.setAttribute('role','dialog');
+        modal.setAttribute('aria-modal','true');
+        const titleId='photoModalTitle';
+        modal.setAttribute('aria-labelledby',titleId);
         let bodyHtml='';
         files.forEach((f,i)=>{
           const url=URL.createObjectURL(f);
           bodyHtml+=`<div class="mb-3"><img src="${url}" class="img-fluid mb-1"><select class="form-select mb-1" data-idx="${i}"><option>Before</option><option>After</option><option>Other</option></select><input type="text" class="form-control" placeholder="Annotation (optional)" data-anno="${i}"></div>`;
         });
-        modal.innerHTML=`<div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Upload Photos</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body">${bodyHtml}</div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" id="photo-save">Upload</button></div></div></div>`;
+        modal.innerHTML=`<div class="modal-dialog" role="document"><div class="modal-content"><div class="modal-header"><h5 id="${titleId}" class="modal-title">Upload Photos</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body">${bodyHtml}</div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal" aria-label="Cancel">Cancel</button><button type="button" class="btn btn-primary" id="photo-save" aria-label="Upload photos">Upload</button></div></div></div>`;
         document.body.appendChild(modal);
         const bsModal=new bootstrap.Modal(modal);
         modal.addEventListener('hidden.bs.modal',()=>{modal.remove();resolve(null);});
@@ -298,6 +320,7 @@
           resolve(list);
         });
         bsModal.show();
+        modal.addEventListener('shown.bs.modal',()=>{modal.querySelector('select,input')?.focus();},{once:true});
       });
     }
 
