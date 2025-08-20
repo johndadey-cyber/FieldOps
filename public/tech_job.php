@@ -33,7 +33,7 @@ $jobId  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
     <button class="btn btn-outline-secondary flex-fill" id="btn-add-note">Add Note</button>
     <button class="btn btn-outline-secondary flex-fill" id="btn-add-photo">Add Photo</button>
     <button class="btn btn-outline-secondary flex-fill" id="btn-checklist">Checklist</button>
-    <button class="btn btn-success flex-fill" id="btn-complete">Mark as Complete</button>
+    <button class="btn btn-success flex-fill d-none" id="btn-complete">Mark as Complete</button>
   </div>
 </div>
 <script>
