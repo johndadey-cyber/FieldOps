@@ -23,6 +23,15 @@ $customers = (new Customer($pdo))->getAll();
 $jobTypes  = $pdo->query('SELECT id, name FROM job_types ORDER BY name')->fetchAll(PDO::FETCH_ASSOC);
 $today     = date('Y-m-d');
 
+// Existing checklist items when editing
+$existingChecklist = [];
+if ($isEdit && isset($job['id'])) {
+    $existingChecklist = array_map(
+        static fn(array $item): string => $item['description'],
+        JobChecklistItem::listForJob($pdo, (int)$job['id'])
+    );
+}
+
 /** HTML escape */
 function s(?string $v): string { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 
@@ -122,6 +131,12 @@ function stickyArr(string $name, array $default = []): array {
         </div>
       </fieldset>
 
+      <fieldset class="mb-4" id="checklistFieldset" style="display:none;">
+        <legend>Checklist Items</legend>
+        <div id="checklistItems"></div>
+        <button type="button" class="btn btn-outline-secondary mt-2" id="addChecklistItem">Add Item</button>
+      </fieldset>
+
       <fieldset class="mb-4">
         <legend>Scheduling</legend>
         <div class="row g-3 align-items-end">
@@ -154,6 +169,10 @@ function stickyArr(string $name, array $default = []): array {
   <script src="/js/toast.js"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <script>
+    window.jobChecklistTemplates = <?= json_encode(JobChecklistItem::defaultTemplates()); ?>;
+    window.initialChecklistItems = <?= json_encode($existingChecklist); ?>;
+  </script>
   <script src="js/job_form.js"></script>
 </body>
 </html>

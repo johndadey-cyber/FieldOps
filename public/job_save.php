@@ -55,6 +55,9 @@ $skillIds        = isset($_POST['skills']) && is_array($_POST['skills'])
     ? array_values(array_filter(array_map('intval', $_POST['skills']), static fn($v) => $v > 0))
     : [];
 $jobTypeId      = isset($_POST['job_type_id']) ? (int)$_POST['job_type_id'] : 0;
+$checklistItems = isset($_POST['checklist_items']) && is_array($_POST['checklist_items'])
+    ? array_values(array_filter(array_map(static fn($v) => trim((string)$v), $_POST['checklist_items']), static fn($v) => $v !== ''))
+    : [];
 
 // Normalize status to canonical ENUM values (lowercase)
 $map = [
@@ -93,6 +96,12 @@ else {
 }
 if ($durationMinutes<=0) { $errors['duration_minutes']='Duration minutes must be > 0'; }
 if (!$skillIds) { $errors['skills']='Select at least one skill'; }
+foreach ($checklistItems as $desc) {
+  if ($desc === '' || mb_strlen($desc) > 255) {
+    $errors['checklist_items'] = 'Checklist item descriptions must be 1-255 characters.';
+    break;
+  }
+}
 if ($errors) {
   log_error('Validation failed: '.json_encode($errors));
   json_out(['ok'=>false,'errors'=>$errors,'code'=>422], 422);
@@ -144,7 +153,15 @@ try {
       }
   }
 
-  if ($id <= 0 && $jobTypeId > 0) {
+  // Refresh checklist items
+  $pdo->prepare('DELETE FROM job_checklist_items WHERE job_id = :jid')
+      ->execute([':jid' => $jobId]);
+  if (!empty($checklistItems)) {
+      $insChk = $pdo->prepare('INSERT INTO job_checklist_items (job_id, description) VALUES (:jid, :desc)');
+      foreach ($checklistItems as $desc) {
+          $insChk->execute([':jid' => $jobId, ':desc' => $desc]);
+      }
+  } elseif ($id <= 0 && $jobTypeId > 0) {
       JobChecklistItem::seedDefaults($pdo, $jobId, $jobTypeId);
   }
 
