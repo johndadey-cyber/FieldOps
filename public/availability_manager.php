@@ -101,15 +101,9 @@ if (($_GET['action'] ?? '') === 'log') {
 
 // Selected employee id from query string (if any)
 $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 0;
-?>
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Availability Manager</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Bootstrap 5 -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+$title = 'Availability Manager';
+$bodyAttrs = 'data-csrf="' . s($__csrf) . '"';
+$headExtra = <<<HTML
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
   <style>
     body { padding: 24px; }
@@ -117,8 +111,9 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
     .table thead th { position: sticky; top: 0; background: #fff; z-index: 1; }
     #calendar { max-width: 100%; }
   </style>
-</head>
-<body data-csrf="<?= s($__csrf) ?>">
+HTML;
+require __DIR__ . '/../partials/header.php';
+?>
   <div class="container-xxl">
     <nav aria-label="breadcrumb" class="mb-3">
       <ol class="breadcrumb mb-0">
@@ -131,12 +126,11 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       </ol>
     </nav>
     <div class="d-flex align-items-center justify-content-between mb-3">
+      <div id="weekDisplay" class="text-muted small"></div>
       <div>
-        <h1 class="h3 mb-0">Availability Manager</h1>
-        <div id="weekDisplay" class="text-muted small"></div>
+        <a href="availability_form.php" class="btn btn-outline-secondary btn-sm">Classic Form</a>
+        <a href="availability_onboard.php?employee_id=<?= $selectedEmployeeId ?: '' ?>&week_start=<?= s($weekStart) ?>" class="btn btn-outline-primary btn-sm ms-2">Setup Wizard</a>
       </div>
-      <a href="availability_form.php" class="btn btn-outline-secondary btn-sm">Classic Form</a>
-      <a href="availability_onboard.php?employee_id=<?= $selectedEmployeeId ?: '' ?>&week_start=<?= s($weekStart) ?>" class="btn btn-outline-primary btn-sm ms-2">Setup Wizard</a>
     </div>
 
     <div id="alertBox" class="alert d-none" role="alert"></div>
@@ -518,10 +512,11 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
       </div>
     </div>
   </template>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
-  <script src="/js/toast.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-  <script type="module" src="/js/availability-manager.js"></script>
-</body>
-</html>
+</div>
+<?php
+$pageScripts = <<<HTML
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<script type="module" src="/js/availability-manager.js"></script>
+HTML;
+require __DIR__ . '/../partials/footer.php';
+?>

@@ -37,20 +37,12 @@ function sort_link(string $label, string $column, array $params, string $sort, s
     return '<a href="/customers.php?' . s($qs) . '">' . s($label) . $arrow . '</a>';
 }
 $rows = CustomerDataProvider::getFiltered($pdo, $q, $city, $state, $limit, $sort, $dir);
+$title = 'Customers';
+require __DIR__ . '/../partials/header.php';
 ?>
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Customers</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-<div class="container py-3">
-  <div class="d-flex align-items-center mb-3">
-    <h1 class="h4 m-0">Customers</h1>
-    <a href="/customer_form.php" class="btn btn-sm btn-primary ms-auto">Add Customer</a>
+
+  <div class="mb-3 text-end">
+    <a href="/customer_form.php" class="btn btn-sm btn-primary">Add Customer</a>
   </div>
 
   <form class="mb-3" method="get">
@@ -105,9 +97,9 @@ $rows = CustomerDataProvider::getFiltered($pdo, $q, $city, $state, $limit, $sort
       </table>
     </div>
   </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <?php require_once __DIR__ . '/../partials/flash_toast.php'; ?>
-</body>
-</html>
+<?php
+$pageScripts = '';
+require __DIR__ . '/../partials/footer.php';
+?>

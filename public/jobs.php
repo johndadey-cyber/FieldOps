@@ -20,14 +20,9 @@ $pdo = getPDO();
 $statuses = Job::allowedStatuses();
 $today = date('Y-m-d');
 $weekLater = date('Y-m-d', strtotime('+7 days'));
-?>
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Jobs</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+$title = 'Jobs';
+$headExtra = <<<HTML
   <style>
     .jobs-toolbar{gap:.5rem;flex-wrap:wrap}
     .table-jobs th{white-space:nowrap}
@@ -35,11 +30,11 @@ $weekLater = date('Y-m-d', strtotime('+7 days'));
     .badge-status{text-transform:capitalize}
     .sticky-header thead th{position:sticky;top:0;z-index:1}
   </style>
-</head>
-<body class="bg-light">
-<div class="container py-3">
+HTML;
+require __DIR__ . '/../partials/header.php';
+?>
+
   <div class="d-flex align-items-center mb-3">
-    <h1 class="h4 m-0 me-2">Jobs</h1>
     <div class="ms-auto">
       <a href="add_job.php" class="btn btn-primary btn-sm">+ Add Job</a>
     </div>
@@ -92,11 +87,12 @@ $weekLater = date('Y-m-d', strtotime('+7 days'));
       </table>
     </div>
   </div>
-</div>
 
 <?php include __DIR__ . '/../partials/assignments_modal.php'; ?>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<?php
+$pageScripts = <<<HTML
 <script src="/js/assignments.js?v=20250812"></script>
 <script src="/js/jobs.js?v=20250812"></script>
-</body>
-</html>
+HTML;
+require __DIR__ . '/../partials/footer.php';
+?>

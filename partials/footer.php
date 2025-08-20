@@ -11,6 +11,7 @@ if (!defined('FOOTER_INCLUDED')) {
             integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
             crossorigin="anonymous"></script>
     <script src="/js/toast.js"></script>
+    <?= $pageScripts ?? '' ?>
 
     <script>
     // No-op shims so modal calls never error if page-specific refresh isn't defined
