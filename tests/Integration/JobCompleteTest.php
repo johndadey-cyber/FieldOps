@@ -22,6 +22,7 @@ final class JobCompleteTest extends TestCase
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
         $this->pdo->exec('DELETE FROM job_completion');
+        $this->pdo->exec('DELETE FROM job_checklist_items');
         $this->pdo->exec('DELETE FROM job_photos');
         $this->pdo->exec('DELETE FROM job_notes');
         $this->pdo->exec('DELETE FROM jobs');
@@ -62,6 +63,8 @@ final class JobCompleteTest extends TestCase
     public function testCompletionSavesArtifactsAndUpdatesStatus(): void
     {
         $img = $this->sampleImage();
+        $st  = $this->pdo->prepare('INSERT INTO job_checklist_items (job_id, description, is_completed) VALUES (:j,:d,1)');
+        $st->execute([':j' => $this->jobId, ':d' => 'Task 1']);
         $res = EndpointHarness::run(__DIR__ . '/../../public/api/job_complete.php', [
             'job_id'        => $this->jobId,
             'technician_id' => $this->techId,
@@ -87,6 +90,28 @@ final class JobCompleteTest extends TestCase
         $this->assertIsString($sigPath);
         $this->assertNotSame('', $sigPath);
         $this->assertFileExists(__DIR__ . '/../../public/' . $sigPath);
+    }
+
+    public function testCompletionFailsWhenChecklistIncomplete(): void
+    {
+        $img = $this->sampleImage();
+        $st  = $this->pdo->prepare('INSERT INTO job_checklist_items (job_id, description, is_completed) VALUES (:j,:d,0)');
+        $st->execute([':j' => $this->jobId, ':d' => 'Task pending']);
+
+        $res = EndpointHarness::run(__DIR__ . '/../../public/api/job_complete.php', [
+            'job_id'        => $this->jobId,
+            'technician_id' => $this->techId,
+            'location_lat' => '1',
+            'location_lng' => '2',
+            'final_note'   => 'All done',
+            'final_photos' => [$img],
+            'signature'    => $img,
+        ], ['role' => 'technician']);
+
+        $this->assertFalse($res['ok'] ?? true);
+        $this->assertSame(422, $res['code'] ?? 0);
+        $status = $this->pdo->query('SELECT status FROM jobs WHERE id=' . $this->jobId)->fetchColumn();
+        $this->assertSame('in_progress', $status);
     }
 
     public function testCompletionRequiresNoteAndPhoto(): void
