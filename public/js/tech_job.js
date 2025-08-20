@@ -24,8 +24,8 @@
         if(!data?.ok) throw new Error('Job not found');
         const j=data.job;
         details.innerHTML=`<h1 class="h5">${h(j.description||'')}</h1>
-<div>${h(j.customer.first_name||'')} ${h(j.customer.last_name||'')}</div>
-<div class="text-muted">${h(j.customer.address_line1||'')}</div>`;
+<div>${h(j.customer?.first_name||'')} ${h(j.customer?.last_name||'')}</div>
+<div class="text-muted">${h(j.customer?.address_line1||'')}</div>`;
         if(j.status==='scheduled'){btnStart.classList.remove('d-none');}
       })
       .catch(err=>{details.innerHTML=`<div class="text-danger">${h(err.message)}</div>`;});
