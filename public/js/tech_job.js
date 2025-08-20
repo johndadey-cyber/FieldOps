@@ -119,14 +119,99 @@
       });
     }
 
-    btnComplete?.addEventListener('click',()=>{
+    function fileToBase64(file){
+      return new Promise((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=()=>resolve(reader.result);
+        reader.onerror=()=>reject(new Error('Read failed'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function pickFinalPhotos(){
+      return new Promise(resolve=>{
+        const input=document.createElement('input');
+        input.type='file';
+        input.accept='image/*';
+        input.multiple=true;
+        input.style.display='none';
+        document.body.appendChild(input);
+        input.addEventListener('change',async()=>{
+          const files=Array.from(input.files||[]);
+          const res=[];
+          for(const f of files){res.push(await fileToBase64(f));}
+          input.remove();
+          resolve(res);
+        });
+        input.click();
+      });
+    }
+
+    async function captureSignature(){
+      return new Promise(resolve=>{
+        const modal=document.createElement('div');
+        modal.className='modal fade';
+        modal.innerHTML=`<div class="modal-dialog"><div class="modal-content">
+<div class="modal-header"><h5 class="modal-title">Signature</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body"><canvas width="300" height="150" class="border w-100"></canvas></div>
+<div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-warning" id="sig-clear">Clear</button><button type="button" class="btn btn-primary" id="sig-save">Save</button></div>
+</div></div>`;
+        document.body.appendChild(modal);
+        const canvas=modal.querySelector('canvas');
+        const ctx=canvas.getContext('2d');
+        ctx.strokeStyle='#000';
+        ctx.lineWidth=2;
+        let drawing=false;
+        function getPos(e){const rect=canvas.getBoundingClientRect();const p=e.touches?e.touches[0]:e;return {x:p.clientX-rect.left,y:p.clientY-rect.top};}
+        function start(e){drawing=true;const p=getPos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);e.preventDefault();}
+        function draw(e){if(!drawing) return;const p=getPos(e);ctx.lineTo(p.x,p.y);ctx.stroke();e.preventDefault();}
+        function end(){drawing=false;}
+        canvas.addEventListener('mousedown',start);
+        canvas.addEventListener('mousemove',draw);
+        canvas.addEventListener('mouseup',end);
+        canvas.addEventListener('mouseleave',end);
+        canvas.addEventListener('touchstart',start);
+        canvas.addEventListener('touchmove',draw);
+        canvas.addEventListener('touchend',end);
+        const bsModal=new bootstrap.Modal(modal);
+        modal.addEventListener('hidden.bs.modal',()=>{modal.remove();resolve(null);});
+        modal.querySelector('#sig-clear').addEventListener('click',()=>{ctx.clearRect(0,0,canvas.width,canvas.height);});
+        modal.querySelector('#sig-save').addEventListener('click',()=>{const data=canvas.toDataURL('image/png');bsModal.hide();resolve(data);});
+        bsModal.show();
+      });
+    }
+
+    function getLocation(){
+      return new Promise((resolve,reject)=>{navigator.geolocation.getCurrentPosition(resolve,reject);});
+    }
+
+    btnComplete?.addEventListener('click',async()=>{
       if(!confirm('Mark job complete?')) return;
-      const fd=new FormData();
-      fd.append('job_id',jobId);
-      fd.append('csrf_token',csrf);
-      fetch('/api/job_complete.php',{method:'POST',body:fd,credentials:'same-origin'})
-        .then(r=>r.json()).then(res=>{if(!res?.ok) throw new Error(res?.error||'Failed');alert('Job completed');})
-        .catch(err=>alert(err.message||'Failed'));
+      const finalNote=prompt('Enter final note:')||'';
+      const photos=await pickFinalPhotos();
+      const signature=await captureSignature();
+      if(!signature){alert('Signature required');return;}
+      btnComplete.disabled=true;
+      try{
+        const pos=await getLocation();
+        const fd=new FormData();
+        fd.append('job_id',jobId);
+        fd.append('technician_id',techId);
+        fd.append('location_lat',pos.coords.latitude);
+        fd.append('location_lng',pos.coords.longitude);
+        fd.append('final_note',finalNote);
+        photos.forEach(p=>fd.append('final_photos[]',p));
+        fd.append('signature',signature);
+        fd.append('csrf_token',csrf);
+        const res=await fetch('/api/job_complete.php',{method:'POST',body:fd,credentials:'same-origin'});
+        const data=await res.json();
+        if(!data?.ok) throw new Error(data?.error||'Failed');
+        alert('Job completed');
+      }catch(err){
+        alert(err.message||'Failed');
+      }finally{
+        btnComplete.disabled=false;
+      }
     });
   });
 })();
