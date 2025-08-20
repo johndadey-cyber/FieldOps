@@ -56,8 +56,24 @@ try {
             throw new RuntimeException('Failed to prepare statement');
         }
         $st->execute([':id' => $jobId]);
-        $techId = (int)$st->fetchColumn();
-        if ($techId !== $userId) {
+        $techId = (int) $st->fetchColumn();
+
+        $assigned = ($techId === $userId && $techId !== 0);
+        if (!$assigned) {
+            // Fallback to join table if technician_id column doesn't match
+            try {
+                $st = $pdo->prepare('SELECT 1 FROM job_employee_assignment WHERE job_id = :jid AND employee_id = :eid LIMIT 1');
+                if ($st === false) {
+                    throw new RuntimeException('Failed to prepare assignment check');
+                }
+                $st->execute([':jid' => $jobId, ':eid' => $userId]);
+                $assigned = ($st->fetchColumn() !== false);
+            } catch (Throwable $ignore) {
+                // join table absent; leave $assigned false
+            }
+        }
+
+        if (!$assigned) {
             JsonResponse::json(['ok' => false, 'error' => 'Forbidden', 'code' => \ErrorCodes::FORBIDDEN], 403);
             return;
         }
