@@ -108,12 +108,36 @@
       photosEl.innerHTML='';
       if(!photos.length){photosEl.innerHTML='<div class="text-muted">No photos</div>';return;}
       photos.forEach(p=>{
+        const wrapper=document.createElement('div');
+        wrapper.className='text-center';
         const img=document.createElement('img');
         img.src=`/${p.path}`;
-        img.className='img-thumbnail';
+        img.className='img-thumbnail mb-1';
         img.style.maxWidth='120px';
-        photosEl.appendChild(img);
+        const cap=document.createElement('div');
+        cap.className='small text-muted';
+        cap.textContent=p.label||'';
+        wrapper.appendChild(img);
+        wrapper.appendChild(cap);
+        photosEl.appendChild(wrapper);
       });
+    }
+
+    function appendPreview(file, tag){
+      if(!photosEl) return;
+      const url=URL.createObjectURL(file);
+      const wrapper=document.createElement('div');
+      wrapper.className='text-center';
+      const img=document.createElement('img');
+      img.src=url;
+      img.className='img-thumbnail mb-1';
+      img.style.maxWidth='120px';
+      const cap=document.createElement('div');
+      cap.className='small text-muted';
+      cap.textContent=tag||'';
+      wrapper.appendChild(img);
+      wrapper.appendChild(cap);
+      photosEl.appendChild(wrapper);
     }
 
     fetch(`/api/get_job_details.php?id=${jobId}`,{credentials:'same-origin'})
@@ -215,9 +239,27 @@
         return r.json();
       };
       if(navigator.onLine){
-        try{const res=await send(info);if(!res?.ok) throw new Error(res?.error||'Failed');alert('Photo uploaded');}
-        catch(e){for(const it of info){const b64=await fileToBase64(it.file);queueOffline({type:'photo',job_id:jobId,technician_id:techId,photo:b64,tag:it.tag,annotation:it.annotation||'',csrf_token:csrf});}alert('Photo saved offline');}
-      }else{for(const it of info){const b64=await fileToBase64(it.file);queueOffline({type:'photo',job_id:jobId,technician_id:techId,photo:b64,tag:it.tag,annotation:it.annotation||'',csrf_token:csrf});}alert('Photo saved offline');}
+        try{
+          const res=await send(info);
+          if(!res?.ok) throw new Error(res?.error||'Failed');
+          alert('Photo uploaded');
+          fetchPhotos();
+        }catch(e){
+          for(const it of info){
+            const b64=await fileToBase64(it.file);
+            queueOffline({type:'photo',job_id:jobId,technician_id:techId,photo:b64,tag:it.tag,annotation:it.annotation||'',csrf_token:csrf});
+            appendPreview(it.file,it.tag);
+          }
+          alert('Photo saved offline');
+        }
+      }else{
+        for(const it of info){
+          const b64=await fileToBase64(it.file);
+          queueOffline({type:'photo',job_id:jobId,technician_id:techId,photo:b64,tag:it.tag,annotation:it.annotation||'',csrf_token:csrf});
+          appendPreview(it.file,it.tag);
+        }
+        alert('Photo saved offline');
+      }
     });
 
     btnChecklist?.addEventListener('click',async()=>{

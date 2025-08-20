@@ -41,13 +41,13 @@ $jobId  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
   </div>
   <div id="photos-section" class="mb-4">
     <h2 class="h6">Photos</h2>
+    <button class="btn btn-outline-secondary mb-2" id="btn-add-photo" aria-label="Add photo">Take/Upload Photo</button>
     <div id="job-photos" class="d-flex flex-wrap gap-2"></div>
   </div>
 </div>
 <div class="action-bar">
   <div class="d-flex">
     <button class="btn btn-outline-secondary flex-fill btn-lg" id="btn-add-note" aria-label="Add note">Add Note</button>
-    <button class="btn btn-outline-secondary flex-fill btn-lg" id="btn-add-photo" aria-label="Add photo">Add Photo</button>
     <button class="btn btn-outline-secondary flex-fill btn-lg" id="btn-checklist" aria-label="Open checklist">Checklist</button>
     <button class="btn btn-success flex-fill btn-lg d-none" id="btn-complete" aria-label="Mark job as complete">Mark as Complete</button>
   </div>
