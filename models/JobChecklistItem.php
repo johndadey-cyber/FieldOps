@@ -6,13 +6,16 @@
 final class JobChecklistItem
 {
     /**
+
      * Fetch default checklist templates grouped by job type from the database.
+
      *
      * @return array<int, list<string>>
      */
     public static function defaultTemplates(PDO $pdo): array
     {
         $st = $pdo->prepare(
+
             'SELECT job_type_id, description
              FROM checklist_templates
              ORDER BY job_type_id, position, id'
@@ -21,7 +24,9 @@ final class JobChecklistItem
             return [];
         }
         $st->execute();
+
         /** @var list<array<string,mixed>> $rows */
+
         $rows = $st->fetchAll(PDO::FETCH_ASSOC);
         $out = [];
         foreach ($rows as $r) {
@@ -94,6 +99,7 @@ final class JobChecklistItem
      */
     public static function seedDefaults(PDO $pdo, int $jobId, int $jobTypeId): void
     {
+
         $st = $pdo->prepare(
             'SELECT description
              FROM checklist_templates
@@ -106,6 +112,7 @@ final class JobChecklistItem
         $st->execute([':jt' => $jobTypeId]);
         /** @var list<string> $templates */
         $templates = $st->fetchAll(PDO::FETCH_COLUMN);
+
         if ($templates === []) {
             return;
         }
