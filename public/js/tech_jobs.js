@@ -9,56 +9,17 @@
   const skillIcons={plumbing:'🛠️',electrical:'⚡',hvac:'❄️',cleaning:'🧹',default:'🛠️'};
   ready(async () => {
     const list=document.getElementById('jobs-list');
-    const banner=document.getElementById('date-banner');
-    const techId=window.TECH_ID;
-    const csrf=window.CSRF_TOKEN;
-    const today=window.TODAY||new Date().toISOString().slice(0,10);
+      const banner=document.getElementById('date-banner');
+      const techId=window.TECH_ID;
+      const today=window.TODAY||new Date().toISOString().slice(0,10);
     if(banner){banner.textContent=window.TODAY_HUMAN||'';}
 
-    const btnNote=document.getElementById('btn-add-note');
-    const btnPhoto=document.getElementById('btn-add-photo');
-    const btnMap=document.getElementById('btn-map-view');
-    const btnStart=document.getElementById('btn-start-job');
-    const fileInput=document.createElement('input');
-    fileInput.type='file';
-    fileInput.accept='image/*';
-    fileInput.style.display='none';
-    document.body.appendChild(fileInput);
-    let jobsCache=[];let firstJobId=null;
+      const btnStart=document.getElementById('btn-start-job');
 
-    btnNote?.addEventListener('click',async()=>{
-      if(!firstJobId)return;const note=prompt('Enter note');
-      if(!note)return;const fd=new FormData();fd.append('job_id',firstJobId);
-      fd.append('technician_id',techId);fd.append('note',note);
-      fd.append('csrf_token',csrf);
-      fetch('/api/job_notes_add.php',{method:'POST',body:fd,credentials:'same-origin'})
-        .then(r=>r.json()).then(res=>{if(!res?.ok)alert(res?.error||'Failed to save note');});
-    });
-
-    btnPhoto?.addEventListener('click',()=>fileInput.click());
-    fileInput.addEventListener('change',()=>{
-      if(!firstJobId||!fileInput.files.length){fileInput.value='';return;}
-      const fd=new FormData();fd.append('job_id',firstJobId);
-      fd.append('technician_id',techId);fd.append('csrf_token',csrf);
-      Array.from(fileInput.files).forEach(f=>fd.append('photos[]',f));
-      fetch('/api/job_photos_upload.php',{method:'POST',body:fd,credentials:'same-origin'})
-        .then(r=>r.json()).then(res=>{if(!res?.ok)alert(res?.error||'Upload failed');});
-      fileInput.value='';
-    });
-
-    btnMap?.addEventListener('click',()=>{
-      if(!jobsCache.length)return;
-      const addrs=jobsCache.map(j=>[j.customer.address_line1,j.customer.city].filter(Boolean).join(' '));
-      const dest=addrs[addrs.length-1];
-      const waypts=addrs.slice(0,-1).join('|');
-      const url=`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}${waypts?`&waypoints=${encodeURIComponent(waypts)}`:''}`;
-      window.open(url,'_blank');
-    });
-
-    btnStart?.addEventListener('click',e=>{e.preventDefault();
-      const base=btnStart.getAttribute('href')||'/add_job.php';
-      window.location.href=`${base}?redirect=${encodeURIComponent(location.pathname)}`;
-    });
+      btnStart?.addEventListener('click',e=>{e.preventDefault();
+        const base=btnStart.getAttribute('href')||'/add_job.php';
+        window.location.href=`${base}?redirect=${encodeURIComponent(location.pathname)}`;
+      });
     const startParam=new URLSearchParams(location.search).get('start');
     if(startParam==='1'&&btnStart){btnStart.click();}
 
@@ -68,7 +29,6 @@
       const data=await res.json();
       if(!Array.isArray(data)) throw new Error('Invalid response');
       const jobs=data.filter(j => (j.assigned_employees||[]).some(e => Number(e.id)===Number(techId)));
-      jobsCache=jobs;firstJobId=jobs[0]?.job_id||null;
       if(!jobs.length){
         list.innerHTML='<div class="text-center text-muted py-5">No jobs for today.</div>';
         return;
