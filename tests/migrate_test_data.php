@@ -100,6 +100,12 @@ $sql = [
         skill_id INT NOT NULL
     ) ENGINE=InnoDB",
 
+    "CREATE TABLE IF NOT EXISTS job_job_type (
+        job_id INT NOT NULL,
+        job_type_id INT NOT NULL,
+        UNIQUE KEY uq_job_job_type (job_id, job_type_id)
+    ) ENGINE=InnoDB",
+
     "CREATE TABLE IF NOT EXISTS employee_availability_overrides (
         id INT AUTO_INCREMENT PRIMARY KEY,
         employee_id INT NOT NULL,

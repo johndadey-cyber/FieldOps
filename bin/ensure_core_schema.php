@@ -326,6 +326,18 @@ if (!tableExists($pdo, 'job_skill')) {
     out('[OK] job_skill created');
 }
 
+// Ensure job_job_type table
+if (!tableExists($pdo, 'job_job_type')) {
+    out('[..] Creating table job_job_type ...');
+    $pdo->exec(
+        "CREATE TABLE `job_job_type` (
+            `job_id` INT NOT NULL,
+            `job_type_id` INT NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+    );
+    out('[OK] job_job_type created');
+}
+
 // Ensure job_notes table
 if (!tableExists($pdo, 'job_notes')) {
     out('[..] Creating table job_notes ...');
@@ -424,6 +436,9 @@ ensureFk($pdo, 'jobtype_skills', 'skill_id', 'skills', 'id', 'fk_jobtype_skills_
 ensureFk($pdo, 'job_skill', 'job_id', 'jobs', 'id', 'fk_job_skill_job', 'CASCADE', 'RESTRICT');
 ensureFk($pdo, 'job_skill', 'skill_id', 'skills', 'id', 'fk_job_skill_skill', 'RESTRICT', 'CASCADE');
 
+ensureFk($pdo, 'job_job_type', 'job_id', 'jobs', 'id', 'fk_job_jobtype_job', 'CASCADE', 'RESTRICT');
+ensureFk($pdo, 'job_job_type', 'job_type_id', 'job_types', 'id', 'fk_job_jobtype_type', 'RESTRICT', 'CASCADE');
+
 ensureFk($pdo, 'job_notes', 'job_id', 'jobs', 'id', 'fk_job_notes_job', 'CASCADE', 'RESTRICT');
 ensureFk($pdo, 'job_notes', 'technician_id', 'employees', 'id', 'fk_job_notes_technician', 'RESTRICT', 'RESTRICT');
 
@@ -456,6 +471,7 @@ ensureUnique($pdo, 'employee_availability', ['employee_id','day_of_week','start_
 ensureUnique($pdo, 'employee_skills', ['employee_id','skill_id'], 'uq_employee_skill');
 ensureUnique($pdo, 'jobtype_skills', ['job_type_id','skill_id'], 'uq_jobtype_skill');
 ensureUnique($pdo, 'job_skill', ['job_id','skill_id'], 'uq_job_skill');
+ensureUnique($pdo, 'job_job_type', ['job_id','job_type_id'], 'uq_job_job_type');
 
 out(PHP_EOL . "== Cleaning obvious orphan rows (dev only) ==");
 try {
