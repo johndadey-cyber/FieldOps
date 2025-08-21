@@ -102,10 +102,18 @@
     }
     if(jobTypeSelect){
       jobTypeSelect.addEventListener('change', function(){
-        var selected=Array.from(jobTypeSelect.selectedOptions||[]).map(function(o){return o.value;});
-        var tid=selected.length?selected[0]:'';
-        checklistItems=(templates[tid]||[]).slice();
+        var selectedIds = Array.from(jobTypeSelect.selectedOptions||[]).map(function(o){ return o.value; });
+        checklistItems = [];
+        selectedIds.forEach(function(tid){
+          if(Array.isArray(templates[tid])){
+            checklistItems = checklistItems.concat(templates[tid]);
+          }
+        });
+        renderChecklist(checklistItems);
         updateHiddenInputs();
+        if(checklistModal && checklistModalEl && checklistModalEl.classList.contains('show')){
+          checklistModal.show();
+        }
       });
     }
     updateHiddenInputs();
