@@ -131,11 +131,10 @@ function stickyArr(string $name, array $default = []): array {
         </div>
       </fieldset>
 
-      <fieldset class="mb-4" id="checklistFieldset" style="display:none;">
-        <legend>Checklist Items</legend>
-        <div id="checklistItems"></div>
-        <button type="button" class="btn btn-outline-secondary mt-2" id="addChecklistItem">Add Item</button>
-      </fieldset>
+      <div class="mb-4">
+        <a href="#" id="checklistModalLink" class="btn btn-outline-secondary">Checklist…</a>
+        <div id="checklistHiddenInputs" style="display:none;"></div>
+      </div>
 
       <fieldset class="mb-4">
         <legend>Scheduling</legend>
@@ -163,6 +162,24 @@ function stickyArr(string $name, array $default = []): array {
         <a href="jobs.php" class="btn btn-secondary">Cancel</a>
       </div>
     </form>
+
+    <div class="modal fade" id="checklistModal" tabindex="-1" aria-labelledby="checklistModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="checklistModalLabel">Checklist Items</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div id="checklistModalBody"></div>
+            <button type="button" class="btn btn-outline-secondary mt-2" id="addChecklistItem">Add Item</button>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" id="saveChecklist">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <?php endif; ?>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

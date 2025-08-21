@@ -7,12 +7,17 @@
     var skillError = document.getElementById('jobSkillError');
     var templates = window.jobChecklistTemplates || {};
     var initItems = window.initialChecklistItems || [];
-    var checklistFieldset = document.getElementById('checklistFieldset');
-    var checklistWrap = document.getElementById('checklistItems');
+    var checklistLink = document.getElementById('checklistModalLink');
+    var checklistModalEl = document.getElementById('checklistModal');
+    var checklistModal = checklistModalEl ? new bootstrap.Modal(checklistModalEl) : null;
+    var modalBody = document.getElementById('checklistModalBody');
     var addBtn = document.getElementById('addChecklistItem');
+    var saveBtn = document.getElementById('saveChecklist');
+    var hiddenInputs = document.getElementById('checklistHiddenInputs');
     var jobTypeSelect = document.getElementById('job_type_ids');
     var isDev = (window.APP_ENV && window.APP_ENV !== 'prod') ||
                 (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+    var checklistItems = initItems.slice();
 
     if (typeof $ !== 'undefined' && $.fn.select2) {
       var skillsSelect = $('#skills');
@@ -37,13 +42,11 @@
     }
 
     function addChecklistInput(val){
-      if(!checklistFieldset || !checklistWrap) return;
-      checklistFieldset.style.display='block';
+      if(!modalBody) return;
       var div=document.createElement('div');
       div.className='input-group mb-2 checklist-item';
       var inp=document.createElement('input');
       inp.type='text';
-      inp.name='checklist_items[]';
       inp.className='form-control checklist-input';
       inp.required=true;
       inp.maxLength=255;
@@ -53,44 +56,66 @@
       btn.className='btn btn-outline-danger';
       btn.textContent='Remove';
       btn.setAttribute('aria-label','Remove item');
-      btn.addEventListener('click',function(){
-        div.remove();
-        if(checklistWrap.children.length===0){ checklistFieldset.style.display='none'; }
-      });
+      btn.addEventListener('click',function(){ div.remove(); });
       div.appendChild(inp);
       div.appendChild(btn);
       var fb=document.createElement('div');
       fb.className='invalid-feedback';
       fb.textContent='Description required (max 255 characters).';
       div.appendChild(fb);
-      checklistWrap.appendChild(div);
+      modalBody.appendChild(div);
     }
 
     function renderChecklist(items){
-      if(!checklistWrap) return;
-      checklistWrap.innerHTML='';
+      if(!modalBody) return;
+      modalBody.innerHTML='';
       (items||[]).forEach(function(it){ addChecklistInput(it); });
-      if(checklistWrap.children.length===0){ checklistFieldset.style.display='none'; }
+    }
+
+    function updateHiddenInputs(){
+      if(!hiddenInputs) return;
+      hiddenInputs.innerHTML='';
+      checklistItems.forEach(function(desc){
+        var inp=document.createElement('input');
+        inp.type='hidden';
+        inp.name='checklist_items[]';
+        inp.value=desc;
+        hiddenInputs.appendChild(inp);
+      });
     }
 
     if(addBtn){ addBtn.addEventListener('click', function(){ addChecklistInput(''); }); }
+    if(checklistLink && checklistModal){
+      checklistLink.addEventListener('click', function(e){
+        e.preventDefault();
+        renderChecklist(checklistItems);
+        checklistModal.show();
+      });
+    }
+    if(saveBtn && checklistModal){
+      saveBtn.addEventListener('click', function(){
+        var inputs=checklistModalEl.querySelectorAll('.checklist-input');
+        checklistItems=Array.from(inputs).map(function(inp){ return inp.value.trim(); }).filter(function(v){ return v!==''; });
+        updateHiddenInputs();
+        checklistModal.hide();
+      });
+    }
     if(jobTypeSelect){
       jobTypeSelect.addEventListener('change', function(){
         var selected=Array.from(jobTypeSelect.selectedOptions||[]).map(function(o){return o.value;});
         var tid=selected.length?selected[0]:'';
-        renderChecklist(templates[tid]||[]);
+        checklistItems=(templates[tid]||[]).slice();
+        updateHiddenInputs();
       });
     }
-    if(initItems && initItems.length){
-      renderChecklist(initItems);
-    }
+    updateHiddenInputs();
 
     form.addEventListener('submit', function(e){
       e.preventDefault();
       showErrors([]);
         var skillSelect = form.querySelector('#skills');
         var selectedSkills = Array.from(skillSelect?.selectedOptions || []);
-        var checklistInputs=form.querySelectorAll('.checklist-input');
+        var checklistInputs=hiddenInputs ? hiddenInputs.querySelectorAll('input[name="checklist_items[]"]') : [];
         checklistInputs.forEach(function(inp){ inp.value=inp.value.trim(); });
         var valid = form.checkValidity();
       if(selectedSkills.length===0){ if(skillError){skillError.style.display='block';} valid=false; } else { if(skillError){skillError.style.display='none';} }
