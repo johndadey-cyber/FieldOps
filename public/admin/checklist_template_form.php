@@ -39,17 +39,50 @@ require_once __DIR__ . '/nav.php';
       <?php endforeach; ?>
     </select>
   </div>
-  <div class="mb-3">
-    <label class="form-label" for="description">Description</label>
-    <input type="text" class="form-control" id="description" name="description" required value="<?= htmlspecialchars($template['description'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+  <div id="items">
+    <?php
+    $existing = $template ? [
+        ['description' => $template['description'] ?? '', 'position' => $template['position'] ?? null],
+    ] : [['description' => '', 'position' => null]];
+    foreach ($existing as $i => $item): ?>
+      <div class="row g-2 mb-2">
+        <div class="col">
+          <label class="form-label" for="desc-<?= $i ?>">Description</label>
+          <input type="text" class="form-control" id="desc-<?= $i ?>" name="items[<?= $i ?>][description]" required value="<?= htmlspecialchars($item['description'], ENT_QUOTES, 'UTF-8') ?>">
+        </div>
+        <div class="col-2">
+          <label class="form-label" for="pos-<?= $i ?>">Position</label>
+          <input type="number" class="form-control" id="pos-<?= $i ?>" name="items[<?= $i ?>][position]" value="<?= htmlspecialchars((string)($item['position'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+        </div>
+      </div>
+    <?php endforeach; ?>
   </div>
-  <div class="mb-3">
-    <label class="form-label" for="position">Position</label>
-    <input type="number" class="form-control" id="position" name="position" value="<?= htmlspecialchars($template['position'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-  </div>
+  <?php if ($id === 0): ?>
+  <button type="button" class="btn btn-secondary mb-3" id="add-item">+ Add Item</button>
+  <?php endif; ?>
   <div class="mt-3">
     <button type="submit" class="btn btn-primary">Save</button>
     <a href="/admin/checklist_template_list.php" class="btn btn-secondary">Cancel</a>
   </div>
 </form>
+<?php if ($id === 0): ?>
+<script>
+document.getElementById('add-item').addEventListener('click', function () {
+  const container = document.getElementById('items');
+  const idx = container.children.length;
+  const row = document.createElement('div');
+  row.className = 'row g-2 mb-2';
+  row.innerHTML = `
+    <div class="col">
+      <label class="form-label" for="desc-${idx}">Description</label>
+      <input type="text" class="form-control" id="desc-${idx}" name="items[${idx}][description]" required>
+    </div>
+    <div class="col-2">
+      <label class="form-label" for="pos-${idx}">Position</label>
+      <input type="number" class="form-control" id="pos-${idx}" name="items[${idx}][position]">
+    </div>`;
+  container.appendChild(row);
+});
+</script>
+<?php endif; ?>
 <?php require_once __DIR__ . '/../../partials/footer.php'; ?>
