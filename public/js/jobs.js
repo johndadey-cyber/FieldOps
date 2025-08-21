@@ -49,8 +49,12 @@
         const tr=document.createElement('tr');
         // Date
         const dateCell=document.createElement('td');
-        let dLabel=new Date(job.scheduled_date).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
-        if(job.scheduled_date===todayStr){dLabel+=' <span class="badge bg-primary-subtle text-primary border">Today</span>';}
+        let dLabel='';
+        if(job.scheduled_date){
+          const [y,m,d] = job.scheduled_date.split('-');
+          dLabel = h(`${m}/${d}/${y}`);
+          if(job.scheduled_date===todayStr){dLabel+=' <span class="badge bg-primary-subtle text-primary border">Today</span>';}
+        }
         dateCell.innerHTML=dLabel; tr.appendChild(dateCell);
         // Time
         const timeCell=document.createElement('td');
