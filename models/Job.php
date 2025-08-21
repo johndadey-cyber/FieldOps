@@ -126,6 +126,38 @@ final class Job
     }
 
     /**
+     * Fetch job types linked to a job (id + name).
+     *
+     * @return list<array{id:int,name:string}>
+     */
+    public static function getJobTypesForJob(PDO $pdo, int $jobId): array
+    {
+        try {
+            $st = $pdo->prepare(
+                "
+                SELECT jt.id, jt.name
+                FROM job_job_type jjt
+                JOIN job_types jt ON jt.id = jjt.job_type_id
+                WHERE jjt.job_id = :job_id
+                ORDER BY jt.name, jt.id
+                "
+            );
+            if ($st === false) {
+                return [];
+            }
+            $st->execute([':job_id' => $jobId]);
+            /** @var list<array{id:int|string,name:string}> $rows */
+            $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+            return array_map(
+                static fn(array $r): array => ['id' => (int)$r['id'], 'name' => (string)$r['name']],
+                $rows
+            );
+        } catch (Throwable $e) {
+            return [];
+        }
+    }
+
+    /**
      * Mark a job as started. Sets status to in_progress, records start time and location.
      * Returns true if the row was updated.
      */

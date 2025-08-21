@@ -164,6 +164,10 @@ $fkExpect = [
       ['cols'=>['job_type_id'],'ref'=>'job_types','refcols'=>['id']],
       ['cols'=>['skill_id'],'ref'=>'skills','refcols'=>['id']],
   ],
+  'job_job_type' => [
+      ['cols'=>['job_id'],'ref'=>'jobs','refcols'=>['id']],
+      ['cols'=>['job_type_id'],'ref'=>'job_types','refcols'=>['id']],
+  ],
   'job_employee_assignment' => [
       ['cols'=>['job_id'],'ref'=>'jobs','refcols'=>['id']],
       ['cols'=>['employee_id'],'ref'=>'employees','refcols'=>['id']],
@@ -218,6 +222,10 @@ if (tableExists($pdo,'employee_skills') &&
 if (tableExists($pdo,'jobtype_skills') &&
     !hasUniqueIndex($pdo,'jobtype_skills',['job_type_id','skill_id'],'uq_jobtype_skill')) {
     $issues[] = "Missing UNIQUE index on jobtype_skills(job_type_id, skill_id)";
+}
+if (tableExists($pdo,'job_job_type') &&
+    !hasUniqueIndex($pdo,'job_job_type',['job_id','job_type_id'],'uq_job_job_type')) {
+    $issues[] = "Missing UNIQUE index on job_job_type(job_id, job_type_id)";
 }
 
 // Data health

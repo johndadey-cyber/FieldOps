@@ -10,6 +10,8 @@ $id  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $job = $id > 0 ? Job::getJobAndCustomerDetails($pdo, $id) : null;
 $skills = $id > 0 ? Job::getSkillsForJob($pdo, $id) : [];
 $jobSkillIds = array_map(static fn(array $r): string => (string)$r['id'], $skills);
+$types = $id > 0 ? Job::getJobTypesForJob($pdo, $id) : [];
+$jobTypeIds = array_map(static fn(array $r): string => (string)$r['id'], $types);
 
 $mode = 'edit';
 

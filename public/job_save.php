@@ -54,7 +54,13 @@ $statusIn        = trim((string)($_POST['status'] ?? ''));
 $skillIds        = isset($_POST['skills']) && is_array($_POST['skills'])
     ? array_values(array_filter(array_map('intval', $_POST['skills']), static fn($v) => $v > 0))
     : [];
-$jobTypeId      = isset($_POST['job_type_id']) ? (int)$_POST['job_type_id'] : 0;
+$jobTypeIds = isset($_POST['job_type_ids']) && is_array($_POST['job_type_ids'])
+    ? array_values(array_filter(array_map('intval', $_POST['job_type_ids']), static fn($v) => $v > 0))
+    : [];
+if (!$jobTypeIds && isset($_POST['job_type_id'])) {
+    $jt = (int)$_POST['job_type_id'];
+    if ($jt > 0) { $jobTypeIds = [$jt]; }
+}
 $checklistItems = isset($_POST['checklist_items']) && is_array($_POST['checklist_items'])
     ? array_values(array_filter(array_map(static fn($v) => trim((string)$v), $_POST['checklist_items']), static fn($v) => $v !== ''))
     : [];
@@ -153,6 +159,16 @@ try {
       }
   }
 
+  // Refresh job types
+  $pdo->prepare('DELETE FROM job_job_type WHERE job_id = :jid')
+      ->execute([':jid' => $jobId]);
+  if (!empty($jobTypeIds)) {
+      $insJt = $pdo->prepare('INSERT INTO job_job_type (job_id, job_type_id) VALUES (:jid, :tid)');
+      foreach ($jobTypeIds as $tid) {
+          $insJt->execute([':jid' => $jobId, ':tid' => $tid]);
+      }
+  }
+
   // Refresh checklist items
   $pdo->prepare('DELETE FROM job_checklist_items WHERE job_id = :jid')
       ->execute([':jid' => $jobId]);
@@ -161,8 +177,10 @@ try {
       foreach ($checklistItems as $desc) {
           $insChk->execute([':jid' => $jobId, ':desc' => $desc]);
       }
-  } elseif ($id <= 0 && $jobTypeId > 0) {
-      JobChecklistItem::seedDefaults($pdo, $jobId, $jobTypeId);
+  } elseif ($id <= 0 && !empty($jobTypeIds)) {
+      foreach ($jobTypeIds as $tid) {
+          JobChecklistItem::seedDefaults($pdo, $jobId, $tid);
+      }
   }
 
   $pdo->commit();

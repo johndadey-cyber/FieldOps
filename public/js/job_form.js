@@ -10,12 +10,16 @@
     var checklistFieldset = document.getElementById('checklistFieldset');
     var checklistWrap = document.getElementById('checklistItems');
     var addBtn = document.getElementById('addChecklistItem');
-    var jobTypeSelect = document.getElementById('job_type_id');
+    var jobTypeSelect = document.getElementById('job_type_ids');
 
     if (typeof $ !== 'undefined' && $.fn.select2) {
       var skillsSelect = $('#skills');
       if (skillsSelect.length) {
         skillsSelect.select2({ width: '100%' });
+      }
+      var jobTypeSel2 = $('#job_type_ids');
+      if (jobTypeSel2.length) {
+        jobTypeSel2.select2({ width: '100%' });
       }
     }
 
@@ -70,11 +74,14 @@
     if(addBtn){ addBtn.addEventListener('click', function(){ addChecklistInput(''); }); }
     if(jobTypeSelect){
       jobTypeSelect.addEventListener('change', function(){
-        var tid=jobTypeSelect.value;
+        var selected=Array.from(jobTypeSelect.selectedOptions||[]).map(function(o){return o.value;});
+        var tid=selected.length?selected[0]:'';
         renderChecklist(templates[tid]||[]);
       });
     }
-    if(initItems && initItems.length){ renderChecklist(initItems); }
+    if(initItems && initItems.length){
+      renderChecklist(initItems);
+    }
 
     form.addEventListener('submit', function(e){
       e.preventDefault();

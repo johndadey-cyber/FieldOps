@@ -15,6 +15,7 @@ $__csrf = csrf_token();
 $mode        = $mode ?? 'add';
 $job         = $job ?? [];
 $jobSkillIds = $jobSkillIds ?? [];
+$jobTypeIds  = $jobTypeIds ?? [];
 $isEdit      = $mode === 'edit';
 
 $skills    = Skill::all($pdo);
@@ -107,13 +108,12 @@ function stickyArr(string $name, array $default = []): array {
           <div class="invalid-feedback d-block" id="jobSkillError" style="display:none">Select at least one skill.</div>
         </div>
         <div class="mb-3">
-          <label for="job_type_id" class="form-label">Job Type</label>
-          <?php $selJobType = sticky('job_type_id', ''); ?>
-          <select name="job_type_id" id="job_type_id" class="form-select">
-            <option value="">-- Select --</option>
+          <label for="job_type_ids" class="form-label">Job Types</label>
+          <?php $selJobTypes = stickyArr('job_type_ids', $jobTypeIds); ?>
+          <select name="job_type_ids[]" id="job_type_ids" class="form-select" multiple>
             <?php foreach ($jobTypes as $jt): ?>
               <?php $jtId = (string)$jt['id']; ?>
-              <option value="<?= s($jtId) ?>" <?= $selJobType === $jtId ? 'selected' : '' ?>><?= s($jt['name']) ?></option>
+              <option value="<?= s($jtId) ?>" <?= in_array($jtId, $selJobTypes, true) ? 'selected' : '' ?>><?= s($jt['name']) ?></option>
             <?php endforeach; ?>
           </select>
         </div>
