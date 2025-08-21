@@ -32,6 +32,13 @@ if (!empty($_POST)) {
   log_error('Request payload: ' . json_encode($_POST, JSON_UNESCAPED_SLASHES));
 }
 
+// Ensure request method is POST to prevent unintended access.
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+  $method = $_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN';
+  log_error('Invalid request method: ' . $method);
+  json_out(['ok'=>false,'error'=>'Method not allowed','code'=>405], 405);
+}
+
 /**
  * Attempt to normalize various time formats to HH:MM.
  */
