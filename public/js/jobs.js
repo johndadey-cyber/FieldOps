@@ -38,7 +38,8 @@
     }
 
     function renderRows(rows){
-      const todayStr=new Date().toISOString().slice(0,10);
+      const d=new Date();
+      const todayStr=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
       $tbody.innerHTML='';
       if(!rows.length){
         $tbody.innerHTML='<tr><td colspan="7" class="text-center text-muted py-3">No jobs match your filters</td></tr>';
