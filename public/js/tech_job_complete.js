@@ -24,6 +24,21 @@
     const btnClearSig=document.getElementById('btn-clear-sig');
     const btnSubmit=document.getElementById('btn-submit');
     const sigFeedback=document.getElementById('sig-feedback');
+    const statusBanner=document.getElementById('network-banner');
+    if(statusBanner) statusBanner.classList.add('d-none');
+    const progressOverlay=document.createElement('div');
+    progressOverlay.id='photo-progress';
+    progressOverlay.className='position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex flex-column align-items-center justify-content-center text-white d-none';
+    progressOverlay.innerHTML='<div class="spinner-border mb-2" role="status" style="width:3rem;height:3rem"></div><div id="photo-progress-text">0%</div>';
+    document.body.appendChild(progressOverlay);
+    const progressText=progressOverlay.querySelector('#photo-progress-text');
+
+    function showProgress(msg){progressText.textContent=msg;progressOverlay.classList.remove('d-none');}
+    function hideProgress(){progressOverlay.classList.add('d-none');}
+    function showSaving(){if(statusBanner){statusBanner.textContent='Saving…';statusBanner.className='alert alert-info text-center small';statusBanner.classList.remove('d-none');}}
+    function showOffline(){if(statusBanner){statusBanner.textContent='Offline, will sync';statusBanner.className='alert alert-warning text-center small';statusBanner.classList.remove('d-none');}}
+    window.addEventListener('online',showSaving);
+    window.addEventListener('offline',showOffline);
     const ctx=sigCanvas.getContext('2d');
     ctx.strokeStyle='#000';
     ctx.lineWidth=2;
@@ -60,15 +75,25 @@
     sigCanvas.addEventListener('touchstart',()=>{sigCanvas.classList.remove('is-invalid');sigFeedback.textContent='';sigFeedback.classList.remove('d-block');});
     if(window.SpeechRecognition||window.webkitSpeechRecognition){
       const Rec=window.SpeechRecognition||window.webkitSpeechRecognition;
-      const rec=new Rec();
-      rec.lang='en-US';
-      rec.interimResults=false;
-      btnVoice.addEventListener('click',()=>{try{rec.start();}catch(_){}});
-      rec.addEventListener('result',e=>{
-        const txt=e.results[0][0].transcript;
-        noteEl.value=(noteEl.value?noteEl.value+' ':'')+txt;
-        noteEl.dispatchEvent(new Event('input'));
-        noteEl.focus();
+      btnVoice.addEventListener('click',()=>{
+        const overlay=document.createElement('div');
+        overlay.className='position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 text-white';
+        overlay.textContent='Listening…';
+        overlay.style.borderRadius='.25rem';
+        noteEl.parentElement.appendChild(overlay);
+        const rec=new Rec();
+        rec.lang='en-US';
+        rec.interimResults=false;
+        rec.onresult=e=>{
+          const txt=e.results[0][0].transcript;
+          noteEl.value=(noteEl.value?noteEl.value+' ':'')+txt;
+          noteEl.dispatchEvent(new Event('input'));
+          noteEl.focus();
+        };
+        const end=()=>overlay.remove();
+        rec.onend=end;
+        rec.onerror=end;
+        try{rec.start();}catch(_){end();}
       });
     }else{
       btnVoice.classList.add('d-none');
@@ -87,21 +112,29 @@
         if(previews.length===0){btnAddPhoto.classList.add('is-invalid');photoFeedback.textContent='At least one photo required';photoFeedback.classList.add('d-block');hasError=true;}
         if(!signed){sigCanvas.classList.add('is-invalid');sigFeedback.textContent='Signature required';sigFeedback.classList.add('d-block');hasError=true;}
         if(hasError){btnSubmit.disabled=false;return;}
+        showProgress('Encoding photos 0/'+previews.length);
         const photos=[];const tags=[];
+        let processed=0;
         for(const div of previews){
           const b64=await fileToBase64(div.file);
           photos.push(b64);
           const tag=div.querySelector('select').value;
           tags.push(tag);
+          processed++;
+          showProgress('Encoding photos '+processed+'/'+previews.length);
         }
         const sigData=sigCanvas.toDataURL('image/png');
         const pos=await getLocation();
         if(!navigator.onLine){
+          showOffline();
           await window.offlineQueue.add({type:'completion',job_id:jobId,technician_id:techId,final_note:note,photos,tags,signature:sigData,location:{lat:pos.coords.latitude,lng:pos.coords.longitude},csrf_token:csrf});
-          FieldOpsToast.show('Submission saved offline','info');
+          hideProgress();
+          FieldOpsToast.show('Completion saved offline; will sync when online','warning');
           setTimeout(()=>{window.location.href='/tech_jobs.php';},1000);
           return;
         }
+        showSaving();
+        showProgress('Uploading…');
         const fd=new FormData();
         fd.append('job_id',jobId);
         fd.append('technician_id',techId);
@@ -114,10 +147,12 @@
         fd.append('csrf_token',csrf);
         const res=await fetch('/api/job_complete.php',{method:'POST',body:fd,credentials:'same-origin'});
         const data=await res.json();
+        hideProgress();
         if(!data?.ok) throw new Error(data?.error||'Failed');
         FieldOpsToast.show('Job completion submitted','success');
         setTimeout(()=>{window.location.href='/tech_jobs.php';},1000);
       }catch(err){
+        hideProgress();
         FieldOpsToast.show(err.message||'Failed','danger');
         btnSubmit.disabled=false;
       }
