@@ -33,7 +33,7 @@ $jobId  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
     </div>
     <div class="collapse" id="checklist-collapse">
       <div class="progress mb-2">
-        <div id="checklist-progress" class="progress-bar" role="progressbar" style="width:0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        <div id="checklist-progress" class="progress-bar w-0" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
       </div>
       <ul id="checklist" class="list-unstyled mb-0"></ul>
     </div>
