@@ -6,33 +6,29 @@
 final class JobChecklistItem
 {
     /**
-     * Default checklist templates keyed by job type id.
-     * @var array<int, list<string>>
-     */
-    private const DEFAULT_TEMPLATES = [
-        // Basic installation job
-        1 => [
-            'Review work order',
-            'Confirm materials on site',
-            'Perform installation',
-            'Test and verify operation',
-        ],
-        // Routine maintenance job
-        2 => [
-            'Inspect equipment condition',
-            'Perform routine maintenance',
-            'Update service log',
-        ],
-    ];
-
-    /**
-     * Expose default templates for job types.
+     * Fetch default checklist templates grouped by job type from the database.
      *
      * @return array<int, list<string>>
      */
-    public static function defaultTemplates(): array
+    public static function defaultTemplates(PDO $pdo): array
     {
-        return self::DEFAULT_TEMPLATES;
+        $st = $pdo->prepare(
+            'SELECT job_type_id, description
+             FROM checklist_templates
+             ORDER BY job_type_id, position, id'
+        );
+        if ($st === false) {
+            return [];
+        }
+        $st->execute();
+        /** @var list<array<string,mixed>> $rows */
+        $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+        $out = [];
+        foreach ($rows as $r) {
+            $jt = (int)$r['job_type_id'];
+            $out[$jt][] = (string)$r['description'];
+        }
+        return $out;
     }
 
     /**
@@ -98,13 +94,24 @@ final class JobChecklistItem
      */
     public static function seedDefaults(PDO $pdo, int $jobId, int $jobTypeId): void
     {
-        $templates = self::DEFAULT_TEMPLATES[$jobTypeId] ?? [];
+        $st = $pdo->prepare(
+            'SELECT description
+             FROM checklist_templates
+             WHERE job_type_id = :jt
+             ORDER BY position, id'
+        );
+        if ($st === false) {
+            return;
+        }
+        $st->execute([':jt' => $jobTypeId]);
+        /** @var list<string> $templates */
+        $templates = $st->fetchAll(PDO::FETCH_COLUMN);
         if ($templates === []) {
             return;
         }
-        $st = $pdo->prepare('INSERT INTO job_checklist_items (job_id, description) VALUES (:jid, :desc)');
+        $ins = $pdo->prepare('INSERT INTO job_checklist_items (job_id, description) VALUES (:jid, :desc)');
         foreach ($templates as $desc) {
-            $st->execute([':jid' => $jobId, ':desc' => $desc]);
+            $ins->execute([':jid' => $jobId, ':desc' => $desc]);
         }
     }
 }
