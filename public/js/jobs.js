@@ -10,7 +10,13 @@
     const $search=document.getElementById('filter-search');
     const $showPast=document.getElementById('filter-show-past');
 
-    function selectedValues(sel){return Array.from(sel?.selectedOptions||[]).map(o=>o.value);}    
+    function selectedValues(sel){return Array.from(sel?.selectedOptions||[]).map(o=>o.value);}
+
+    function syncShowPast(){
+      if(!$showPast||!$status) return;
+      const sts=selectedValues($status);
+      $showPast.checked=sts.length===1&&sts[0]==='completed';
+    }
 
     async function loadJobs(){
       const params=new URLSearchParams();
@@ -106,9 +112,11 @@
 
     function debounce(fn,ms){let t;return (...args)=>{clearTimeout(t);t=setTimeout(()=>fn.apply(this,args),ms);};}
     const trigger=debounce(loadJobs,300);
-    [$start,$end,$status,$showPast].forEach(el=>{el&&el.addEventListener('change',trigger);});
+    [$start,$end,$showPast].forEach(el=>{el&&el.addEventListener('change',trigger);});
+    $status&&$status.addEventListener('change',()=>{syncShowPast();trigger();});
     $search&&$search.addEventListener('input',trigger);
     window.addEventListener('assignments:updated', loadJobs);
+    syncShowPast();
     loadJobs();
   });
 })();

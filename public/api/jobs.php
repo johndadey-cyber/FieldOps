@@ -16,10 +16,6 @@ try {
     $today = date('Y-m-d');
     $start = $_GET['start'] ?? $today;
     $end   = $_GET['end']   ?? date('Y-m-d', strtotime('+7 days'));
-    $showPast = isset($_GET['show_past']) && $_GET['show_past'] === '1';
-    if (!$showPast && $start < $today) {
-        $start = $today;
-    }
 
     $statusParam = $_GET['status'] ?? '';
     $statusList = array_filter(array_map('trim', explode(',', $statusParam)));
@@ -30,11 +26,24 @@ try {
     if (!$mappedStatuses) {
         $mappedStatuses = ['scheduled', 'assigned', 'in_progress', 'completed'];
     }
+    $onlyCompleted = count($mappedStatuses) === 1 && $mappedStatuses[0] === 'completed';
+
+    $showPast = isset($_GET['show_past']) && $_GET['show_past'] === '1';
+    if ($onlyCompleted) {
+        $showPast = true; // Automatically show past jobs when only completed is requested
+    }
+    $where = [];
+    $args = [];
+    if (!$onlyCompleted) {
+        if (!$showPast && $start < $today) {
+            $start = $today;
+        }
+        $where[] = 'j.scheduled_date BETWEEN :start AND :end';
+        $args[':start'] = $start;
+        $args[':end'] = $end;
+    }
 
     $search = trim($_GET['search'] ?? '');
-
-    $where = ['j.scheduled_date BETWEEN :start AND :end'];
-    $args = [':start' => $start, ':end' => $end];
 
     if ($mappedStatuses) {
         $ph = [];
