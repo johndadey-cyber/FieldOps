@@ -31,6 +31,10 @@ require_once __DIR__ . '/nav.php';
   <?php else: ?>
     <input type="hidden" name="action" value="create">
   <?php endif; ?>
+  <div class="alert alert-info small" role="alert">
+    Each submission creates a single checklist item. To add multiple items, save and return to the
+    <a href="/admin/checklist_template_list.php" class="alert-link">Checklist Templates</a> page to add more.
+  </div>
   <div class="mb-3">
     <label class="form-label" for="job_type_id">Job Type</label>
     <select class="form-select" id="job_type_id" name="job_type_id" required>
