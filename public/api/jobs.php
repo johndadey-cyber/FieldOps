@@ -43,7 +43,7 @@ try {
             $ph[] = $key;
             $args[$key] = $st;
         }
-        $where[] = 'j.status IN (' . implode(',', $ph) . ')';
+        $where[] = 'LOWER(j.status) IN (' . implode(',', $ph) . ')';
     }
 
 
