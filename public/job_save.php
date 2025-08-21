@@ -5,6 +5,7 @@
  */
 declare(strict_types=1);
 require __DIR__ . '/_cli_guard.php';
+require __DIR__ . '/_csrf.php';
 if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
 function json_out(array $p, int $code=200): never {
@@ -18,11 +19,33 @@ function log_error(string $msg): void {
   error_log(date('[Y-m-d H:i:s] ').$msg.PHP_EOL, 3, __DIR__ . '/../logs/job_errors.log');
 }
 
+// Log fatal errors that might bypass normal exception handling.
+register_shutdown_function(static function (): void {
+  $err = error_get_last();
+  if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+    log_error('Fatal error: ' . $err['message'] . ' in ' . $err['file'] . ':' . $err['line']);
+  }
+});
+
+// Capture incoming request payload for debugging purposes.
+if (!empty($_POST)) {
+  log_error('Request payload: ' . json_encode($_POST, JSON_UNESCAPED_SLASHES));
+}
+
 /**
  * Attempt to normalize various time formats to HH:MM.
  */
 function normalize_time(string $time): ?string {
-  $formats = ['H:i', 'H:i:s', 'g:i A', 'g:i a', 'h:i A', 'h:i a'];
+  // Accepted input formats including 24h and 12h variants, with or without
+  // seconds and with optional leading zeros.
+  $formats = [
+    'H:i',    'H:i:s',    // 24h with leading zero
+    'G:i',    'G:i:s',    // 24h without leading zero
+    'g:i A',  'g:i a',    // 12h no leading zero, AM/PM
+    'h:i A',  'h:i a',    // 12h with leading zero, AM/PM
+    'g:i:s A','g:i:s a',  // 12h with seconds
+    'h:i:s A','h:i:s a',  // 12h with seconds and leading zero
+  ];
   foreach ($formats as $fmt) {
     $dt = DateTime::createFromFormat($fmt, $time);
     $errs = DateTime::getLastErrors() ?: ['warning_count' => 0, 'error_count' => 0];
@@ -38,9 +61,10 @@ $role = ($_SESSION['role'] ?? '') ?: ($_SESSION['user']['role'] ?? '');
 if ($role !== 'dispatcher') { json_out(['ok'=>false,'error'=>'Forbidden','code'=>403], 403); }
 
 // CSRF
-$csrf = $_POST['csrf_token'] ?? $_GET['csrf_token'] ?? '';
-if (!$csrf || !isset($_SESSION['csrf_token']) || !hash_equals((string)$_SESSION['csrf_token'], (string)$csrf)) {
-  json_out(['ok'=>false,'error'=>'Bad CSRF','code'=>400], 400);
+$token = $_POST['csrf_token'] ?? '';
+if (!csrf_verify($token)) {
+  csrf_log_failure_payload(file_get_contents('php://input'), $_POST);
+  json_out(['ok'=>false,'error'=>'Invalid CSRF token','code'=>400], 400);
 }
 
 // Inputs
@@ -189,6 +213,9 @@ try {
 
 } catch (Throwable $e) {
   if (isset($pdo) && $pdo->inTransaction()) { $pdo->rollBack(); }
-  log_error('Exception: '.$e->getMessage());
+  $detail = 'Exception: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine()
+           . PHP_EOL . $e->getTraceAsString()
+           . PHP_EOL . 'POST: ' . json_encode($_POST, JSON_UNESCAPED_SLASHES);
+  log_error($detail);
   json_out(['ok'=>false,'error'=>'Server error','code'=>500,'detail'=>$e->getMessage()], 500);
 }

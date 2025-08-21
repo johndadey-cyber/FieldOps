@@ -98,7 +98,16 @@
       if(submitBtn){ submitBtn.disabled=true; submitBtn.innerHTML='Saving...'; }
       var fd = new FormData(form);
       fetch('job_save.php?json=1',{method:'POST', headers:{'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}, body:fd})
-        .then(function(resp){ return resp.json(); })
+        .then(function(resp){
+          if(resp.ok){ return resp.json(); }
+          if(resp.status===400){
+            return resp.json().catch(function(){ return {}; }).then(function(data){
+              throw {type:'bad_request', data:data};
+            });
+          }
+          if(resp.status>=500){ throw {type:'server_error'}; }
+          throw {type:'fetch_error'};
+        })
         .then(function(data){
           if(data && data.ok){
             showToast(mode==='edit'?'Job updated':'Job saved');
@@ -115,8 +124,23 @@
           showErrors(errs);
           if(errBox) errBox.scrollIntoView({behavior:'smooth'});
         })
-        .catch(function(){
-          showErrors(['Request failed. Please try again.']);
+        .catch(function(err){
+          if(err && err.type==='bad_request'){
+            var data=err.data||{};
+            var errs=[];
+            if(data.errors){
+              if(Array.isArray(data.errors)){ errs=data.errors; }
+              else if(typeof data.errors==='object'){ errs=Object.values(data.errors); }
+            } else if(data.error){ errs=[data.error]; }
+            else { errs=['Request error']; }
+            showErrors(errs);
+          }
+          else if(err && err.type==='server_error'){
+            showErrors(['Server error. Please try again later.']);
+          }
+          else {
+            showErrors(['Request failed. Please try again.']);
+          }
           if(errBox) errBox.scrollIntoView({behavior:'smooth'});
         })
         .finally(function(){
