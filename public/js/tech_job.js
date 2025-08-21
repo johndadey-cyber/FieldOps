@@ -47,8 +47,10 @@
       badge.textContent=fmtStatus(st);
     }
 
-      const EARLY_MS=5*60*1000;
-      function isTooEarly(){return scheduledStart && Date.now()<scheduledStart.getTime()-EARLY_MS;}
+      const WINDOW_MS=60*60*1000;
+      function isOutsideWindow(){
+        return scheduledStart && Math.abs(Date.now()-scheduledStart.getTime())>WINDOW_MS;
+      }
 
     function startTimer(start){
       if(timerInterval) clearInterval(timerInterval);
@@ -203,24 +205,29 @@
         document.getElementById('copy-address')?.addEventListener('click',()=>{navigator.clipboard?.writeText(addr);});
         scheduledStart=j.scheduled_time?new Date(`${j.scheduled_date}T${j.scheduled_time}`):null;
         updateStatus(j.status);
-        if(j.status==='assigned'){
-          btnStart.classList.remove('d-none');
-          if(isTooEarly()){btnStart.classList.add('disabled');btnStart.disabled=true;}
-        }
+          if(j.status==='assigned'){
+            btnStart.classList.remove('d-none');
+            if(isOutsideWindow()){btnStart.classList.add('disabled');btnStart.disabled=true;}
+          }
         if(j.status==='in_progress'){startTimer(j.started_at||new Date());}
         fetchNotes();
         fetchPhotos();
         fetchChecklist();
-        setInterval(()=>{
-          if(btnStart&&(btnStart.disabled||btnStart.classList.contains('disabled'))&&!isTooEarly()){
-            btnStart.disabled=false;btnStart.classList.remove('disabled');
-          }
-        },60000);
+          setInterval(()=>{
+            if(!btnStart) return;
+            if(isOutsideWindow()){
+              btnStart.disabled=true;
+              btnStart.classList.add('disabled');
+            }else{
+              btnStart.disabled=false;
+              btnStart.classList.remove('disabled');
+            }
+          },60000);
       })
       .catch(err=>{customerEl.innerHTML=`<div class="text-danger">${h(err.message)}</div>`;});
 
     btnStart?.addEventListener('click',()=>{
-      if(isTooEarly()){alert('You may start the job up to 5 minutes before the scheduled time.');return;}
+      if(isOutsideWindow()){alert('You may start the job up to 60 minutes before or after the scheduled time.');return;}
       btnStart.disabled=true;
       navigator.geolocation.getCurrentPosition(pos=>{
         const fd=new FormData();
