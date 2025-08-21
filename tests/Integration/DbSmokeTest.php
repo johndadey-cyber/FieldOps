@@ -17,6 +17,7 @@ final class DbSmokeTest extends TestCase
             'employees',
             'jobs',
             'job_types',
+            'checklist_templates',
             'job_employee_assignment',
             'employee_availability',
         ];
