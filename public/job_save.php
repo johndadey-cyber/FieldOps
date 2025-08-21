@@ -5,6 +5,7 @@
  */
 declare(strict_types=1);
 require __DIR__ . '/_cli_guard.php';
+require __DIR__ . '/_csrf.php';
 if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
 function json_out(array $p, int $code=200): never {
@@ -60,9 +61,10 @@ $role = ($_SESSION['role'] ?? '') ?: ($_SESSION['user']['role'] ?? '');
 if ($role !== 'dispatcher') { json_out(['ok'=>false,'error'=>'Forbidden','code'=>403], 403); }
 
 // CSRF
-$csrf = $_POST['csrf_token'] ?? $_GET['csrf_token'] ?? '';
-if (!$csrf || !isset($_SESSION['csrf_token']) || !hash_equals((string)$_SESSION['csrf_token'], (string)$csrf)) {
-  json_out(['ok'=>false,'error'=>'Bad CSRF','code'=>400], 400);
+$token = $_POST['csrf_token'] ?? '';
+if (!csrf_verify($token)) {
+  csrf_log_failure_payload(file_get_contents('php://input'), $_POST);
+  json_out(['ok'=>false,'error'=>'Invalid CSRF token','code'=>400], 400);
 }
 
 // Inputs
