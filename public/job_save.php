@@ -150,10 +150,12 @@ require_once __DIR__ . '/../models/JobChecklistItem.php';
 try {
   $pdo = getPDO();
   $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+  log_error('Starting job save for ID ' . $id);
 
   // Ensure customer exists
   $chk = $pdo->prepare('SELECT id FROM customers WHERE id=:id');
   $chk->execute([':id'=>$customerId]);
+  log_error('Customer check errorInfo: ' . json_encode($chk->errorInfo()));
   if (!$chk->fetchColumn()) { json_out(['ok'=>false,'error'=>'Unknown customer','code'=>404], 404); }
 
   $pdo->beginTransaction();
@@ -168,6 +170,7 @@ try {
       ':sdate'=>$scheduledDate, ':stime'=>$scheduledTime, ':dur'=>$durationMinutes,
       ':id'=>$id,
     ]);
+    log_error('Updated job ' . $id . ' rowCount=' . $st->rowCount());
     $jobId = $id;
   } else {
     $sql = "INSERT INTO jobs (customer_id, description, status, scheduled_date, scheduled_time, duration_minutes)"
@@ -178,43 +181,58 @@ try {
       ':sdate'=>$scheduledDate, ':stime'=>$scheduledTime, ':dur'=>$durationMinutes,
     ]);
     $jobId = (int)$pdo->lastInsertId();
+    log_error('Inserted job ' . $jobId . ' rowCount=' . $st->rowCount());
   }
 
   // Refresh job skills
   $pdo->prepare('DELETE FROM job_skill WHERE job_id = :jid')
       ->execute([':jid' => $jobId]);
+  log_error('Deleted existing job_skill for job ' . $jobId);
   if (!empty($skillIds)) {
       $ins = $pdo->prepare('INSERT INTO job_skill (job_id, skill_id) VALUES (:jid, :sid)');
+      $c = 0;
       foreach ($skillIds as $sid) {
           $ins->execute([':jid' => $jobId, ':sid' => $sid]);
+          $c++;
       }
+      log_error('Inserted ' . $c . ' job_skill rows for job ' . $jobId);
   }
 
   // Refresh job types
   $pdo->prepare('DELETE FROM job_job_type WHERE job_id = :jid')
       ->execute([':jid' => $jobId]);
+  log_error('Deleted existing job_job_type for job ' . $jobId);
   if (!empty($jobTypeIds)) {
       $insJt = $pdo->prepare('INSERT INTO job_job_type (job_id, job_type_id) VALUES (:jid, :tid)');
+      $c = 0;
       foreach ($jobTypeIds as $tid) {
           $insJt->execute([':jid' => $jobId, ':tid' => $tid]);
+          $c++;
       }
+      log_error('Inserted ' . $c . ' job_job_type rows for job ' . $jobId);
   }
 
   // Refresh checklist items
   $pdo->prepare('DELETE FROM job_checklist_items WHERE job_id = :jid')
       ->execute([':jid' => $jobId]);
+  log_error('Deleted existing checklist items for job ' . $jobId);
   if (!empty($checklistItems)) {
       $insChk = $pdo->prepare('INSERT INTO job_checklist_items (job_id, description) VALUES (:jid, :desc)');
+      $c = 0;
       foreach ($checklistItems as $desc) {
           $insChk->execute([':jid' => $jobId, ':desc' => $desc]);
+          $c++;
       }
+      log_error('Inserted ' . $c . ' checklist items for job ' . $jobId);
   } elseif ($id <= 0 && !empty($jobTypeIds)) {
       foreach ($jobTypeIds as $tid) {
           JobChecklistItem::seedDefaults($pdo, $jobId, $tid);
       }
+      log_error('Seeded default checklist items for job ' . $jobId);
   }
 
   $pdo->commit();
+  log_error('Transaction committed for job ' . $jobId);
   $action = $id > 0 ? 'updated' : 'created';
   json_out(['ok'=>true,'id'=>$jobId,'customer_id'=>$customerId,'status'=>$canonical,'action'=>$action], 200);
 
