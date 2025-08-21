@@ -1,0 +1,47 @@
+[2025-08-19 22:23:58] Exception: SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`fieldops_integration`.`job_skill`, CONSTRAINT `fk_job_skill_skill` FOREIGN KEY (`skill_id`) REFERENCES `skills` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE)
+[2025-08-19 22:26:47] Exception: SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`fieldops_integration`.`job_skill`, CONSTRAINT `fk_job_skill_skill` FOREIGN KEY (`skill_id`) REFERENCES `skills` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE)
+[2025-08-19 22:57:51] Exception: SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`fieldops_integration`.`job_skill`, CONSTRAINT `fk_job_skill_skill` FOREIGN KEY (`skill_id`) REFERENCES `skills` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE)
+[2025-08-21 14:25:46] Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'fieldops_development.job_job_type' doesn't exist
+[2025-08-21 14:27:27] Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'fieldops_development.job_job_type' doesn't exist
+[2025-08-21 14:28:44] Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'fieldops_development.job_job_type' doesn't exist
+[2025-08-21 14:30:54] Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'fieldops_development.job_job_type' doesn't exist
+[2025-08-21 14:32:17] Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'fieldops_development.job_job_type' doesn't exist
+[2025-08-21 14:43:39] Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'fieldops_development.job_job_type' doesn't exist
+[2025-08-21 14:56:51] Request payload: {"csrf_token":"82a52a8021618966a7487b830d99e9b6","customer_id":"9012","description":"lucy c","skills":["1"],"job_type_ids":["4"],"status":"scheduled","scheduled_date":"2025-08-21","scheduled_time":"10:15","duration_minutes":"60"}
+[2025-08-21 14:56:51] Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'fieldops_development.job_job_type' doesn't exist in /Users/johndadey/Sites/localhost/FieldOps/public/job_save.php:185
+#0 /Users/johndadey/Sites/localhost/FieldOps/public/job_save.php(185): PDO->prepare('DELETE FROM job...')
+#1 {main}
+POST: {"csrf_token":"82a52a8021618966a7487b830d99e9b6","customer_id":"9012","description":"lucy c","skills":["1"],"job_type_ids":["4"],"status":"scheduled","scheduled_date":"2025-08-21","scheduled_time":"10:15","duration_minutes":"60"}
+[2025-08-21 14:57:03] Request payload: {"csrf_token":"82a52a8021618966a7487b830d99e9b6","customer_id":"9012","description":"lucy c","skills":["1"],"status":"scheduled","scheduled_date":"2025-08-21","scheduled_time":"10:15","duration_minutes":"60"}
+[2025-08-21 14:57:03] Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'fieldops_development.job_job_type' doesn't exist in /Users/johndadey/Sites/localhost/FieldOps/public/job_save.php:185
+#0 /Users/johndadey/Sites/localhost/FieldOps/public/job_save.php(185): PDO->prepare('DELETE FROM job...')
+#1 {main}
+POST: {"csrf_token":"82a52a8021618966a7487b830d99e9b6","customer_id":"9012","description":"lucy c","skills":["1"],"status":"scheduled","scheduled_date":"2025-08-21","scheduled_time":"10:15","duration_minutes":"60"}
+[2025-08-21 15:13:38] Request payload: {"csrf_token":"82a52a8021618966a7487b830d99e9b6","customer_id":"9012","description":"adasdasdasd","skills":["1"],"job_type_ids":["4"],"status":"scheduled","scheduled_date":"2025-08-21","scheduled_time":"11:30","duration_minutes":"60"}
+[2025-08-21 15:13:38] Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'fieldops_development.job_job_type' doesn't exist in /Users/johndadey/Sites/localhost/FieldOps/public/job_save.php:187
+#0 /Users/johndadey/Sites/localhost/FieldOps/public/job_save.php(187): PDO->prepare('DELETE FROM job...')
+#1 {main}
+POST: {"csrf_token":"82a52a8021618966a7487b830d99e9b6","customer_id":"9012","description":"adasdasdasd","skills":["1"],"job_type_ids":["4"],"status":"scheduled","scheduled_date":"2025-08-21","scheduled_time":"11:30","duration_minutes":"60"}
+[2025-08-21 15:27:07] Request payload: {"csrf_token":"82a52a8021618966a7487b830d99e9b6","customer_id":"9012","description":"asdasdasda","skills":["1"],"job_type_ids":["4"],"status":"scheduled","scheduled_date":"2025-08-21","scheduled_time":"11:45","duration_minutes":"60"}
+[2025-08-21 15:27:08] Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'fieldops_development.job_job_type' doesn't exist in /Users/johndadey/Sites/localhost/FieldOps/public/job_save.php:194
+#0 /Users/johndadey/Sites/localhost/FieldOps/public/job_save.php(194): PDO->prepare('DELETE FROM job...')
+#1 {main}
+POST: {"csrf_token":"82a52a8021618966a7487b830d99e9b6","customer_id":"9012","description":"asdasdasda","skills":["1"],"job_type_ids":["4"],"status":"scheduled","scheduled_date":"2025-08-21","scheduled_time":"11:45","duration_minutes":"60"}
+[2025-08-21 15:28:51] Request payload: {"csrf_token":"a86743fc965447acf459b32a375981e5","id":"9115","customer_id":"9013","description":"Dennis - exterior glass","skills":["1"],"job_type_ids":["4"],"status":"assigned","checklist_items":["Inspect Window","Remove Cobwebs","Clean Windows"],"scheduled_date":"2025-08-21","scheduled_time":"06:00:00","duration_minutes":"60"}
+[2025-08-21 15:31:45] Request payload: {"csrf_token":"82a52a8021618966a7487b830d99e9b6","id":"9115","customer_id":"9013","description":"Dennis - exterior glass","skills":["1"],"job_type_ids":["4"],"status":"scheduled","checklist_items":["Inspect Window","Remove Cobwebs","Clean Windows"],"scheduled_date":"2025-08-21","scheduled_time":"06:00:00","duration_minutes":"60"}
+[2025-08-21 15:31:45] Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'fieldops_development.job_job_type' doesn't exist in /Users/johndadey/Sites/localhost/FieldOps/public/job_save.php:194
+#0 /Users/johndadey/Sites/localhost/FieldOps/public/job_save.php(194): PDO->prepare('DELETE FROM job...')
+#1 {main}
+POST: {"csrf_token":"82a52a8021618966a7487b830d99e9b6","id":"9115","customer_id":"9013","description":"Dennis - exterior glass","skills":["1"],"job_type_ids":["4"],"status":"scheduled","checklist_items":["Inspect Window","Remove Cobwebs","Clean Windows"],"scheduled_date":"2025-08-21","scheduled_time":"06:00:00","duration_minutes":"60"}
+[2025-08-21 15:45:03] Request payload: {"csrf_token":"82a52a8021618966a7487b830d99e9b6","id":"9115","customer_id":"9013","description":"Dennis - exterior glass","skills":["1"],"status":"scheduled","checklist_items":["Inspect Window","Remove Cobwebs","Clean Windows"],"scheduled_date":"2025-08-21","scheduled_time":"06:00:00","duration_minutes":"60"}
+[2025-08-21 15:45:04] Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'fieldops_development.job_job_type' doesn't exist in /Users/johndadey/Sites/localhost/FieldOps/public/job_save.php:194
+#0 /Users/johndadey/Sites/localhost/FieldOps/public/job_save.php(194): PDO->prepare('DELETE FROM job...')
+#1 {main}
+POST: {"csrf_token":"82a52a8021618966a7487b830d99e9b6","id":"9115","customer_id":"9013","description":"Dennis - exterior glass","skills":["1"],"status":"scheduled","checklist_items":["Inspect Window","Remove Cobwebs","Clean Windows"],"scheduled_date":"2025-08-21","scheduled_time":"06:00:00","duration_minutes":"60"}
+[2025-08-21 15:45:25] Invalid request method: GET
+[2025-08-21 15:47:06] Request payload: {"csrf_token":"82a52a8021618966a7487b830d99e9b6","customer_id":"9012","description":"asdasdasd","skills":["1"],"status":"scheduled","scheduled_date":"2025-08-21","scheduled_time":"11:30","duration_minutes":"60"}
+[2025-08-21 15:47:07] Exception: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'fieldops_development.job_job_type' doesn't exist in /Users/johndadey/Sites/localhost/FieldOps/public/job_save.php:194
+#0 /Users/johndadey/Sites/localhost/FieldOps/public/job_save.php(194): PDO->prepare('DELETE FROM job...')
+#1 {main}
+POST: {"csrf_token":"82a52a8021618966a7487b830d99e9b6","customer_id":"9012","description":"asdasdasd","skills":["1"],"status":"scheduled","scheduled_date":"2025-08-21","scheduled_time":"11:30","duration_minutes":"60"}
+[2025-08-21 15:48:44] Invalid request method: GET
