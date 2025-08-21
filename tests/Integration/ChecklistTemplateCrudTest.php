@@ -55,4 +55,22 @@ final class ChecklistTemplateCrudTest extends TestCase
         $this->assertTrue($deleted);
         $this->assertNull(ChecklistTemplate::find($this->pdo, $id));
     }
+
+    public function testMultipleItemOrdering(): void
+    {
+        $items = [
+            ['description' => 'First', 'position' => 1],
+            ['description' => 'Second', 'position' => 2],
+            ['description' => 'Third', 'position' => 3],
+        ];
+        foreach ($items as $it) {
+            ChecklistTemplate::create($this->pdo, $this->jobTypeId, $it['description'], $it['position']);
+        }
+
+        $grouped = ChecklistTemplate::allByJobType($this->pdo);
+        $this->assertArrayHasKey($this->jobTypeId, $grouped);
+        $this->assertCount(3, $grouped[$this->jobTypeId]);
+        $descs = array_column($grouped[$this->jobTypeId], 'description');
+        $this->assertSame(['First', 'Second', 'Third'], $descs);
+    }
 }
