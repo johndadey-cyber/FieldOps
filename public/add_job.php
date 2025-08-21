@@ -29,8 +29,24 @@ register_shutdown_function(static function (): void {
 });
 
 try {
+    ob_start();
     require __DIR__ . '/job_form.php';
+    $output = ob_get_clean();
+    $autoScript = <<<HTML
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var jobTypeSelect = document.getElementById('job_type_ids');
+    if (jobTypeSelect && jobTypeSelect.selectedOptions.length) {
+        jobTypeSelect.dispatchEvent(new Event('change'));
+    }
+});
+</script>
+HTML;
+    echo str_replace('</body>', $autoScript . "\n</body>", $output);
 } catch (Throwable $e) {
+    if (ob_get_level() > 0) {
+        ob_end_clean();
+    }
     log_error(
         'Exception: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine()
         . PHP_EOL . $e->getTraceAsString()
