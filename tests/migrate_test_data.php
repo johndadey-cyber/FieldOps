@@ -68,6 +68,15 @@ $sql = [
         name VARCHAR(100) NOT NULL
     ) ENGINE=InnoDB",
 
+    "CREATE TABLE IF NOT EXISTS checklist_templates (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        job_type_id INT NOT NULL,
+        description VARCHAR(255) NOT NULL,
+        position INT DEFAULT NULL,
+        CONSTRAINT fk_cltemp_jobtype FOREIGN KEY (job_type_id) REFERENCES job_types(id)
+            ON DELETE CASCADE ON UPDATE RESTRICT
+    ) ENGINE=InnoDB",
+
     "CREATE TABLE IF NOT EXISTS job_employee_assignment (
         id INT AUTO_INCREMENT PRIMARY KEY,
         job_id INT NOT NULL,
@@ -108,6 +117,16 @@ foreach ($sql as $query) {
 
 // Seed minimal lookup data
 $pdo->exec("INSERT INTO skills (id, name) VALUES (1, 'General') ON DUPLICATE KEY UPDATE name=VALUES(name)");
-$pdo->exec("INSERT INTO job_types (id, name) VALUES (1, 'General') ON DUPLICATE KEY UPDATE name=VALUES(name)");
+$pdo->exec("INSERT INTO job_types (id, name) VALUES (1, 'Basic Installation'), (2, 'Routine Maintenance') ON DUPLICATE KEY UPDATE name=VALUES(name)");
+$pdo->exec("DELETE FROM checklist_templates");
+$pdo->exec("INSERT INTO checklist_templates (job_type_id, description, position) VALUES
+    (1, 'Review work order', 1),
+    (1, 'Confirm materials on site', 2),
+    (1, 'Perform installation', 3),
+    (1, 'Test and verify operation', 4),
+    (2, 'Inspect equipment condition', 1),
+    (2, 'Perform routine maintenance', 2),
+    (2, 'Update service log', 3)
+");
 
 echo "✅ Migration complete\n";
