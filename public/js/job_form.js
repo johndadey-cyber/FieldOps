@@ -11,6 +11,8 @@
     var checklistWrap = document.getElementById('checklistItems');
     var addBtn = document.getElementById('addChecklistItem');
     var jobTypeSelect = document.getElementById('job_type_ids');
+    var isDev = (window.APP_ENV && window.APP_ENV !== 'prod') ||
+                (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
 
     if (typeof $ !== 'undefined' && $.fn.select2) {
       var skillsSelect = $('#skills');
@@ -105,7 +107,11 @@
               throw {type:'bad_request', data:data};
             });
           }
-          if(resp.status>=500){ throw {type:'server_error'}; }
+          if(resp.status>=500){
+            return resp.json().catch(function(){ return {}; }).then(function(data){
+              throw {type:'server_error', data:data};
+            });
+          }
           throw {type:'fetch_error'};
         })
         .then(function(data){
@@ -119,7 +125,11 @@
             if(Array.isArray(data.errors)){ errs=data.errors; }
             else if(typeof data.errors==='object'){ errs=Object.values(data.errors); }
           }
-          else if(data && data.error){ errs=[data.error]; }
+          else if(data && data.error){
+            var msg=data.error;
+            if(isDev && data.detail){ msg += ' ' + data.detail; }
+            errs=[msg];
+          }
           else { errs=['Unknown error']; }
           showErrors(errs);
           if(errBox) errBox.scrollIntoView({behavior:'smooth'});
@@ -131,12 +141,18 @@
             if(data.errors){
               if(Array.isArray(data.errors)){ errs=data.errors; }
               else if(typeof data.errors==='object'){ errs=Object.values(data.errors); }
-            } else if(data.error){ errs=[data.error]; }
+            } else if(data.error){
+              var msg2=data.error;
+              if(isDev && data.detail){ msg2 += ' ' + data.detail; }
+              errs=[msg2];
+            }
             else { errs=['Request error']; }
             showErrors(errs);
           }
           else if(err && err.type==='server_error'){
-            showErrors(['Server error. Please try again later.']);
+            var msg3='Server error. Please try again later.';
+            if(isDev && err.data && err.data.detail){ msg3 += ' ' + err.data.detail; }
+            showErrors([msg3]);
           }
           else {
             showErrors(['Request failed. Please try again.']);
