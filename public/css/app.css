@@ -5,3 +5,80 @@
     font-weight: 600;
 }
 
+/* Accessible touch target size */
+.touch-target {
+    min-width: 44px;
+    min-height: 44px;
+}
+
+/* Consistent focus outline */
+.focus-ring:focus-visible {
+    outline: 2px solid #0d6efd;
+    outline-offset: 2px;
+}
+
+/* Colorblind-safe status palette (Okabe–Ito) */
+.status-success {
+    color: #fff;
+    background-color: #009e73;
+}
+
+.status-warning {
+    color: #000;
+    background-color: #e69f00;
+}
+
+.status-danger {
+    color: #fff;
+    background-color: #d55e00;
+}
+
+.status-info {
+    color: #000;
+    background-color: #56b4e9;
+}
+
+/* Floating action button positioning */
+.fab {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 1030;
+}
+
+/* Sticky bottom bar positioning */
+.sticky-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-top: 1px solid #dee2e6;
+    padding: 0.75rem;
+    z-index: 1000;
+}
+
+.sticky-bar .btn {
+    padding: 1rem;
+    font-size: 1.25rem;
+}
+
+.sticky-bar .d-flex {
+    gap: 1rem;
+}
+
+/* Space for sticky bar at page bottom */
+.has-sticky-bar {
+    padding-bottom: 6rem;
+}
+
+/* Photo preview sizing */
+.photo-preview img {
+    max-width: 120px;
+}
+
+#btn-start-job.disabled {
+    opacity: 0.65;
+    pointer-events: auto;
+}
+

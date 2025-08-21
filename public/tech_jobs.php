@@ -18,16 +18,12 @@ $today = date('Y-m-d');
   <title>Today's Jobs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    .btn,.navbar-toggler{min-width:44px;min-height:44px}
-    button:focus-visible,a:focus-visible{outline:2px solid #0d6efd;outline-offset:2px}
-    .fab{z-index:1030}
-  </style>
+  <link href="/css/app.css" rel="stylesheet">
 </head>
 <body class="bg-light">
 <nav class="navbar navbar-light bg-white border-bottom sticky-top">
   <div class="container-fluid align-items-center">
-    <button class="navbar-toggler" type="button" id="menu-button" aria-label="Toggle navigation">
+    <button class="navbar-toggler touch-target focus-ring" type="button" id="menu-button" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
     <span class="navbar-brand mx-auto">FieldOps</span>
@@ -40,7 +36,7 @@ $today = date('Y-m-d');
 <div id="network-banner" class="alert text-center small d-none mb-0"></div>
 <div class="container py-3">
   <div class="mb-3">
-    <a href="/add_job.php" class="btn btn-primary w-100" id="btn-start-job">+ Start New Job</a>
+    <a href="/add_job.php" class="btn btn-primary w-100 touch-target focus-ring" id="btn-start-job">+ Start New Job</a>
   </div>
   <div id="jobs-list"></div>
 </div>
