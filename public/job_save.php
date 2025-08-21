@@ -22,7 +22,16 @@ function log_error(string $msg): void {
  * Attempt to normalize various time formats to HH:MM.
  */
 function normalize_time(string $time): ?string {
-  $formats = ['H:i', 'H:i:s', 'g:i A', 'g:i a', 'h:i A', 'h:i a'];
+  // Accepted input formats including 24h and 12h variants, with or without
+  // seconds and with optional leading zeros.
+  $formats = [
+    'H:i',    'H:i:s',    // 24h with leading zero
+    'G:i',    'G:i:s',    // 24h without leading zero
+    'g:i A',  'g:i a',    // 12h no leading zero, AM/PM
+    'h:i A',  'h:i a',    // 12h with leading zero, AM/PM
+    'g:i:s A','g:i:s a',  // 12h with seconds
+    'h:i:s A','h:i:s a',  // 12h with seconds and leading zero
+  ];
   foreach ($formats as $fmt) {
     $dt = DateTime::createFromFormat($fmt, $time);
     $errs = DateTime::getLastErrors() ?: ['warning_count' => 0, 'error_count' => 0];
