@@ -82,3 +82,9 @@
     pointer-events: auto;
 }
 
+/* Avatar placeholder size */
+.avatar-placeholder {
+    width: 40px;
+    height: 40px;
+}
+

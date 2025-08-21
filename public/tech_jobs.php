@@ -28,7 +28,7 @@ $today = date('Y-m-d');
     </button>
     <span class="navbar-brand mx-auto">FieldOps</span>
     <div class="ms-auto">
-      <span class="rounded-circle bg-secondary d-block" style="width:40px;height:40px;"></span>
+      <span class="rounded-circle bg-secondary d-block avatar-placeholder"></span>
     </div>
   </div>
   <div class="bg-light w-100 text-center small py-1" id="date-banner"></div>
