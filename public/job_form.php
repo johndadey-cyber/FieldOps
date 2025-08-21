@@ -23,6 +23,7 @@ $statuses  = $isEdit ? Job::allowedStatuses() : array_intersect(['scheduled','dr
 $customers = (new Customer($pdo))->getAll();
 $jobTypes  = $pdo->query('SELECT id, name FROM job_types ORDER BY name')->fetchAll(PDO::FETCH_ASSOC);
 $today     = date('Y-m-d');
+$jobTypesWithChecklist = array_flip(array_map('strval', array_keys(JobChecklistItem::defaultTemplates($pdo))));
 
 // Existing checklist items when editing
 $existingChecklist = [];
@@ -113,7 +114,7 @@ function stickyArr(string $name, array $default = []): array {
           <select name="job_type_ids[]" id="job_type_ids" class="form-select" multiple>
             <?php foreach ($jobTypes as $jt): ?>
               <?php $jtId = (string)$jt['id']; ?>
-              <option value="<?= s($jtId) ?>" <?= in_array($jtId, $selJobTypes, true) ? 'selected' : '' ?>><?= s($jt['name']) ?></option>
+              <option value="<?= s($jtId) ?>" <?= in_array($jtId, $selJobTypes, true) ? 'selected' : '' ?><?= isset($jobTypesWithChecklist[$jtId]) ? ' data-has-checklist="true"' : '' ?>><?= s($jt['name']) ?></option>
             <?php endforeach; ?>
           </select>
         </div>
