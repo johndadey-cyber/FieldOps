@@ -17,6 +17,11 @@ try {
     $start = $_GET['start'] ?? $today;
     $end   = $_GET['end']   ?? date('Y-m-d', strtotime('+7 days'));
 
+    // Normalize and validate the date range. Swap if start is after end
+    if ($start > $end) {
+        [$start, $end] = [$end, $start];
+    }
+
     $statusParam = $_GET['status'] ?? '';
     $statusList = array_filter(array_map('trim', explode(',', $statusParam)));
     $mappedStatuses = [];
@@ -38,9 +43,9 @@ try {
         if (!$showPast && $start < $today) {
             $start = $today;
         }
-        $where[] = 'j.scheduled_date BETWEEN :start AND :end';
-        $args[':start'] = $start;
-        $args[':end'] = $end;
+        $where[] = 'DATE(j.scheduled_date) BETWEEN :start_date AND :end_date';
+        $args[':start_date'] = $start;
+        $args[':end_date'] = $end;
     }
 
     $search = trim($_GET['search'] ?? '');
