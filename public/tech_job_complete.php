@@ -18,22 +18,16 @@ $jobId  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
   <title>Complete Job</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body{padding-bottom:6rem}
-    .action-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #dee2e6;padding:.75rem;z-index:1000}
-    .action-bar .btn{padding:1rem;font-size:1.25rem}
-    #sig-canvas{border:1px solid #ced4da;border-radius:.25rem}
-    .photo-preview img{max-width:120px}
-  </style>
+  <link href="/css/app.css" rel="stylesheet">
 </head>
-<body class="bg-light">
+<body class="bg-light has-sticky-bar">
 <div class="container py-3">
   <div id="network-banner" class="alert text-center small d-none"></div>
   <div class="mb-3">
     <label for="final-note" class="form-label">Summary Note</label>
     <div class="input-group">
       <textarea class="form-control" id="final-note" rows="4"></textarea>
-      <button class="btn btn-outline-secondary" id="btn-voice-note" type="button" aria-label="Voice input">🎤</button>
+      <button class="btn btn-outline-secondary touch-target focus-ring" id="btn-voice-note" type="button" aria-label="Voice input">🎤</button>
     </div>
     <div class="invalid-feedback"></div>
   </div>
@@ -41,7 +35,7 @@ $jobId  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
     <label class="form-label d-block">Final Photos</label>
     <small class="text-muted d-block mb-1">Tap "Add Photos" to include required images.</small>
     <div id="photo-list" class="d-flex flex-column gap-2"></div>
-    <button class="btn btn-outline-primary btn-lg mt-2" id="btn-add-photo" type="button">Add Photos</button>
+    <button class="btn btn-outline-primary btn-lg mt-2 touch-target focus-ring" id="btn-add-photo" type="button">Add Photos</button>
     <div class="invalid-feedback" id="photo-feedback"></div>
     <input type="file" id="photo-input" accept="image/*" multiple hidden>
   </div>
@@ -49,12 +43,12 @@ $jobId  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
     <label class="form-label d-block">Customer Signature</label>
     <small class="text-muted d-block mb-1">Customer must sign in the box below.</small>
     <canvas id="sig-canvas" width="300" height="200" class="w-100 border border-2 rounded"></canvas>
-    <button class="btn btn-sm btn-outline-secondary mt-2" id="btn-clear-sig" type="button">Clear</button>
+    <button class="btn btn-sm btn-outline-secondary mt-2 touch-target focus-ring" id="btn-clear-sig" type="button">Clear</button>
     <div class="invalid-feedback" id="sig-feedback"></div>
   </div>
 </div>
-<div class="action-bar">
-  <button class="btn btn-success w-100" id="btn-submit" type="button">Submit Completion</button>
+<div class="sticky-bar">
+  <button class="btn btn-success w-100 touch-target focus-ring" id="btn-submit" type="button">Submit Completion</button>
 </div>
 <script>
   window.CSRF_TOKEN = "<?=htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8')?>";
