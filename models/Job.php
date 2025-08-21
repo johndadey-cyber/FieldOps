@@ -12,16 +12,19 @@ final class Job
             "SELECT
                 j.id,
                 j.customer_id,
+                j.job_type_id,
                 j.description,
                 j.status,
+                j.started_at,
                 j.scheduled_date,
                 j.scheduled_time,
                 j.duration_minutes,
-                c.id            AS customer_id_actual,
-                c.first_name    AS customer_first_name,
-                c.last_name     AS customer_last_name,
-                c.email         AS customer_email,
-                c.phone         AS customer_phone,
+                jt.name        AS job_type_name,
+                c.id           AS customer_id_actual,
+                c.first_name   AS customer_first_name,
+                c.last_name    AS customer_last_name,
+                c.email        AS customer_email,
+                c.phone        AS customer_phone,
                 c.address_line1,
                 c.address_line2,
                 c.city,
@@ -30,6 +33,7 @@ final class Job
                 c.country
             FROM jobs j
             JOIN customers c ON c.id = j.customer_id
+            LEFT JOIN job_types jt ON jt.id = j.job_type_id
             WHERE j.id = :id
             LIMIT 1"
         );
@@ -45,8 +49,11 @@ final class Job
         return [
             'id' => (int)$row['id'],
             'customer_id' => (int)$row['customer_id'],
+            'job_type_id' => $row['job_type_id'] !== null ? (int)$row['job_type_id'] : null,
+            'job_type' => $row['job_type_name'],
             'description' => $row['description'],
             'status' => $row['status'],
+            'started_at' => $row['started_at'],
             'scheduled_date' => $row['scheduled_date'],
             'scheduled_time' => $row['scheduled_time'],
             'duration_minutes' => $row['duration_minutes'] !== null ? (int)$row['duration_minutes'] : null,

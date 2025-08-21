@@ -32,26 +32,39 @@ $jobId  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 <body class="bg-light">
 <div class="container py-3">
   <div id="network-banner" class="alert text-center small d-none"></div>
-  <div id="status-banner" class="alert alert-secondary mb-3 d-none"></div>
+  <header id="job-header" class="mb-3"></header>
+  <section id="customer-info" class="mb-4"></section>
   <button class="btn btn-primary mb-3 d-none" id="btn-start-job" aria-label="Start job">Start Job</button>
-  <div id="job-details" class="mb-4"></div>
-  <div id="notes-section" class="mb-4">
+  <section id="timer-section" class="mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <div id="job-timer" class="fw-bold">00:00:00</div>
+      <button class="btn btn-link p-0" id="checklist-toggle" data-bs-toggle="collapse" data-bs-target="#checklist-collapse" aria-expanded="false" aria-controls="checklist-collapse">Checklist</button>
+    </div>
+    <div class="collapse" id="checklist-collapse">
+      <div class="progress mb-2">
+        <div id="checklist-progress" class="progress-bar" role="progressbar" style="width:0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+      </div>
+      <ul id="checklist" class="list-unstyled mb-0"></ul>
+    </div>
+  </section>
+  <section id="notes-section" class="mb-4">
     <h2 class="h6">Notes</h2>
     <div id="job-notes" class="small"></div>
-  </div>
-  <div id="photos-section" class="mb-4">
+  </section>
+  <section id="photos-section" class="mb-4">
     <h2 class="h6">Photos</h2>
-    <button class="btn btn-outline-secondary mb-2" id="btn-add-photo" aria-label="Add photo">Take/Upload Photo</button>
     <div id="job-photos" class="d-flex flex-wrap gap-2"></div>
-  </div>
+  </section>
 </div>
-<div class="action-bar">
-  <div class="d-flex">
-    <button class="btn btn-outline-secondary flex-fill btn-lg" id="btn-add-note" aria-label="Add note">Add Note</button>
-    <button class="btn btn-outline-secondary flex-fill btn-lg" id="btn-checklist" aria-label="Open checklist">Checklist</button>
-    <button class="btn btn-success flex-fill btn-lg d-none" id="btn-complete" aria-label="Mark job as complete">Mark as Complete</button>
+<nav class="action-bar">
+  <div class="d-flex justify-content-around">
+    <button class="btn btn-outline-secondary flex-fill" id="menu-checklist" aria-label="Toggle checklist">Checklist</button>
+    <button class="btn btn-outline-secondary flex-fill" id="menu-note" aria-label="Add note">Note</button>
+    <button class="btn btn-outline-secondary flex-fill" id="menu-camera" aria-label="Add photo">Camera</button>
+    <a class="btn btn-outline-secondary flex-fill" id="menu-map" target="_blank" rel="noopener" aria-label="Open map">Map</a>
+    <button class="btn btn-success flex-fill d-none" id="btn-complete" aria-label="Mark job as complete">Complete</button>
   </div>
-</div>
+</nav>
 <script>
   window.CSRF_TOKEN = "<?=htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8')?>";
   window.TECH_ID = <?= $techId ?>;
