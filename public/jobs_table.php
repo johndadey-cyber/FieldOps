@@ -32,6 +32,8 @@ $days   = isset($_GET['days']) && is_numeric($_GET['days']) ? max(0, (int)$_GET[
 $status = isset($_GET['status']) ? strtolower(str_replace(' ','_',trim((string)$_GET['status']))) : '';
 $search = isset($_GET['search']) ? trim((string)$_GET['search']) : '';
 
+$applyDateFilter = $status !== 'completed';
+
 $pdo = getPDO();
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
@@ -39,11 +41,13 @@ $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $where = [];
 $args  = [];
 
-if ($days === 0) {
-  $where[] = "DATE(j.scheduled_date) >= CURDATE()";
-} else {
-  $where[] = "DATE(j.scheduled_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL :days DAY)";
-  $args[':days'] = $days;
+if ($applyDateFilter) {
+  if ($days === 0) {
+    $where[] = "DATE(j.scheduled_date) >= CURDATE()";
+  } else {
+    $where[] = "DATE(j.scheduled_date) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL :days DAY)";
+    $args[':days'] = $days;
+  }
 }
 if ($status !== '') {
   $where[] = "LOWER(j.status) = :status";
