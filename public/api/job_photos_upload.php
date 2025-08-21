@@ -37,6 +37,26 @@ if ($jobId <= 0 || $technicianId <= 0 || !is_array($files) || !isset($files['nam
 }
 
 $count = count($files['name']);
+$maxPhotos = 50;
+if ($count > $maxPhotos) {
+    JsonResponse::json([
+        'ok'    => false,
+        'error' => 'Too many photos (max 50)',
+        'code'  => \ErrorCodes::VALIDATION_ERROR,
+    ], 422);
+    return;
+}
+
+$maxBytes   = 20 * 1024 * 1024; // 20 MB
+$totalBytes = array_sum((array)($files['size'] ?? []));
+if ($totalBytes > $maxBytes) {
+    JsonResponse::json([
+        'ok'    => false,
+        'error' => 'Total upload size exceeds 20MB',
+        'code'  => 413,
+    ], 413);
+    return;
+}
 $allowed = ['jpg','jpeg','png','gif'];
 $uploadDir = __DIR__ . '/../uploads/jobs/';
 if (!is_dir($uploadDir)) {
