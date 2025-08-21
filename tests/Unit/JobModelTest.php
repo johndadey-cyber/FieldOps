@@ -16,8 +16,13 @@ final class JobModelTest extends TestCase
 
         $pdo->exec('CREATE TABLE jobs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER NULL,
+            description TEXT NULL,
             status TEXT NOT NULL,
             started_at TEXT NULL,
+            scheduled_date TEXT NULL,
+            scheduled_time TEXT NULL,
+            duration_minutes INTEGER NULL,
             completed_at TEXT NULL,
             location_lat REAL NULL,
             location_lng REAL NULL,
@@ -43,6 +48,20 @@ final class JobModelTest extends TestCase
         $pdo->exec('CREATE TABLE job_skill (
             job_id INTEGER NOT NULL,
             skill_id INTEGER NOT NULL
+        )');
+
+        $pdo->exec('CREATE TABLE customers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            first_name TEXT NOT NULL,
+            last_name TEXT NOT NULL,
+            email TEXT,
+            phone TEXT,
+            address_line1 TEXT,
+            address_line2 TEXT,
+            city TEXT,
+            state TEXT,
+            postal_code TEXT,
+            country TEXT
         )');
 
         return $pdo;
@@ -120,5 +139,24 @@ final class JobModelTest extends TestCase
             ['id' => 2, 'name' => 'Cutting'],
             ['id' => 1, 'name' => 'Welding'],
         ], $skills);
+    }
+
+    public function testGetJobAndCustomerDetailsReturnsData(): void
+    {
+        $pdo = $this->createPdo();
+        $pdo->exec("INSERT INTO customers (first_name,last_name,email,phone,address_line1,address_line2,city,state,postal_code,country) VALUES ('John','Doe','jd@example.com','123','123 St','','Town','TS','11111','USA')");
+        $pdo->exec("INSERT INTO jobs (customer_id, description, status, scheduled_date, scheduled_time, duration_minutes) VALUES (1,'Install','scheduled','2024-01-01','08:00',30)");
+        $details = Job::getJobAndCustomerDetails($pdo, 1);
+        $this->assertSame(1, $details['id']);
+        $this->assertSame(1, $details['customer_id']);
+        $this->assertNull($details['job_type_id']);
+        $this->assertNull($details['job_type']);
+        $this->assertSame('Install', $details['description']);
+        $this->assertSame('scheduled', $details['status']);
+        $this->assertSame('2024-01-01', $details['scheduled_date']);
+        $this->assertSame('08:00', $details['scheduled_time']);
+        $this->assertSame(30, $details['duration_minutes']);
+        $this->assertSame('John', $details['customer']['first_name']);
+        $this->assertSame('Doe', $details['customer']['last_name']);
     }
 }
