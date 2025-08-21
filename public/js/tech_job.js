@@ -47,7 +47,8 @@
       badge.textContent=fmtStatus(st);
     }
 
-    function isTooEarly(){return scheduledStart && new Date()<scheduledStart;}
+      const EARLY_MS=5*60*1000;
+      function isTooEarly(){return scheduledStart && Date.now()<scheduledStart.getTime()-EARLY_MS;}
 
     function startTimer(start){
       if(timerInterval) clearInterval(timerInterval);
@@ -156,7 +157,13 @@
       const pct=total?Math.round((done/total)*100):0;
       progressEl.style.width=pct+'%';
       progressEl.setAttribute('aria-valuenow', String(pct));
-      if(jobStatus==='in_progress' && total>0 && done===total){btnComplete?.classList.remove('d-none');}else{btnComplete?.classList.add('d-none');}
+      if(jobStatus==='in_progress' && total>0 && done===total){
+        btnComplete?.classList.remove('d-none');
+        if(btnComplete) btnComplete.disabled=false;
+      }else{
+        btnComplete?.classList.add('d-none');
+        if(btnComplete) btnComplete.disabled=true;
+      }
     }
 
     checklistEl.addEventListener('change',async e=>{
@@ -186,24 +193,34 @@
         const c=j.customer||{};
         const addr=[c.address_line1,c.city,c.state,c.postal_code].filter(Boolean).join(', ');
         mapUrl=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
-        menuMap.href=mapUrl;
+        if(menuMap){
+          menuMap.href=mapUrl;
+          menuMap.addEventListener('click',e=>{e.preventDefault();window.open(mapUrl,'_blank');});
+        }
         const callUrl=c.phone?`tel:${c.phone}`:'#';
         headerEl.innerHTML=`<div class="d-flex justify-content-between align-items-center"><div><div class="h5 mb-0">Job #${h(j.id)}</div><div class="text-muted">${h(j.job_type||'')}</div></div><span id="status-badge" class="badge"></span></div>`;
         customerEl.innerHTML=`<div class="fw-bold">${h(c.first_name||'')} ${h(c.last_name||'')}</div><div>${h(c.address_line1||'')}</div><div>${h(c.city||'')}, ${h(c.state||'')} ${h(c.postal_code||'')}</div><div class="mt-2"><button class="btn btn-sm btn-outline-secondary me-2" id="copy-address" aria-label="Copy address">Copy</button><a class="btn btn-sm btn-outline-primary me-2" href="${mapUrl}" target="_blank" rel="noopener">Directions</a>${c.phone?`<a class="btn btn-sm btn-outline-primary" href="${callUrl}" aria-label="Call customer">Call</a>`:''}</div>`;
         document.getElementById('copy-address')?.addEventListener('click',()=>{navigator.clipboard?.writeText(addr);});
         scheduledStart=j.scheduled_time?new Date(`${j.scheduled_date}T${j.scheduled_time}`):null;
         updateStatus(j.status);
-        if(j.status==='assigned'){btnStart.classList.remove('d-none');}
+        if(j.status==='assigned'){
+          btnStart.classList.remove('d-none');
+          if(isTooEarly()){btnStart.classList.add('disabled');btnStart.disabled=true;}
+        }
         if(j.status==='in_progress'){startTimer(j.started_at||new Date());}
         fetchNotes();
         fetchPhotos();
         fetchChecklist();
-        setInterval(()=>{if(btnStart&&btnStart.classList.contains('disabled')&&!isTooEarly())btnStart.classList.remove('disabled');},60000);
+        setInterval(()=>{
+          if(btnStart&&(btnStart.disabled||btnStart.classList.contains('disabled'))&&!isTooEarly()){
+            btnStart.disabled=false;btnStart.classList.remove('disabled');
+          }
+        },60000);
       })
       .catch(err=>{customerEl.innerHTML=`<div class="text-danger">${h(err.message)}</div>`;});
 
     btnStart?.addEventListener('click',()=>{
-      if(isTooEarly() && !confirm('Start before scheduled time?')){return;}
+      if(isTooEarly()){alert('You may start the job up to 5 minutes before the scheduled time.');return;}
       btnStart.disabled=true;
       navigator.geolocation.getCurrentPosition(pos=>{
         const fd=new FormData();
@@ -279,9 +296,16 @@
         modal.querySelector('#voice-btn').addEventListener('click',()=>{
           const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
           if(!SR){alert('Speech recognition not supported');return;}
+          const overlay=document.createElement('div');
+          overlay.className='position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 text-white';
+          overlay.textContent='Listening…';
+          modal.querySelector('.modal-content').appendChild(overlay);
           recog=new SR();
           recog.lang='en-US';
           recog.onresult=e=>{const t=Array.from(e.results).map(r=>r[0].transcript).join(' ');textarea.value+=(textarea.value?' ':'')+t;};
+          const end=()=>overlay.remove();
+          recog.onend=end;
+          recog.onerror=end;
           recog.start();
         });
         bsModal.show();

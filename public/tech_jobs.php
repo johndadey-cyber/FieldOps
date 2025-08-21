@@ -44,16 +44,6 @@ $today = date('Y-m-d');
   </div>
   <div id="jobs-list"></div>
 </div>
-<div class="fab position-fixed bottom-0 end-0 mb-4 me-4">
-  <div class="btn-group-vertical align-items-end">
-    <div class="collapse mb-2" id="fab-actions">
-      <button class="btn btn-light rounded-circle mb-2 shadow d-flex align-items-center justify-content-center" id="btn-add-note" aria-label="Add note" style="width:44px;height:44px;">📝</button>
-      <button class="btn btn-light rounded-circle mb-2 shadow d-flex align-items-center justify-content-center" id="btn-add-photo" aria-label="Add photo" style="width:44px;height:44px;">📷</button>
-      <button class="btn btn-light rounded-circle shadow d-flex align-items-center justify-content-center" id="btn-map-view" aria-label="Map view" style="width:44px;height:44px;">🗺️</button>
-    </div>
-    <button class="btn btn-primary rounded-circle shadow d-flex align-items-center justify-content-center" data-bs-toggle="collapse" data-bs-target="#fab-actions" aria-expanded="false" aria-label="Toggle actions" style="width:56px;height:56px;">+</button>
-  </div>
-</div>
 <script>
   window.CSRF_TOKEN = "<?=htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8')?>";
   window.TECH_ID = <?= $techId ?>;
