@@ -42,6 +42,7 @@ final class JobDataProviderTest extends TestCase
         $d1 = $today->modify('+1 day')->format('Y-m-d');
         $d3 = $today->modify('+3 day')->format('Y-m-d');
         $d5 = $today->modify('+5 day')->format('Y-m-d');
+        $d6 = $today->modify('+6 day')->format('Y-m-d');
 
         $this->pdo->exec("INSERT INTO customers (id, first_name, last_name, address_line1, city) VALUES
             (1,'Alice','Adams','1 A St','Alpha'),
@@ -54,6 +55,7 @@ final class JobDataProviderTest extends TestCase
         $stmt->execute([3,'Gamma job',$d3,'08:00:00',0,'scheduled',2]);
         $stmt->execute([4,'Delta job',$d3,'09:00:00',0,'scheduled',3]);
         $stmt->execute([5,'Epsilon job',$d5,'08:00:00',0,'scheduled',1]);
+        $stmt->execute([6,'Zeta job',$d6,'08:00:00',0,'Completed',3]);
     }
 
     public function testFiltersRespectDaysStatusAndSearch(): void
@@ -74,7 +76,20 @@ final class JobDataProviderTest extends TestCase
     public function testReturnsRowsOrderedByDateTimeAndId(): void
     {
         $rows = JobDataProvider::getFiltered($this->pdo, null, null, null);
-        $this->assertSame([1,2,3,4,5], array_column($rows, 'job_id'));
+        $this->assertSame([1,2,3,4,5,6], array_column($rows, 'job_id'));
+    }
+
+    public function testStatusFilterIsCaseInsensitive(): void
+    {
+        $rows = JobDataProvider::getFiltered($this->pdo, null, 'completed', null);
+        $ids = array_column($rows, 'job_id');
+        $this->assertContains(2, $ids);
+        $this->assertContains(6, $ids);
+
+        $rowsUpper = JobDataProvider::getFiltered($this->pdo, null, 'COMPLETED', null);
+        $idsUpper = array_column($rowsUpper, 'job_id');
+        $this->assertContains(2, $idsUpper);
+        $this->assertContains(6, $idsUpper);
     }
 }
 

@@ -52,8 +52,8 @@ class JobDataProvider
             $params[':future_date'] = $futureDate;
         }
         if ($status !== null && $status !== '') {
-            $where[] = 'j.status = :status';
-            $params[':status'] = $status;
+            $where[] = 'LOWER(j.status) = :status';
+            $params[':status'] = strtolower($status);
         }
         if ($search !== null && $search !== '') {
             $where[] = '(j.description LIKE :q OR c.first_name LIKE :q OR c.last_name LIKE :q)';
