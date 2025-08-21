@@ -64,4 +64,20 @@ final class JobWriteValidationTest extends TestCase
         ], ['role' => 'dispatcher']);
         $this->assertTrue($withAmPm['ok'] ?? false, 'AM/PM time rejected');
     }
+
+    public function testTwentyFourHourTimeWithoutLeadingZeroIsAccepted(): void
+    {
+        $customerId = (int)$this->pdo->query("SELECT id FROM customers LIMIT 1")->fetchColumn();
+
+        $withoutLeadingZero = EndpointHarness::run(__DIR__ . '/../../public/job_save.php', [
+            'customer_id'    => $customerId,
+            'description'    => 'Job with 24h time no leading zero',
+            'scheduled_date' => '2025-08-25',
+            'scheduled_time' => '9:05',
+            'status'         => 'scheduled',
+            'skills'         => [1],
+        ], ['role' => 'dispatcher']);
+
+        $this->assertTrue($withoutLeadingZero['ok'] ?? false, '24h time without leading zero rejected');
+    }
 }
