@@ -3,6 +3,7 @@
     var form = document.getElementById('employeeForm');
     if (!form) return;
     var mode = form.getAttribute('data-mode') || 'add';
+    var returnUrl = form.getAttribute('data-return');
     var phoneEl = form.querySelector('#phone');
     if (phoneEl) {
       phoneEl.addEventListener('input', function (e) {
@@ -68,8 +69,8 @@
           try{window.dispatchEvent(new Event('employees:updated'));}catch(_){ }
           showToast(mode === 'edit' ? 'Employee updated' : 'Employee saved');
           setTimeout(function(){
-            var dest = 'employees.php';
-            if (mode === 'add' && data && data.id) {
+            var dest = returnUrl || 'employees.php';
+            if (!returnUrl && mode === 'add' && data && data.id) {
               var today = new Date();
               var diff = today.getDay() === 0 ? -6 : 1 - today.getDay();
               today.setDate(today.getDate() + diff);
