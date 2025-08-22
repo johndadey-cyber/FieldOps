@@ -101,7 +101,7 @@
     }
     if(jobTypeSelect){
       jobTypeSelect.addEventListener('change', function(){
-        checklistItems = [];
+stItems = [];
         Array.from(jobTypeSelect.selectedOptions || []).forEach(function(o){
           var tpl = o.getAttribute('data-template');
           if(tpl){
@@ -115,9 +115,6 @@
         });
         renderChecklist(checklistItems);
         updateHiddenInputs();
-        if(checklistModal && checklistModalEl && checklistModalEl.classList.contains('show')){
-          checklistModal.show();
-        }
       });
     }
     updateHiddenInputs();
