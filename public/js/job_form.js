@@ -80,7 +80,8 @@
       }
 
       var arr = items || [];
-      if(!arr.length){
+      if (!arr.length) {
+        console.warn('No checklist templates found for selected job types.');
         var p=document.createElement('p');
         p.className='text-muted';
         p.textContent='No default checklist for this job type.';
@@ -113,6 +114,7 @@
           try{
             var arr = JSON.parse(tpl);
             if(Array.isArray(arr)){
+              console.debug('Templates for job type', o.value, arr);
               checklistItems = checklistItems.concat(arr);
             }
           }catch(e){/* ignore parse errors */}
@@ -147,6 +149,7 @@
             try {
               var arr = JSON.parse(tpl);
               if (Array.isArray(arr)) {
+                console.debug('Templates for job type', o.value, arr);
                 checklistItems = checklistItems.concat(arr);
               }
             } catch (e) {
