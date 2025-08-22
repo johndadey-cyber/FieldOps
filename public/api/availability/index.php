@@ -28,21 +28,6 @@ try {
     $ws = new DateTimeImmutable($weekStart);
     $we = $ws->modify('+6 days')->format('Y-m-d');
 
-    // Helper to detect numeric day column
-    function dow_is_int(PDO $pdo): bool {
-        static $isInt = null;
-        if ($isInt !== null) return $isInt;
-        try {
-            $row = $pdo->query("SHOW COLUMNS FROM employee_availability LIKE 'day_of_week'")
-                ->fetch(PDO::FETCH_ASSOC);
-            $type = strtolower((string)($row['Type'] ?? ''));
-            $isInt = str_contains($type, 'int');
-        } catch (Throwable $e) {
-            $isInt = false;
-        }
-        return $isInt;
-    }
-
     function has_start_date(PDO $pdo): bool {
         static $has = null;
         if ($has !== null) return $has;
@@ -61,16 +46,29 @@ try {
     $st->execute([':eid' => $eid]);
     $avail = $st->fetchAll(PDO::FETCH_ASSOC);
 
+    // Normalize day_of_week values to canonical day names regardless of storage format
     $dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    if (dow_is_int($pdo)) {
-        foreach ($avail as &$a) {
-            $v = $a['day_of_week'] ?? '';
-            if (is_numeric($v)) {
-                $a['day_of_week'] = $dayNames[((int)$v)%7];
+    $dayMap = [
+        'sun' => 'Sunday', 'sunday' => 'Sunday',
+        'mon' => 'Monday', 'monday' => 'Monday',
+        'tue' => 'Tuesday', 'tues' => 'Tuesday', 'tuesday' => 'Tuesday',
+        'wed' => 'Wednesday', 'wednesday' => 'Wednesday',
+        'thu' => 'Thursday', 'thur' => 'Thursday', 'thurs' => 'Thursday', 'thursday' => 'Thursday',
+        'fri' => 'Friday', 'friday' => 'Friday',
+        'sat' => 'Saturday', 'saturday' => 'Saturday'
+    ];
+    foreach ($avail as &$a) {
+        $v = $a['day_of_week'] ?? '';
+        if (is_numeric($v)) {
+            $a['day_of_week'] = $dayNames[((int)$v)%7];
+        } else {
+            $key = strtolower((string)$v);
+            if (isset($dayMap[$key])) {
+                $a['day_of_week'] = $dayMap[$key];
             }
         }
-        unset($a);
     }
+    unset($a);
 
     // Ensure Monday→Sunday order
     $order = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
