@@ -451,8 +451,8 @@ out("== Ensuring PRIMARY KEYS ==");
 if (tableExists($pdo, 'job_employee_assignment')) {
     try { $pdo->exec('ALTER TABLE job_employee_assignment DROP FOREIGN KEY fk_jea_job'); } catch (PDOException $e) {}
     try { $pdo->exec('ALTER TABLE job_employee_assignment DROP FOREIGN KEY fk_jea_employee'); } catch (PDOException $e) {}
-    ensureIndex($pdo, 'job_employee_assignment', ['job_id'], 'idx_jea_job_id');
-    ensureIndex($pdo, 'job_employee_assignment', ['employee_id'], 'idx_jea_employee_id');
+    try { $pdo->exec('ALTER TABLE job_employee_assignment ADD INDEX idx_jea_job_id (job_id)'); } catch (PDOException $e) {}
+    try { $pdo->exec('ALTER TABLE job_employee_assignment ADD INDEX idx_jea_employee_id (employee_id)'); } catch (PDOException $e) {}
 }
 
 foreach (['people','employees','job_types','employee_availability_overrides','availability_audit','job_checklist_items','job_deletion_log','job_employee_assignment'] as $t) {
