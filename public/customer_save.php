@@ -21,6 +21,14 @@ function json_out(array $payload, int $code = 200): void {
     exit;
 }
 function redirect_back(string $fallback = '/'): void {
+    $to = $_POST['return'] ?? '';
+    if (is_string($to) && $to !== '') {
+        $parts = parse_url($to);
+        if ($parts !== false && !isset($parts['scheme']) && !isset($parts['host']) && $to[0] !== '/') {
+            header('Location: ' . $to);
+            exit;
+        }
+    }
     $to = $_SERVER['HTTP_REFERER'] ?? $fallback;
     header('Location: ' . $to);
     exit;

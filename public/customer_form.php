@@ -14,6 +14,14 @@ $mode      = $mode ?? 'add';
 $customer  = $customer ?? [];
 $isEdit    = $mode === 'edit';
 $__csrf    = csrf_token();
+$returnUrl = $_GET['return'] ?? '';
+$returnUrl = is_string($returnUrl) ? $returnUrl : '';
+if ($returnUrl !== '') {
+    $parts = parse_url($returnUrl);
+    if ($parts === false || isset($parts['scheme']) || isset($parts['host']) || $returnUrl[0] === '/') {
+        $returnUrl = '';
+    }
+}
 
 /** HTML escape */
 function s(?string $v): string { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
@@ -39,8 +47,9 @@ function sticky(string $name, ?string $default = null): string {
   <div class="container mt-4">
     <h1 class="mb-4"><?= $isEdit ? 'Edit Customer' : 'Add Customer' ?></h1>
     <div id="form-errors" class="text-danger mb-3"></div>
-    <form id="customerForm" method="post" action="customer_save.php" autocomplete="off" class="needs-validation" novalidate data-mode="<?= $isEdit ? 'edit' : 'add' ?>">
+    <form id="customerForm" method="post" action="customer_save.php" autocomplete="off" class="needs-validation" novalidate data-mode="<?= $isEdit ? 'edit' : 'add' ?>" data-return="<?= s($returnUrl) ?>">
       <input type="hidden" name="csrf_token" value="<?= s($__csrf) ?>">
+      <input type="hidden" name="return" value="<?= s($returnUrl) ?>">
       <?php if ($isEdit): ?>
         <input type="hidden" name="id" value="<?= s((string)($customer['id'] ?? '')) ?>">
       <?php endif; ?>
@@ -114,7 +123,7 @@ function sticky(string $name, ?string $default = null): string {
 
       <div class="mt-3">
         <button type="submit" class="btn btn-primary"><?= $isEdit ? 'Save Changes' : 'Save Customer' ?></button>
-        <button type="button" class="btn btn-secondary" onclick="window.location.href='customers.php'">Cancel</button>
+        <button type="button" class="btn btn-secondary" onclick="window.location.href='<?= s($returnUrl ?: "customers.php") ?>'">Cancel</button>
       </div>
     </form>
   </div>
@@ -171,7 +180,7 @@ function sticky(string $name, ?string $default = null): string {
 
             const data = await res.json();
             if (data.ok) {
-              window.location.href = 'customers.php?ts=' + Date.now();
+              window.location.href = form.dataset.return || 'customers.php?ts=' + Date.now();
             } else if (data.errors) {
               document.getElementById('form-errors').textContent = data.errors.join(', ');
             } else if (data.error) {
