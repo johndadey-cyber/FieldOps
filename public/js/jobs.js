@@ -1,5 +1,6 @@
 // /public/js/jobs.js
 (() => {
+  const csrf = window.CSRF_TOKEN || '';
   function ready(fn){document.readyState!='loading'?fn():document.addEventListener('DOMContentLoaded',fn);}
   function h(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML;}
   ready(() => {
@@ -110,7 +111,7 @@
         actCell.classList.add('text-nowrap');
         actCell.innerHTML=`<button class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#assignmentsModal" data-job-id="${job.job_id}">Assign</button>
 <a class="btn btn-sm btn-outline-secondary me-1" href="edit_job.php?id=${job.job_id}" target="_blank">Edit</a>
-<a class="btn btn-sm btn-outline-danger" href="job_delete.php?id=${job.job_id}" onclick="return confirm('Delete this job? This cannot be undone.');">Delete</a>`;
+<a class="btn btn-sm btn-outline-danger" href="job_delete.php?id=${job.job_id}&csrf_token=${encodeURIComponent(csrf)}" onclick="return confirm('Delete this job? This cannot be undone.');">Delete</a>`;
         tr.appendChild(actCell);
         $tbody.appendChild(tr);
       });
