@@ -18,5 +18,6 @@ require_once __DIR__ . '/nav.php';
   <li><a href="/admin/job_type_list.php">Job Types</a></li>
   <li><a href="/admin/checklist_template_list.php">Checklists</a></li>
   <li><a href="/admin/skill_list.php">Skills</a></li>
+  <li><a href="/admin/job_deletion_log.php">Job Deletion Log</a></li>
 </ul>
 <?php require_once __DIR__ . '/../../partials/footer.php'; ?>
