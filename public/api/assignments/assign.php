@@ -196,10 +196,10 @@ try {
         foreach ($employeeIds as $eid) { $ins2->execute([':j' => $jobId, ':e' => $eid]); }
     }
 
-// Flip status to 'Assigned' if any rows now exist for this job
+// Flip status to 'assigned' if any rows now exist for this job
 $upd = $pdo->prepare("
     UPDATE jobs j
-    SET j.status = 'Assigned'
+    SET j.status = 'assigned'
     WHERE j.id = :jobId
       AND (
         EXISTS (SELECT 1 FROM job_employee je WHERE je.job_id = j.id)
@@ -208,7 +208,7 @@ $upd = $pdo->prepare("
 ");
 $upd->execute([':jobId' => $jobId]);
 
-$rowsUpdated = $upd->rowCount(); // might be 0 if status already 'Assigned' or no matches
+$rowsUpdated = $upd->rowCount(); // might be 0 if status already 'assigned' or no matches
 
 $pdo->commit();
 
