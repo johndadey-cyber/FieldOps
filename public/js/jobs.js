@@ -40,6 +40,7 @@
     function renderRows(rows){
       const d=new Date();
       const todayStr=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const ret=encodeURIComponent(window.location.pathname.replace(/^\//,'')+window.location.search);
       $tbody.innerHTML='';
       if(!rows.length){
         $tbody.innerHTML='<tr><td colspan="7" class="text-center text-muted py-3">No jobs match your filters</td></tr>';
@@ -64,7 +65,7 @@
         const custCell=document.createElement('td');
         const name=h(job.customer.first_name)+' '+h(job.customer.last_name);
         const addr=h(job.customer.address_line1||'');
-        custCell.innerHTML=`<a href="edit_customer.php?id=${job.customer.id}&return=${encodeURIComponent(window.location.href)}" target="_blank">${name}</a><br><small class="text-muted">${addr}</small>`;
+        custCell.innerHTML=`<a href="edit_customer.php?id=${job.customer.id}&return=${ret}" target="_blank">${name}</a><br><small class="text-muted">${addr}</small>`;
         tr.appendChild(custCell);
         // Job skills
         const jsCell=document.createElement('td');
@@ -82,7 +83,7 @@
         // Employees
         const empCell=document.createElement('td');
         if(job.assigned_employees?.length){
-            const names=job.assigned_employees.map(e=>`<a href="edit_employee.php?id=${e.id}&return=${encodeURIComponent(window.location.href)}" target="_blank">${h(e.first_name)} ${h(e.last_name)}</a>`);
+            const names=job.assigned_employees.map(e=>`<a href="edit_employee.php?id=${e.id}&return=${ret}" target="_blank">${h(e.first_name)} ${h(e.last_name)}</a>`);
           let html=names.slice(0,2).join(', ');
           if(names.length>2) html+=` <span class="text-muted">+${names.length-2} more</span>`;
           empCell.innerHTML=html;
