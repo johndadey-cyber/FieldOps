@@ -55,7 +55,10 @@
       btn.className='btn btn-outline-danger';
       btn.textContent='Remove';
       btn.setAttribute('aria-label','Remove item');
-      btn.addEventListener('click',function(){ div.remove(); });
+      btn.addEventListener('click',function(){
+        div.remove();
+        updateHiddenInputs();
+      });
       div.appendChild(inp);
       div.appendChild(btn);
       var fb=document.createElement('div');
@@ -63,6 +66,7 @@
       fb.textContent='Description required (max 255 characters).';
       div.appendChild(fb);
       modalBody.appendChild(div);
+      updateHiddenInputs();
     }
 
     function renderChecklist(items){
@@ -88,14 +92,17 @@
     }
 
     function updateHiddenInputs(){
-      if(!hiddenInputs) return;
+      if(!hiddenInputs || !modalBody) return;
       hiddenInputs.innerHTML='';
-      checklistItems.forEach(function(desc){
-        var inp=document.createElement('input');
-        inp.type='hidden';
-        inp.name='checklist_items[]';
-        inp.value=desc;
-        hiddenInputs.appendChild(inp);
+      var inputs = modalBody.querySelectorAll('.checklist-input');
+      Array.from(inputs).forEach(function(inp, idx){
+        var val = inp.value.trim();
+        if(val==='') return;
+        var hidden=document.createElement('input');
+        hidden.type='hidden';
+        hidden.name='checklist['+idx+'][description]';
+        hidden.value=val;
+        hiddenInputs.appendChild(hidden);
       });
     }
 
@@ -139,9 +146,10 @@
     form.addEventListener('submit', function(e){
       e.preventDefault();
       showErrors([]);
+      updateHiddenInputs();
         var skillSelect = form.querySelector('#skills');
         var selectedSkills = Array.from(skillSelect?.selectedOptions || []);
-        var checklistInputs=hiddenInputs ? hiddenInputs.querySelectorAll('input[name="checklist_items[]"]') : [];
+        var checklistInputs=hiddenInputs ? hiddenInputs.querySelectorAll('input[name^="checklist"][name$="[description]"]') : [];
         checklistInputs.forEach(function(inp){ inp.value=inp.value.trim(); });
         var valid = form.checkValidity();
       if(selectedSkills.length===0){ if(skillError){skillError.style.display='block';} valid=false; } else { if(skillError){skillError.style.display='none';} }
