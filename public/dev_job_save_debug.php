@@ -40,12 +40,12 @@ $scheduledTime   = trim((string)($_POST['scheduled_time'] ?? ''));
 $durationMinutes = isset($_POST['duration_minutes']) ? (int)$_POST['duration_minutes'] : 0;
 $statusIn        = trim((string)($_POST['status'] ?? ''));
 
-$allowedStatuses = [
-  'draft','scheduled','assigned','in_progress','completed','closed','cancelled',
-  'unassigned','Unassigned','Draft','Scheduled','Assigned','In Progress','Completed','Closed','Cancelled'
-];
-$status = $statusIn !== '' ? $statusIn : 'Unassigned';
-if (!in_array($status, $allowedStatuses, true)) { $status = 'Unassigned'; }
+require_once __DIR__ . '/../models/Job.php';
+$allowedStatuses = Job::allowedStatuses();
+$status = $statusIn !== ''
+    ? strtolower(str_replace(' ', '_', $statusIn))
+    : 'draft';
+if (!in_array($status, $allowedStatuses, true)) { $status = 'draft'; }
 
 $errors = [];
 if ($customerId <= 0)      { $errors[] = 'customer_id required'; }
