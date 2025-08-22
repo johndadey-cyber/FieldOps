@@ -3,6 +3,7 @@
     var form = document.getElementById('jobForm');
     if(!form) return;
     var mode = form.getAttribute('data-mode') || 'add';
+    var returnUrl = form.getAttribute('data-return');
     var errBox = document.getElementById('form-errors');
     var skillError = document.getElementById('jobSkillError');
     var initItems = window.initialChecklistItems || [];
@@ -197,7 +198,7 @@
         .then(function(data){
           if(data && data.ok){
             showToast(mode==='edit'?'Job updated':'Job saved');
-            setTimeout(function(){ window.location.href='jobs.php'; }, 800);
+            setTimeout(function(){ window.location.href = returnUrl || 'jobs.php'; }, 800);
             return;
           }
           var errs=[];
