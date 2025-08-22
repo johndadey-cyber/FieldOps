@@ -45,5 +45,6 @@ PHP;
         $out = shell_exec('php ' . escapeshellarg($tmp));
         unlink($tmp);
         $this->assertStringContainsString('Admin Tools', (string)$out);
+        $this->assertStringContainsString('Roles', (string)$out);
     }
 }
