@@ -37,7 +37,11 @@ try {
 document.addEventListener('DOMContentLoaded', function () {
     var jobTypeSelect = document.getElementById('job_type_ids');
     if (jobTypeSelect && jobTypeSelect.selectedOptions.length) {
-        jobTypeSelect.dispatchEvent(new Event('change'));
+        if (typeof jobTypeSelect.onchange === 'function') {
+            jobTypeSelect.onchange();
+        } else {
+            jobTypeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
     }
 });
 </script>
