@@ -5,7 +5,6 @@
     var mode = form.getAttribute('data-mode') || 'add';
     var errBox = document.getElementById('form-errors');
     var skillError = document.getElementById('jobSkillError');
-    var templates = window.jobChecklistTemplates || {};
     var initItems = window.initialChecklistItems || [];
     var checklistLink = document.getElementById('checklistModalLink');
     var checklistModalEl = document.getElementById('checklistModal');
@@ -102,11 +101,16 @@
     }
     if(jobTypeSelect){
       jobTypeSelect.addEventListener('change', function(){
-        var selectedIds = Array.from(jobTypeSelect.selectedOptions||[]).map(function(o){ return o.value; });
         checklistItems = [];
-        selectedIds.forEach(function(tid){
-          if(Array.isArray(templates[tid])){
-            checklistItems = checklistItems.concat(templates[tid]);
+        Array.from(jobTypeSelect.selectedOptions || []).forEach(function(o){
+          var tpl = o.getAttribute('data-template');
+          if(tpl){
+            try{
+              var arr = JSON.parse(tpl);
+              if(Array.isArray(arr)){
+                checklistItems = checklistItems.concat(arr);
+              }
+            }catch(e){/* ignore parse errors */}
           }
         });
         renderChecklist(checklistItems);

@@ -23,7 +23,7 @@ $statuses  = $isEdit ? Job::allowedStatuses() : array_intersect(['scheduled','dr
 $customers = (new Customer($pdo))->getAll();
 $jobTypes  = $pdo->query('SELECT id, name FROM job_types ORDER BY name')->fetchAll(PDO::FETCH_ASSOC);
 $today     = date('Y-m-d');
-$jobTypesWithChecklist = array_flip(array_map('strval', array_keys(JobChecklistItem::defaultTemplates($pdo))));
+$jobTypeTemplates = JobChecklistItem::defaultTemplates($pdo);
 
 // Existing checklist items when editing
 $existingChecklist = [];
@@ -113,8 +113,14 @@ function stickyArr(string $name, array $default = []): array {
           <?php $selJobTypes = stickyArr('job_type_ids', $jobTypeIds); ?>
           <select name="job_type_ids[]" id="job_type_ids" class="form-select" multiple>
             <?php foreach ($jobTypes as $jt): ?>
-              <?php $jtId = (string)$jt['id']; ?>
-              <option value="<?= s($jtId) ?>" <?= in_array($jtId, $selJobTypes, true) ? 'selected' : '' ?><?= isset($jobTypesWithChecklist[$jtId]) ? ' data-has-checklist="true"' : '' ?>><?= s($jt['name']) ?></option>
+              <?php
+                $jtId = (string)$jt['id'];
+                $attr = '';
+                if (isset($jobTypeTemplates[(int)$jtId])) {
+                    $attr = ' data-has-checklist="true" data-template="' . s(json_encode($jobTypeTemplates[(int)$jtId])) . '"';
+                }
+              ?>
+              <option value="<?= s($jtId) ?>" <?= in_array($jtId, $selJobTypes, true) ? 'selected' : '' ?><?= $attr ?>><?= s($jt['name']) ?></option>
             <?php endforeach; ?>
           </select>
         </div>
@@ -188,7 +194,6 @@ function stickyArr(string $name, array $default = []): array {
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
   <script>
-    window.jobChecklistTemplates = <?= json_encode(JobChecklistItem::defaultTemplates($pdo)); ?>;
     window.initialChecklistItems = <?= json_encode($existingChecklist); ?>;
   </script>
   <script src="js/job_form.js"></script>
