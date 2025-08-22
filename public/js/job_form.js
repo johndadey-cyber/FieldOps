@@ -102,7 +102,7 @@
     }
     if(jobTypeSelect){
       jobTypeSelect.addEventListener('change', function(){
-        var selectedIds = Array.from(jobTypeSelect.selectedOptions||[]).map(function(o){ return o.value; });
+        var selectedIds = Array.from(jobTypeSelect.selectedOptions || []).map(function(o){ return o.value; });
         checklistItems = [];
         selectedIds.forEach(function(tid){
           if(Array.isArray(templates[tid])){
@@ -111,9 +111,6 @@
         });
         renderChecklist(checklistItems);
         updateHiddenInputs();
-        if(checklistModal && checklistModalEl && checklistModalEl.classList.contains('show')){
-          checklistModal.show();
-        }
       });
     }
     updateHiddenInputs();
