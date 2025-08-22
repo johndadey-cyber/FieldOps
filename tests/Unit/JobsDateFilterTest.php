@@ -27,7 +27,7 @@ final class JobsDateFilterTest extends TestCase
         $pdo->exec('CREATE TABLE customers (id INTEGER PRIMARY KEY, first_name TEXT, last_name TEXT, address_line1 TEXT, city TEXT)');
         $pdo->exec('CREATE TABLE jobs (id INTEGER PRIMARY KEY, scheduled_date TEXT, scheduled_time TEXT, status TEXT, duration_minutes INTEGER, customer_id INTEGER, deleted_at TEXT NULL)');
         $pdo->exec('CREATE TABLE job_employee (job_id INTEGER, employee_id INTEGER)');
-        $pdo->exec('CREATE TABLE job_employee_assignment (job_id INTEGER, employee_id INTEGER)');
+        $pdo->exec('CREATE TABLE job_employee_assignment (id INTEGER PRIMARY KEY AUTOINCREMENT, job_id INTEGER, employee_id INTEGER, assigned_at TEXT DEFAULT CURRENT_TIMESTAMP, UNIQUE(job_id, employee_id))');
         $pdo->exec('CREATE TABLE employees (id INTEGER PRIMARY KEY, person_id INTEGER)');
         $pdo->exec('CREATE TABLE people (id INTEGER PRIMARY KEY, first_name TEXT, last_name TEXT)');
 

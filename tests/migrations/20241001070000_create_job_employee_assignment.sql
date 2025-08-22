@@ -1,8 +1,9 @@
 CREATE TABLE IF NOT EXISTS job_employee_assignment (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     job_id INT UNSIGNED NOT NULL,
     employee_id INT UNSIGNED NOT NULL,
     assigned_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (job_id, employee_id),
+    UNIQUE KEY uq_job_employee (job_id, employee_id),
     CONSTRAINT fk_jea_job FOREIGN KEY (job_id) REFERENCES jobs(id)
         ON DELETE CASCADE ON UPDATE RESTRICT,
     CONSTRAINT fk_jea_employee FOREIGN KEY (employee_id) REFERENCES employees(id)
