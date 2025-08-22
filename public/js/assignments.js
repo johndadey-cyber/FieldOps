@@ -26,6 +26,7 @@
   const $selSkill     = document.getElementById('filter-skill');
   const $selSort      = document.getElementById('sort-by');
   const $txtSearch    = document.getElementById('search');
+  const $confirmModal = document.getElementById('assignConfirmModal');
 
   // State
   let JOB_ID = null;
@@ -33,6 +34,7 @@
   let selected = new Set();    // employeeIds
   let isPosting = false;
   let searchMode = 'name';     // 'name' or 'name_email_phone' when fields exist
+  let lastIssueDetails = [];
 
   // ---------- Modal lifecycle helpers ----------
   function closeModalsAndCleanup() {
@@ -74,6 +76,25 @@
       document.body.classList.remove('modal-open');
       document.body.style.removeProperty('padding-right');
     });
+  });
+
+  $confirmModal?.addEventListener('hidden.bs.modal', () => {
+    if (!Array.isArray(lastIssueDetails) || lastIssueDetails.length === 0) return;
+    let first = null;
+    lastIssueDetails.forEach(d => {
+      const id = d?.employeeId;
+      if (id == null) return;
+      const row = document.getElementById(`row-${id}`);
+      if (row) {
+        if (!first) first = row;
+        row.classList.add('bg-warning-subtle', 'assign-row-highlight');
+        setTimeout(() => row.classList.remove('bg-warning-subtle', 'assign-row-highlight'), 2000);
+      }
+    });
+    if (first) {
+      first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    lastIssueDetails = [];
   });
 
   // ---------- Public entrypoint (called by the modal show hook) ----------
@@ -417,6 +438,7 @@
           inactive_employee: 'inactive',
           wrong_role: 'wrong role',
         };
+        lastIssueDetails = Array.isArray(json.details) ? json.details : [];
 
         const nameById = new Map(
           (payload?.employees || []).map(e => [e.id, `${e.first_name || ''} ${e.last_name || ''}`.trim()])
