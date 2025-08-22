@@ -72,21 +72,19 @@
     function renderChecklist(items){
       if(!modalBody) return;
       modalBody.innerHTML='';
+
+      if(checklistLink){
+        checklistLink.classList.remove('disabled');
+        checklistLink.removeAttribute('aria-disabled');
+      }
+
       var arr = items || [];
       if(!arr.length){
         var p=document.createElement('p');
         p.className='text-muted';
         p.textContent='No default checklist for this job type.';
         modalBody.appendChild(p);
-        if(checklistLink){
-          checklistLink.classList.add('disabled');
-          checklistLink.setAttribute('aria-disabled','true');
-        }
         return;
-      }
-      if(checklistLink){
-        checklistLink.classList.remove('disabled');
-        checklistLink.removeAttribute('aria-disabled');
       }
       arr.forEach(function(it){ addChecklistInput(it); });
     }
