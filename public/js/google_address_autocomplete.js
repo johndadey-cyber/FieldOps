@@ -14,6 +14,16 @@ function initializeAddressAutocomplete(inputId, fieldMap = {}) {
         fields: ['address_components', 'geometry', 'place_id']
     });
 
+    // Prevent the form from submitting when selecting an address via Enter.
+    // Without this, pressing Enter can submit the form before the Google
+    // "place_changed" event populates the individual address fields, leaving
+    // the full address string in the first line input.
+    input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+        }
+    });
+
     autocomplete.addListener('place_changed', function () {
         const place = autocomplete.getPlace();
 
