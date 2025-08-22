@@ -1,24 +1,3 @@
-const daysOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-
-function canonicalDay(val) {
-  if (typeof val === 'number' || /^\d+$/.test(String(val))) {
-    const n = parseInt(val, 10);
-    return dayNames[((n % 7) + 7) % 7];
-  }
-  const key = String(val || '').toLowerCase();
-  const map = {
-    sun: 'Sunday', sunday: 'Sunday',
-    mon: 'Monday', monday: 'Monday',
-    tue: 'Tuesday', tues: 'Tuesday', tuesday: 'Tuesday',
-    wed: 'Wednesday', wednesday: 'Wednesday',
-    thu: 'Thursday', thur: 'Thursday', thurs: 'Thursday', thursday: 'Thursday',
-    fri: 'Friday', friday: 'Friday',
-    sat: 'Saturday', saturday: 'Saturday'
-  };
-  return map[key] || val;
-}
-
 export function initCalendar(onSelect, onEventEdit) {
   const calendarEl = document.getElementById('calendar');
   const calendar = new FullCalendar.Calendar(calendarEl, {
@@ -33,48 +12,22 @@ export function initCalendar(onSelect, onEventEdit) {
 
 export function renderCalendar(calendar, availability, overrides, jobs, weekStart, currentEmployeeId) {
   calendar.removeAllEvents();
-  const wsDate = new Date(weekStart + 'T00:00:00');
   let added = 0;
 
-  const byDay = {};
   for (const it of Array.isArray(availability) ? availability : []) {
-    const day = canonicalDay(it.day_of_week);
-    it.day_of_week = day;
-    if (!byDay[day]) byDay[day] = [];
-    byDay[day].push(it);
-  }
-
-  for (const day of daysOrder) {
-    const arr = byDay[day] || [];
-    const idx = daysOrder.indexOf(day);
-    const d = new Date(wsDate);
-    d.setDate(d.getDate() + idx);
-    const dayStr = d.toISOString().slice(0,10);
-    const applicable = arr.filter(it => !it.start_date || it.start_date <= dayStr);
-    let latest = '';
-    for (const it of applicable) {
-      const sd = it.start_date || '';
-      if (sd > latest) latest = sd;
-    }
-    const final = applicable.filter(it => (it.start_date || '') === latest);
-    for (const it of final) {
-      if (!it.start_time || !it.end_time) continue;
-      const start = `${dayStr}T${it.start_time}`;
-      const end = `${dayStr}T${it.end_time}`;
-      if (start >= end) continue;
-      const future = it.start_date && it.start_date > weekStart;
-      const color = future ? '#0dcaf0' : '#198754';
-      calendar.addEvent({
-        id: 'win-' + it.id,
-        start,
-        end,
-        backgroundColor: color,
-        borderColor: color,
-        editable: true,
-        extendedProps: { type: 'window', raw: it }
-      });
-      added++;
-    }
+    if (!it.start || !it.end) continue;
+    if (it.start >= it.end) continue;
+    const color = '#198754';
+    calendar.addEvent({
+      id: 'win-' + it.id,
+      start: it.start,
+      end: it.end,
+      backgroundColor: color,
+      borderColor: color,
+      editable: true,
+      extendedProps: { type: 'window', raw: it }
+    });
+    added++;
   }
 
   for (const ov of Array.isArray(overrides) ? overrides : []) {

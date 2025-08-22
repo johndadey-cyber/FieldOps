@@ -410,7 +410,7 @@ async function loadAvailability() {
     openOvEdit,
     delOverride: ov => delOverride(ov, loadAvailability)
   }, { weekStart: ws });
-  renderCalendar(calendar, data.availability, data.overrides, jobs, ws, eid);
+  renderCalendar(calendar, data.events, data.overrides, jobs, ws, eid);
 }
 
 winForm.addEventListener('submit', async (e) => {
