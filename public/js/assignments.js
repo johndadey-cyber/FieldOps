@@ -408,21 +408,33 @@
       try { json = JSON.parse(text); } catch (_) {}
 
       if (res.status === 409 && !force && json) {
-        // Summarize issues and show confirm modal
-        const counts = { time_conflict:0, partial_availability:0, unavailable_for_job_window:0, missing_required_skills:0, inactive_employee:0, wrong_role:0 };
-        (json.details || []).forEach(d => (d.issues || []).forEach(i => { if (counts[i] !== undefined) counts[i]++; }));
-        const lines = [];
-        if (counts.time_conflict) lines.push(`• ${counts.time_conflict} with time conflicts`);
-        if (counts.partial_availability) lines.push(`• ${counts.partial_availability} with partial availability`);
-        if (counts.unavailable_for_job_window) lines.push(`• ${counts.unavailable_for_job_window} unavailable`);
-        if (counts.missing_required_skills) lines.push(`• ${counts.missing_required_skills} missing required skills`);
-        if (counts.wrong_role) lines.push(`• ${counts.wrong_role} wrong role`);
-        if (counts.inactive_employee) lines.push(`• ${counts.inactive_employee} inactive`);
+        // Build detailed per-employee issue list and show confirm modal
+        const issueMap = {
+          time_conflict: 'time conflict',
+          partial_availability: 'partial availability',
+          unavailable_for_job_window: 'unavailable for job window',
+          missing_required_skills: 'missing required skills',
+          inactive_employee: 'inactive',
+          wrong_role: 'wrong role',
+        };
+
+        const nameById = new Map(
+          (payload?.employees || []).map(e => [e.id, `${e.first_name || ''} ${e.last_name || ''}`.trim()])
+        );
+
+        const items = (json.details || []).map(d => {
+          const name = nameById.get(d.employeeId) || `ID ${d.employeeId}`;
+          const issues = (d.issues || [])
+            .map(code => issueMap[code] || code.replace(/_/g, ' '))
+            .map(escapeHtml)
+            .join(', ');
+          return `<li>${escapeHtml(name)}: ${issues}</li>`;
+        });
 
         const $sum = document.getElementById('assign-confirm-summary');
         if ($sum) {
-          $sum.innerHTML = lines.length
-            ? `<div class="mb-2">Some selections have issues:</div><div>${lines.join('<br>')}</div>`
+          $sum.innerHTML = items.length
+            ? `<div class="mb-2">Some selections have issues:</div><ul class="mb-0 ps-4">${items.join('')}</ul>`
             : `Some selections may have issues. Proceed anyway?`;
         }
         bootstrap?.Modal.getOrCreateInstance(document.getElementById('assignConfirmModal'))?.show();
