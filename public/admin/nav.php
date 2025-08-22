@@ -7,4 +7,5 @@ require_role('admin');
   <a href="/admin/job_type_list.php" class="me-3">Job Types</a>
   <a href="/admin/checklist_template_list.php" class="me-3">Checklists</a>
   <a href="/admin/skill_list.php" class="me-3">Skills</a>
+  <a href="/admin/role_list.php" class="me-3">Roles</a>
 </nav>
