@@ -1,6 +1,32 @@
 <?php
 declare(strict_types=1);
 
+class PhpStreamMock
+{
+    public $context;
+    private int $pos = 0;
+    public static string $content = '';
+    public function stream_open($path, $mode, $options, &$opened_path)
+    {
+        $this->pos = 0;
+        return true;
+    }
+    public function stream_read($count)
+    {
+        $ret = substr(self::$content, $this->pos, $count);
+        $this->pos += strlen($ret);
+        return $ret;
+    }
+    public function stream_eof()
+    {
+        return $this->pos >= strlen(self::$content);
+    }
+    public function stream_stat()
+    {
+        return [];
+    }
+}
+
 final class EndpointHarness
 {
     /**
@@ -21,6 +47,7 @@ final class EndpointHarness
         array $opts = []
     ): array {
         $injectCsrf = $opts['inject_csrf'] ?? true;
+        $json = $opts['json'] ?? false;
 
         // Reset globals
         $_GET = [];
@@ -46,7 +73,15 @@ final class EndpointHarness
         }
 
         // Apply payload (+ optional CSRF injection)
-        if ($method === 'POST') {
+        if ($json) {
+            if ($injectCsrf && !isset($data['csrf_token'])) {
+                $data['csrf_token'] = $_SESSION['csrf_token'];
+            }
+            $_SERVER['CONTENT_TYPE'] = 'application/json';
+            PhpStreamMock::$content = json_encode($data ?? []);
+            stream_wrapper_unregister('php');
+            stream_wrapper_register('php', PhpStreamMock::class);
+        } elseif ($method === 'POST') {
             $_POST = $data;
             if ($injectCsrf && !isset($_POST['csrf_token'])) {
                 $_POST['csrf_token'] = $_SESSION['csrf_token'];
@@ -65,8 +100,14 @@ final class EndpointHarness
         }
 
         ob_start();
-        require $script;
-        $out = (string)ob_get_clean();
+        try {
+            require $script;
+            $out = (string)ob_get_clean();
+        } finally {
+            if ($json) {
+                stream_wrapper_restore('php');
+            }
+        }
 
         // Clean up sentinel to avoid cross-test leakage
         unset($GLOBALS['__FIELDOPS_TEST_CALL__']);

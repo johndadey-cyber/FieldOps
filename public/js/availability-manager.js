@@ -70,6 +70,7 @@ const copyModal = new bootstrap.Modal(copyModalEl);
 const copyForm = document.getElementById('copyForm');
 const copyDays = document.getElementById('copyDays');
 let copyBlocks = [];
+let copyStartDate = '';
 
 winModalEl.addEventListener('hide.bs.modal', () => {
   const active = document.activeElement;
@@ -364,6 +365,8 @@ function openEditDay(day, startDate = '') {
 
 function openCopy(day) {
   copyBlocks = (currentGroups[day] || []).map(it => ({ start_time: it.start_time, end_time: it.end_time }));
+  const first = currentGroups[day] && currentGroups[day][0];
+  copyStartDate = first && first.start_date ? first.start_date : '';
   copyDays.innerHTML = '';
   for (const d of daysOrder) {
     const id = 'copy-' + d;
@@ -704,7 +707,11 @@ copyForm.addEventListener('submit', async e => {
   const eid = currentEmployeeId();
   const days = Array.from(copyDays.querySelectorAll('input:checked')).map(i => i.value);
   if (!eid || days.length === 0 || copyBlocks.length === 0) { FieldOpsToast.show('Select target days', 'danger'); return; }
-  const payload = { csrf_token: CSRF, employee_id: eid, day_of_week: days, blocks: copyBlocks };
+  const replaceIds = [];
+  for (const d of days) {
+    (currentGroups[d] || []).forEach(it => replaceIds.push(it.id));
+  }
+  const payload = { csrf_token: CSRF, employee_id: eid, day_of_week: days, blocks: copyBlocks, start_date: copyStartDate, replace_ids: replaceIds };
   try {
     if (DEBUG) {
       console.log('Request to api/availability/create.php', payload, document.cookie);
