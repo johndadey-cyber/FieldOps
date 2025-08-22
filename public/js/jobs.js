@@ -34,7 +34,7 @@
         renderRows(data);
       }catch(err){
         console.error('loadJobs failed',err);
-        $tbody.innerHTML=`<tr><td colspan="7" class="text-danger">${h(err.message||'Failed to load jobs')}</td></tr>`;
+        $tbody.innerHTML=`<tr><td colspan="8" class="text-danger">${h(err.message||'Failed to load jobs')}</td></tr>`;
       }
     }
 
@@ -44,11 +44,15 @@
       const ret=encodeURIComponent(window.location.pathname.replace(/^\//,'')+window.location.search);
       $tbody.innerHTML='';
       if(!rows.length){
-        $tbody.innerHTML='<tr><td colspan="7" class="text-center text-muted py-3">No jobs match your filters</td></tr>';
+        $tbody.innerHTML='<tr><td colspan="8" class="text-center text-muted py-3">No jobs match your filters</td></tr>';
         return;
       }
       rows.forEach(job=>{
         const tr=document.createElement('tr');
+        // ID
+        const idCell=document.createElement('td');
+        idCell.textContent=job.job_id;
+        tr.appendChild(idCell);
         // Date
         const dateCell=document.createElement('td');
         let dLabel='';
