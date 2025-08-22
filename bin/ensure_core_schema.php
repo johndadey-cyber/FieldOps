@@ -393,13 +393,26 @@ if (!tableExists($pdo, 'job_deletion_log')) {
     $pdo->exec(
         "CREATE TABLE `job_deletion_log` (
             `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            `job_id` INT NOT NULL,
-            `user_id` INT NULL,
+            `job_id` INT UNSIGNED NOT NULL,
+            `user_id` INT UNSIGNED NULL,
             `reason` VARCHAR(255) NULL,
             `deleted_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
     );
     out('[OK] job_deletion_log created');
+}
+
+// Ensure job_deletion_log column types match referenced tables
+if (tableExists($pdo, 'job_deletion_log')) {
+    $cols = columns($pdo, 'job_deletion_log');
+    if (isset($cols['job_id']) && stripos((string)$cols['job_id']['COLUMN_TYPE'], 'unsigned') === false) {
+        out('[..] Normalizing job_deletion_log.job_id to INT UNSIGNED ...');
+        $pdo->exec('ALTER TABLE `job_deletion_log` MODIFY `job_id` INT UNSIGNED NOT NULL');
+    }
+    if (isset($cols['user_id']) && stripos((string)$cols['user_id']['COLUMN_TYPE'], 'unsigned') === false) {
+        out('[..] Normalizing job_deletion_log.user_id to INT UNSIGNED ...');
+        $pdo->exec('ALTER TABLE `job_deletion_log` MODIFY `user_id` INT UNSIGNED NULL');
+    }
 }
 
 // Drop deprecated job_jobtype table if present
