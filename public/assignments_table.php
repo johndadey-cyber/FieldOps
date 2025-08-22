@@ -48,11 +48,14 @@ if ($status !== '') {
 
 if ($search !== '') {
   $sql .= " AND (
-      j.description LIKE :q OR
-      c.first_name LIKE :q OR
-      c.last_name  LIKE :q
+      j.description LIKE :q1 OR
+      c.first_name LIKE :q2 OR
+      c.last_name  LIKE :q3
   )";
-  $params[':q'] = '%' . $search . '%';
+  $wild = '%' . $search . '%';
+  $params[':q1'] = $wild;
+  $params[':q2'] = $wild;
+  $params[':q3'] = $wild;
 }
 
 $sql .= "
