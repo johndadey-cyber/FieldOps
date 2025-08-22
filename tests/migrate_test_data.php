@@ -81,7 +81,8 @@ $sql = [
         id INT AUTO_INCREMENT PRIMARY KEY,
         job_id INT NOT NULL,
         employee_id INT NOT NULL,
-        assigned_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        assigned_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_job_employee (job_id, employee_id)
     ) ENGINE=InnoDB",
 
     "CREATE TABLE IF NOT EXISTS job_employee (

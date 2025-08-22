@@ -87,8 +87,11 @@ final class AssignmentEngineTest extends TestCase
             end_time TEXT
         )');
         $pdo->exec('CREATE TABLE job_employee_assignment (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             job_id INTEGER,
-            employee_id INTEGER
+            employee_id INTEGER,
+            assigned_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(job_id, employee_id)
         )');
 
         // Seed data
