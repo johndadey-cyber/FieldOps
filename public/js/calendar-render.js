@@ -1,4 +1,23 @@
 const daysOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+function canonicalDay(val) {
+  if (typeof val === 'number' || /^\d+$/.test(String(val))) {
+    const n = parseInt(val, 10);
+    return dayNames[((n % 7) + 7) % 7];
+  }
+  const key = String(val || '').toLowerCase();
+  const map = {
+    sun: 'Sunday', sunday: 'Sunday',
+    mon: 'Monday', monday: 'Monday',
+    tue: 'Tuesday', tues: 'Tuesday', tuesday: 'Tuesday',
+    wed: 'Wednesday', wednesday: 'Wednesday',
+    thu: 'Thursday', thur: 'Thursday', thurs: 'Thursday', thursday: 'Thursday',
+    fri: 'Friday', friday: 'Friday',
+    sat: 'Saturday', saturday: 'Saturday'
+  };
+  return map[key] || val;
+}
 
 export function initCalendar(onSelect, onEventEdit) {
   const calendarEl = document.getElementById('calendar');
@@ -19,8 +38,10 @@ export function renderCalendar(calendar, availability, overrides, jobs, weekStar
 
   const byDay = {};
   for (const it of Array.isArray(availability) ? availability : []) {
-    if (!byDay[it.day_of_week]) byDay[it.day_of_week] = [];
-    byDay[it.day_of_week].push(it);
+    const day = canonicalDay(it.day_of_week);
+    it.day_of_week = day;
+    if (!byDay[day]) byDay[day] = [];
+    byDay[day].push(it);
   }
 
   for (const day of daysOrder) {
