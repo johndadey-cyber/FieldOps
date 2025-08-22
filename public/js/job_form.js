@@ -124,14 +124,16 @@
       jobTypeSelect.addEventListener('change', function(){
         checklistItems = [];
         Array.from(jobTypeSelect.selectedOptions || []).forEach(function(o){
-          var tpl = o.getAttribute('data-template');
-          if(tpl){
-            try{
+          var tpl = o.dataset.template;
+          if (tpl) {
+            try {
               var arr = JSON.parse(tpl);
-              if(Array.isArray(arr)){
+              if (Array.isArray(arr)) {
                 checklistItems = checklistItems.concat(arr);
               }
-            }catch(e){/* ignore parse errors */}
+            } catch (e) {
+              console.error('Failed to parse checklist template JSON:', e);
+            }
           }
         });
         renderChecklist(checklistItems);
