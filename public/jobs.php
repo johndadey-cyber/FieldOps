@@ -74,6 +74,7 @@ require __DIR__ . '/../partials/header.php';
       <table class="table table-striped table-hover m-0 table-jobs sticky-header" id="jobs-table">
         <thead class="table-light">
           <tr>
+            <th>Job&nbsp;ID</th>
             <th>Date</th>
             <th>Time</th>
             <th>Customer</th>
