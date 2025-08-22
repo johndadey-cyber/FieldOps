@@ -139,7 +139,24 @@
       });
     }
     if(jobTypeSelect){
-      jobTypeSelect.addEventListener('change', loadChecklistFromSelection);
+      jobTypeSelect.addEventListener('change', function(){
+        checklistItems = [];
+        Array.from(jobTypeSelect.selectedOptions || []).forEach(function(o){
+          var tpl = o.dataset.template;
+          if (tpl) {
+            try {
+              var arr = JSON.parse(tpl);
+              if (Array.isArray(arr)) {
+                checklistItems = checklistItems.concat(arr);
+              }
+            } catch (e) {
+              console.error('Failed to parse checklist template JSON:', e);
+            }
+          }
+        });
+        renderChecklist(checklistItems);
+        updateHiddenInputs();
+      });
     }
     renderChecklist(checklistItems);
     updateHiddenInputs();
