@@ -1,5 +1,5 @@
 export async function fetchAvailability(eid, weekStart) {
-  if (!eid) return { availability: [], overrides: [] };
+  if (!eid) return { availability: [], events: [], overrides: [] };
   try {
     const res = await fetch(`api/availability/index.php?employee_id=${encodeURIComponent(eid)}&week_start=${encodeURIComponent(weekStart)}`, {
       headers: { 'Accept': 'application/json' },
@@ -8,15 +8,16 @@ export async function fetchAvailability(eid, weekStart) {
     const data = await res.json();
     if (!res.ok || data.ok === false) {
       console.error('fetchAvailability failed', data);
-      return { availability: [], overrides: [] };
+      return { availability: [], events: [], overrides: [] };
     }
     return {
       availability: Array.isArray(data.availability) ? data.availability : [],
+      events: Array.isArray(data.events) ? data.events : [],
       overrides: Array.isArray(data.overrides) ? data.overrides : []
     };
   } catch (err) {
     console.error('fetchAvailability failed', err);
-    return { availability: [], overrides: [] };
+    return { availability: [], events: [], overrides: [] };
   }
 }
 

@@ -70,9 +70,9 @@ try {
     }
     unset($a);
 
-    // Ensure Monday→Sunday order
+    // Ensure Monday→Sunday order for the raw availability list
     $order = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-    usort($avail, static function($a, $b) use ($order) {
+    usort($avail, static function ($a, $b) use ($order) {
         $ad = array_search($a['day_of_week'], $order, true);
         $bd = array_search($b['day_of_week'], $order, true);
         $ad = $ad === false ? 99 : $ad;
@@ -82,6 +82,40 @@ try {
         }
         return $ad <=> $bd;
     });
+
+    // Group by day for easier processing of events
+    $byDay = [];
+    foreach ($avail as $a) {
+        $day = $a['day_of_week'] ?? '';
+        $byDay[$day][] = $a;
+    }
+
+    // Build availability events for the requested week
+    $events = [];
+    foreach ($order as $idx => $day) {
+        $records = $byDay[$day] ?? [];
+        $d = $ws->modify("+{$idx} days");
+        $dayStr = $d->format('Y-m-d');
+        $applicable = array_filter($records, static function ($it) use ($dayStr) {
+            return empty($it['start_date']) || $it['start_date'] <= $dayStr;
+        });
+        if (!$applicable) continue;
+        $latest = '';
+        foreach ($applicable as $it) {
+            $sd = $it['start_date'] ?? '';
+            if ($sd > $latest) $latest = $sd;
+        }
+        foreach ($applicable as $it) {
+            if (($it['start_date'] ?? '') !== $latest) continue;
+            $stt = $it['start_time'] ?? '';
+            $edt = $it['end_time'] ?? '';
+            if (!$stt || !$edt) continue;
+            $start = "$dayStr" . 'T' . $stt;
+            $end = "$dayStr" . 'T' . $edt;
+            if ($start >= $end) continue;
+            $events[] = ['id' => (int)$it['id'], 'start' => $start, 'end' => $end];
+        }
+    }
 
     // Overrides within week.  Include day_of_week so the UI can highlight affected days
     $st2 = $pdo->prepare(
@@ -95,8 +129,8 @@ try {
     $st2->execute([':eid' => $eid, ':ws' => $ws->format('Y-m-d'), ':we' => $we]);
     $over = $st2->fetchAll(PDO::FETCH_ASSOC);
 
-    $response = ['ok' => true, 'availability' => $avail, 'overrides' => $over];
-    if (empty($avail)) {
+    $response = ['ok' => true, 'availability' => $avail, 'events' => $events, 'overrides' => $over];
+    if (empty($events)) {
         $response['message'] = 'no_records';
     }
     echo json_encode($response, JSON_UNESCAPED_UNICODE);
