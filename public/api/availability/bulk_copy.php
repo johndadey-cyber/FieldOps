@@ -37,26 +37,49 @@ if ($targets === []) {
     exit;
 }
 
+/**
+ * Determine if employee_availability.start_date exists.
+ */
+function has_start_date(PDO $pdo): bool {
+    static $has = null;
+    if ($has !== null) return $has;
+    try {
+        $row = $pdo->query("SHOW COLUMNS FROM employee_availability LIKE 'start_date'")
+            ->fetch(PDO::FETCH_ASSOC);
+        $has = $row !== false;
+    } catch (Throwable $e) {
+        $has = false;
+    }
+    return $has;
+}
+
 $pdo = null;
 try {
     $pdo = getPDO();
+    $hasStart = has_start_date($pdo);
     $pdo->beginTransaction();
-    $stSel = $pdo->prepare('SELECT day_of_week,start_time,end_time FROM employee_availability WHERE employee_id = :id');
+    $selSql = 'SELECT day_of_week,start_time,end_time' . ($hasStart ? ',start_date' : '') . ' FROM employee_availability WHERE employee_id = :id';
+    $stSel = $pdo->prepare($selSql);
     $stSel->execute([':id'=>$src]);
     $rows = $stSel->fetchAll(PDO::FETCH_ASSOC);
 
     $stDel = $pdo->prepare('DELETE FROM employee_availability WHERE employee_id = :eid');
-    $stIns = $pdo->prepare('INSERT INTO employee_availability (employee_id, day_of_week, start_time, end_time) VALUES (:eid,:dow,:st,:et)');
+    $insSql = 'INSERT INTO employee_availability (employee_id, day_of_week, start_time, end_time' . ($hasStart ? ', start_date' : '') . ') VALUES (:eid,:dow,:st,:et' . ($hasStart ? ',:sd' : '') . ')';
+    $stIns = $pdo->prepare($insSql);
 
     foreach ($targets as $eid) {
         $stDel->execute([':eid'=>$eid]);
         foreach ($rows as $r) {
-            $stIns->execute([
+            $params = [
                 ':eid'=>$eid,
                 ':dow'=>$r['day_of_week'],
                 ':st'=>$r['start_time'],
                 ':et'=>$r['end_time']
-            ]);
+            ];
+            if ($hasStart) {
+                $params[':sd'] = $r['start_date'];
+            }
+            $stIns->execute($params);
         }
     }
     $pdo->commit();
