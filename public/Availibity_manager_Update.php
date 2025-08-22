@@ -48,6 +48,7 @@ if ($employeeId > 0) {
          FROM jobs j
          JOIN job_employee_assignment a ON a.job_id = j.id
          WHERE a.employee_id = :eid
+           AND j.deleted_at IS NULL
            AND j.scheduled_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
          ORDER BY j.scheduled_date, j.scheduled_time"
     );

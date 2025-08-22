@@ -183,7 +183,7 @@ try {
   if ($id > 0) {
     $sql = "UPDATE jobs SET customer_id=:cid, description=:desc, status=:status,"
          . " scheduled_date=:sdate, scheduled_time=:stime, duration_minutes=:dur"
-         . " WHERE id=:id";
+         . " WHERE id=:id AND deleted_at IS NULL";
     $st = $pdo->prepare($sql);
     $st->execute([
       ':cid'=>$customerId, ':desc'=>$description, ':status'=>$canonical,

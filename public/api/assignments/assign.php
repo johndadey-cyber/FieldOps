@@ -77,7 +77,7 @@ try {
     // Load job window
     $job = null;
     {
-        $st = $pdo->prepare("SELECT id, description, scheduled_date, scheduled_time, duration_minutes FROM jobs WHERE id = :id");
+        $st = $pdo->prepare("SELECT id, description, scheduled_date, scheduled_time, duration_minutes FROM jobs WHERE id = :id AND deleted_at IS NULL");
         $st->execute([':id' => $jobId]);
         $job = $st->fetch(PDO::FETCH_ASSOC);
         if (!$job) throw new RuntimeException("Job not found: $jobId");
@@ -152,7 +152,8 @@ try {
         UNION
         SELECT job_id FROM job_employee_assignment WHERE employee_id = :eid2
       ) x ON x.job_id = j2.id
-      WHERE j2.scheduled_date = :date
+      WHERE j2.deleted_at IS NULL
+        AND j2.scheduled_date = :date
         AND j2.id <> :jobId
     ";
         $stc = $pdo->prepare($confQ);
@@ -200,7 +201,7 @@ try {
 $upd = $pdo->prepare("
     UPDATE jobs j
     SET j.status = 'assigned'
-    WHERE j.id = :jobId
+    WHERE j.id = :jobId AND j.deleted_at IS NULL
       AND (
         EXISTS (SELECT 1 FROM job_employee je WHERE je.job_id = j.id)
         OR EXISTS (SELECT 1 FROM job_employee_assignment jea WHERE jea.job_id = j.id)

@@ -44,7 +44,7 @@ try {
     $n3 = $pdo->exec("
         DELETE a
         FROM job_employee_assignment a
-        LEFT JOIN jobs j ON j.id = a.job_id
+        LEFT JOIN jobs j ON j.id = a.job_id AND j.deleted_at IS NULL
         WHERE j.id IS NULL
     ");
     out("[OK] job_employee_assignment deleted (no job): " . (int)$n3);

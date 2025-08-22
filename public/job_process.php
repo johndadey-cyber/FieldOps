@@ -66,7 +66,7 @@ try {
             UPDATE jobs
             SET customer_id = :cid, description = :d, scheduled_date = :sd,
                 scheduled_time = :st, duration_minutes = :dur, status = :stt
-            WHERE id = :id
+            WHERE id = :id AND deleted_at IS NULL
         ");
         $upd->execute([
             ':cid'=>$customer_id, ':d'=>$description, ':sd'=>$scheduled_date, ':st'=>$scheduled_time,

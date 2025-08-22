@@ -36,6 +36,7 @@ try {
          SET j.status='scheduled', j.status_updated_at=NOW()
          WHERE j.id=:j
            AND j.status='assigned'
+           AND j.deleted_at IS NULL
            AND NOT EXISTS (SELECT 1 FROM job_employee_assignment a WHERE a.job_id=j.id)"
     )->execute([':j'=>$jobId]);
 

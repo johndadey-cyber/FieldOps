@@ -42,7 +42,8 @@ final class AssignmentEngineTest extends TestCase
             scheduled_date TEXT,
             scheduled_time TEXT,
             duration_minutes INTEGER,
-            status TEXT
+            status TEXT,
+            deleted_at TEXT NULL
         )');
         $pdo->exec('CREATE TABLE skills (
             id INTEGER PRIMARY KEY,

@@ -27,7 +27,7 @@ $j = $pdo->prepare("
          c.first_name, c.last_name, c.latitude AS cust_lat, c.longitude AS cust_lon
   FROM jobs j
   JOIN customers c ON c.id = j.customer_id
-  WHERE j.id = :id
+  WHERE j.id = :id AND j.deleted_at IS NULL
 ");
 $j->execute([':id' => $jobId]);
 $job = $j->fetch(PDO::FETCH_ASSOC);

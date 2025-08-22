@@ -37,7 +37,7 @@ try {
     if ($onlyCompleted) {
         $showPast = true; // Automatically show past jobs when only completed is requested
     }
-    $where = [];
+    $where = ['j.deleted_at IS NULL'];
     $args = [];
     if (!$onlyCompleted) {
         if (!$showPast && $start < $today) {
@@ -113,6 +113,7 @@ try {
                             FROM job_employee_assignment a
                             JOIN jobs j2 ON j2.id = a.job_id
                             WHERE a.employee_id = :eid AND a.job_id <> :job_id
+                              AND j2.deleted_at IS NULL
                               AND j2.scheduled_date = :d1
                               AND j2.scheduled_time IS NOT NULL
                               AND j2.duration_minutes IS NOT NULL

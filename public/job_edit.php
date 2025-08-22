@@ -20,7 +20,7 @@ $st = $pdo->prepare("
          c.first_name, c.last_name
   FROM jobs j
   LEFT JOIN customers c ON c.id=j.customer_id
-  WHERE j.id=:id
+  WHERE j.id=:id AND j.deleted_at IS NULL
 ");
 $st->execute([':id'=>$id]);
 $job = $st->fetch(PDO::FETCH_ASSOC);
