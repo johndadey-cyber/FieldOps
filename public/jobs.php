@@ -90,7 +90,11 @@ require __DIR__ . '/../partials/header.php';
 
 <?php include __DIR__ . '/../partials/assignments_modal.php'; ?>
 <?php
+$csrfEsc = htmlspecialchars($CSRF, ENT_QUOTES, 'UTF-8');
 $pageScripts = <<<HTML
+<script>
+  window.CSRF_TOKEN = "{$csrfEsc}";
+</script>
 <script src="/js/assignments.js?v=20250812"></script>
 <script src="/js/jobs.js?v=20250812"></script>
 HTML;
