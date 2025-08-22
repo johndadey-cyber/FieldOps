@@ -101,7 +101,7 @@ $sqlJob = "
   $jobSelect, $custSelectLat, $custSelectLon
   FROM jobs j
   $custJoin
-  WHERE j.id = :jobId
+  WHERE j.id = :jobId AND j.deleted_at IS NULL
   LIMIT 1";
 $st = $pdo->prepare($sqlJob);
 $st->execute([':jobId'=>$jobId]);
@@ -245,7 +245,7 @@ if ($schema['job_employee_assignment'] || $schema['job_employee']) {
     $stA = $pdo->prepare("
       SELECT jea.employee_id, jea.job_id, j.scheduled_time, j.duration_minutes
       FROM job_employee_assignment jea
-      JOIN jobs j ON j.id = jea.job_id
+      JOIN jobs j ON j.id = jea.job_id AND j.deleted_at IS NULL
       WHERE j.scheduled_date = :d
     ");
     $stA->execute([':d'=>$jobDate]);
@@ -255,7 +255,7 @@ if ($schema['job_employee_assignment'] || $schema['job_employee']) {
     $stB = $pdo->prepare("
       SELECT je.employee_id, je.job_id, j.scheduled_time, j.duration_minutes
       FROM job_employee je
-      JOIN jobs j ON j.id = je.job_id
+      JOIN jobs j ON j.id = je.job_id AND j.deleted_at IS NULL
       WHERE j.scheduled_date = :d
     ");
     $stB->execute([':d'=>$jobDate]);

@@ -105,7 +105,7 @@ if (override_conflict($pdo, $eid, $date, $startUtc, $endUtc, $id > 0 ? $id : nul
 
 // Simple conflict warning: check for existing assignments on that date
 $warning = null;
-$stJob = $pdo->prepare("SELECT j.id, j.scheduled_time, j.duration_minutes FROM job_employee_assignment a JOIN jobs j ON j.id=a.job_id WHERE a.employee_id=:eid AND j.scheduled_date=:d");
+$stJob = $pdo->prepare("SELECT j.id, j.scheduled_time, j.duration_minutes FROM job_employee_assignment a JOIN jobs j ON j.id=a.job_id WHERE a.employee_id=:eid AND j.scheduled_date=:d AND j.deleted_at IS NULL");
 $stJob->execute([':eid'=>$eid, ':d'=>$date]);
 $jobs = $stJob->fetchAll(PDO::FETCH_ASSOC);
 if ($jobs) {

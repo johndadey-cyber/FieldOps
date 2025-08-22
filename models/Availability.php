@@ -243,7 +243,7 @@ final class Availability
 
         $placeholders2 = implode(',', array_fill(0, count($ids), '?'));
         $sql2 = "SELECT a.employee_id, DATE_FORMAT(j.scheduled_time,'%H:%i') AS start_time, j.duration_minutes "
-              . "FROM job_employee_assignment a JOIN jobs j ON j.id = a.job_id "
+              . "FROM job_employee_assignment a JOIN jobs j ON j.id = a.job_id AND j.deleted_at IS NULL "
               . "WHERE a.employee_id IN ($placeholders2) AND j.scheduled_date = ?";
 
         $st2 = $pdo->prepare($sql2);

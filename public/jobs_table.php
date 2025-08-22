@@ -38,7 +38,7 @@ $pdo = getPDO();
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 // Build WHERE
-$where = [];
+$where = ['j.deleted_at IS NULL'];
 $args  = [];
 
 if ($applyDateFilter) {

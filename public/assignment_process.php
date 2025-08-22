@@ -24,7 +24,7 @@ if (in_array($action, ['assign','unassign','list'], true) && (!isset($_SESSION['
 if (!function_exists('updateJobStatus')) {
   function updateJobStatus(PDO $pdo, int $jobId): string {
     // lock row
-    $s = $pdo->prepare("SELECT status FROM jobs WHERE id=? FOR UPDATE");
+    $s = $pdo->prepare("SELECT status FROM jobs WHERE id=? AND deleted_at IS NULL FOR UPDATE");
     $s->execute([$jobId]);
     $cur = $s->fetchColumn();
     if ($cur === false) return 'unknown';
@@ -40,7 +40,7 @@ if (!function_exists('updateJobStatus')) {
     }
 
     if ($target !== $cur) {
-      $u = $pdo->prepare("UPDATE jobs SET status=?, updated_at=NOW() WHERE id=?");
+      $u = $pdo->prepare("UPDATE jobs SET status=?, updated_at=NOW() WHERE id=? AND deleted_at IS NULL");
       $u->execute([$target, $jobId]);
     }
     return $target;
@@ -68,7 +68,7 @@ try {
         throw new RuntimeException('Invalid job/employee');
       }
 
-      $check = $pdo->prepare('SELECT 1 FROM jobs WHERE id = ?');
+      $check = $pdo->prepare('SELECT 1 FROM jobs WHERE id = ? AND deleted_at IS NULL');
       $check->execute([$jobId]);
       if (!$check->fetchColumn()) {
         throw new RuntimeException('Job not found', 404);

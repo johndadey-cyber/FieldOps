@@ -51,7 +51,7 @@ try {
     }
 
     if ($hasTechColumn) {
-        $st = $pdo->prepare('SELECT technician_id FROM jobs WHERE id = :id');
+        $st = $pdo->prepare('SELECT technician_id FROM jobs WHERE id = :id AND deleted_at IS NULL');
         if ($st === false) {
             throw new RuntimeException('Failed to prepare statement');
         }

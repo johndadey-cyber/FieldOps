@@ -26,7 +26,8 @@ final class JobModelTest extends TestCase
             completed_at TEXT NULL,
             location_lat REAL NULL,
             location_lng REAL NULL,
-            updated_at TEXT NULL
+            updated_at TEXT NULL,
+            deleted_at TEXT NULL
         )');
         $pdo->exec('CREATE TABLE job_notes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -79,7 +80,8 @@ final class JobModelTest extends TestCase
         $pdo->exec("INSERT INTO jobs (status) VALUES ('draft')");
         $this->assertSame(1, (int)$pdo->query('SELECT COUNT(*) FROM jobs')->fetchColumn());
         $this->assertSame(1, Job::delete($pdo, 1));
-        $this->assertSame(0, (int)$pdo->query('SELECT COUNT(*) FROM jobs')->fetchColumn());
+        $this->assertSame(0, (int)$pdo->query('SELECT COUNT(*) FROM jobs WHERE deleted_at IS NULL')->fetchColumn());
+        $this->assertSame(1, (int)$pdo->query('SELECT COUNT(*) FROM jobs WHERE deleted_at IS NOT NULL')->fetchColumn());
     }
 
     public function testStartUpdatesOnlyWhenAssigned(): void

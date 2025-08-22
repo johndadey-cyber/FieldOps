@@ -231,8 +231,8 @@ if (tableExists($pdo,'job_job_type') &&
 // Data health
 $checks = [
   'employees→people' => "SELECT COUNT(*) FROM employees e LEFT JOIN people p ON p.id=e.person_id WHERE p.id IS NULL",
-  'jobs→customers'   => "SELECT COUNT(*) FROM jobs j LEFT JOIN customers c ON c.id=j.customer_id WHERE c.id IS NULL",
-  'jea→jobs'         => "SELECT COUNT(*) FROM job_employee_assignment a LEFT JOIN jobs j ON j.id=a.job_id WHERE j.id IS NULL",
+  'jobs→customers'   => "SELECT COUNT(*) FROM jobs j LEFT JOIN customers c ON c.id=j.customer_id WHERE c.id IS NULL AND j.deleted_at IS NULL",
+  'jea→jobs'         => "SELECT COUNT(*) FROM job_employee_assignment a LEFT JOIN jobs j ON j.id=a.job_id AND j.deleted_at IS NULL WHERE j.id IS NULL",
   'jea→employees'    => "SELECT COUNT(*) FROM job_employee_assignment a LEFT JOIN employees e ON e.id=a.employee_id WHERE e.id IS NULL",
 ];
 foreach ($checks as $name=>$sql) {

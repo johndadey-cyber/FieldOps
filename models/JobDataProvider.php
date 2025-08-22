@@ -20,6 +20,7 @@ class JobDataProvider
                 CONCAT_WS(', ', c.address_line1, c.city) AS short_address
             FROM jobs j
             JOIN customers c ON c.id = j.customer_id
+            WHERE j.deleted_at IS NULL
             ORDER BY j.scheduled_date ASC, j.scheduled_time ASC, j.id ASC
         ";
         $stmt = $pdo->query($sql);
@@ -43,7 +44,7 @@ class JobDataProvider
         ?string $status = null,
         ?string $search = null
     ): array {
-        $where = [];
+        $where = ['j.deleted_at IS NULL'];
         $params = [];
 
         if ($days !== null) {

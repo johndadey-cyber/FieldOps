@@ -32,7 +32,8 @@ LEFT JOIN job_employee_assignment jea ON jea.job_id = j.id
 LEFT JOIN employees e ON e.id = jea.employee_id
 LEFT JOIN people p ON p.id = e.person_id
 WHERE
-  TIMESTAMP(j.scheduled_date, j.scheduled_time) BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL :days DAY)
+  j.deleted_at IS NULL
+  AND TIMESTAMP(j.scheduled_date, j.scheduled_time) BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL :days DAY)
 ";
 $params = [':days' => $days];
 

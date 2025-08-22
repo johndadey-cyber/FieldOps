@@ -19,7 +19,7 @@ class AssignmentEngine
                   , c.latitude AS cust_lat, c.longitude AS cust_lng
                 FROM jobs j
                 JOIN customers c ON c.id = j.customer_id
-                WHERE j.id = :id";
+                WHERE j.id = :id AND j.deleted_at IS NULL";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([':id' => $jobId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -123,6 +123,7 @@ class AssignmentEngine
                    JOIN jobs j ON j.id = a.job_id
                   WHERE a.employee_id = :eid
                     AND j.scheduled_date = :d
+                    AND j.deleted_at IS NULL
                     AND j.scheduled_time IS NOT NULL
                     AND j.duration_minutes IS NOT NULL
                     AND (TIMESTAMP(:d, :t) < TIMESTAMP(j.scheduled_date, ADDTIME(j.scheduled_time, SEC_TO_TIME(j.duration_minutes*60))))

@@ -60,23 +60,13 @@ try {
 
   $pdo->beginTransaction();
 
-  // Try to delete the job. If your FK cascade is set, assignments will be removed automatically.
-  // If not, we defensively clear assignments first to avoid FK violations.
-  try {
-    $del = $pdo->prepare('DELETE FROM jobs WHERE id = :id');
-    $del->execute([':id'=>$id]);
-    $changed = $del->rowCount();
-  } catch (Throwable $e) {
-    // Fallback: delete assignments then the job
-    $pdo->prepare('DELETE FROM job_employee_assignment WHERE job_id = :id')->execute([':id'=>$id]);
-    $del = $pdo->prepare('DELETE FROM jobs WHERE id = :id');
-    $del->execute([':id'=>$id]);
-    $changed = $del->rowCount();
-  }
+  $upd = $pdo->prepare('UPDATE jobs SET deleted_at = NOW() WHERE id = :id');
+  $upd->execute([':id'=>$id]);
+  $changed = $upd->rowCount();
 
   $pdo->commit();
 
-  json_out(['ok'=>true, 'changed'=>$changed, 'id'=>$id], 200);
+  json_out(['ok'=>true, 'action'=>'deleted', 'changed'=>$changed, 'id'=>$id], 200);
 
 } catch (Throwable $e) {
   if (isset($pdo) && $pdo->inTransaction()) { $pdo->rollBack(); }

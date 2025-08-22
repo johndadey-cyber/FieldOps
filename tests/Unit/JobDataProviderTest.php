@@ -35,7 +35,8 @@ final class JobDataProviderTest extends TestCase
             scheduled_time TEXT,
             duration_minutes INTEGER,
             status TEXT,
-            customer_id INTEGER
+            customer_id INTEGER,
+            deleted_at TEXT NULL
         )');
 
         $today = new DateTimeImmutable('now');

@@ -31,7 +31,7 @@ final class Job
                 c.country
             FROM jobs j
             JOIN customers c ON c.id = j.customer_id
-            WHERE j.id = :id
+            WHERE j.id = :id AND j.deleted_at IS NULL
             LIMIT 1"
         );
         if ($st === false) {
@@ -88,7 +88,7 @@ final class Job
     {
         $driver = (string)$pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
         $limitClause = in_array($driver, ['mysql', 'mariadb'], true) ? ' LIMIT 1' : '';
-        $st = $pdo->prepare('DELETE FROM jobs WHERE id = :id' . $limitClause);
+        $st = $pdo->prepare('UPDATE jobs SET deleted_at = NOW() WHERE id = :id' . $limitClause);
         if ($st === false) {
             return 0;
         }
@@ -166,7 +166,7 @@ final class Job
         $st = $pdo->prepare(
             'UPDATE jobs
              SET status = "in_progress", started_at = NOW(), location_lat = :lat, location_lng = :lng, updated_at = NOW()
-             WHERE id = :id AND status = "assigned" AND started_at IS NULL'
+             WHERE id = :id AND status = "assigned" AND started_at IS NULL AND deleted_at IS NULL'
         );
         if ($st === false) {
             return false;
@@ -197,7 +197,7 @@ final class Job
         $st = $pdo->prepare(
             'UPDATE jobs
              SET status = "completed", completed_at = NOW(), location_lat = :lat, location_lng = :lng, updated_at = NOW()
-             WHERE id = :id AND status = "in_progress" AND completed_at IS NULL'
+             WHERE id = :id AND status = "in_progress" AND completed_at IS NULL AND deleted_at IS NULL'
         );
         if ($st === false) {
             return false;

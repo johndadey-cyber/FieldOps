@@ -465,6 +465,7 @@ ensureColumn($pdo, 'jobs', 'completed_at', 'DATETIME NULL');
 ensureColumn($pdo, 'jobs', 'location_lat', 'DECIMAL(10,6) NULL');
 ensureColumn($pdo, 'jobs', 'location_lng', 'DECIMAL(10,6) NULL');
 ensureColumn($pdo, 'jobs', 'technician_id', 'INT NULL');
+ensureColumn($pdo, 'jobs', 'deleted_at', 'DATETIME NULL');
 
 out(PHP_EOL . "== Ensuring UNIQUE indexes ==");
 ensureUnique($pdo, 'employee_availability', ['employee_id','day_of_week','start_time','end_time'], 'uq_availability_window');
@@ -475,7 +476,7 @@ ensureUnique($pdo, 'job_job_type', ['job_id','job_type_id'], 'uq_job_job_type');
 
 out(PHP_EOL . "== Cleaning obvious orphan rows (dev only) ==");
 try {
-    $n = $pdo->exec("DELETE a FROM job_employee_assignment a LEFT JOIN jobs j ON j.id=a.job_id WHERE j.id IS NULL");
+    $n = $pdo->exec("DELETE a FROM job_employee_assignment a LEFT JOIN jobs j ON j.id=a.job_id AND j.deleted_at IS NULL WHERE j.id IS NULL");
     out("[OK] job_employee_assignment orphans removed: " . (int)$n);
 } catch (Throwable $e) {
     out("[warn] could not clean jea orphans: " . $e->Message());
