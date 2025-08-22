@@ -82,6 +82,13 @@ $hireDate       = trim((string)($_POST['hire_date']         ?? ''));
 $status         = trim((string)($_POST['status']            ?? ''));
 $roleId         = (string)($_POST['role_id'] ?? '') !== '' ? (int)$_POST['role_id'] : null;
 $skills         = $_POST['skills'] ?? [];
+$return         = '';
+if (isset($_POST['return'])) {
+    $return = filter_var((string)$_POST['return'], FILTER_SANITIZE_URL);
+    if ($return !== '' && (parse_url($return, PHP_URL_SCHEME) !== null || parse_url($return, PHP_URL_HOST) !== null)) {
+        $return = '';
+    }
+}
 
 $log('Processing id=' . $id);
 
@@ -235,7 +242,7 @@ try {
             throw new RuntimeException('Commit failed');
         }
         $log('Update committed for id=' . $id);
-        wants_json() ? json_out(['ok'=>true,'id'=>$id]) : redirect_to('employees.php');
+        wants_json() ? json_out(['ok'=>true,'id'=>$id]) : redirect_to($return !== '' ? $return : 'employees.php');
     } else {
         $log('Inserting new employee');
         $ins = $pdo->prepare('INSERT INTO people (first_name,last_name,email,phone,address_line1,address_line2,city,state,postal_code,google_place_id,latitude,longitude) VALUES (:fn,:ln,:em,:ph,:a1,:a2,:city,:st,:pc,:pid,:lat,:lon)');
@@ -269,7 +276,7 @@ try {
             throw new RuntimeException('Commit failed');
         }
         $log('Insert committed for id=' . $newId);
-        wants_json() ? json_out(['ok'=>true,'id'=>$newId]) : redirect_to('employees.php');
+        wants_json() ? json_out(['ok'=>true,'id'=>$newId]) : redirect_to($return !== '' ? $return : 'employees.php');
     }
 } catch (Throwable $e) {
     $pdo->rollBack();

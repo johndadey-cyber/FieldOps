@@ -26,6 +26,14 @@ $skills = Skill::all($pdo);
 /** @var list<array{id:int|string,name:string}> $roles */
 $roles = Role::all($pdo);
 
+$returnUrl = '';
+if (isset($_GET['return'])) {
+    $returnUrl = filter_var((string)$_GET['return'], FILTER_SANITIZE_URL);
+    if ($returnUrl !== '' && (parse_url($returnUrl, PHP_URL_SCHEME) !== null || parse_url($returnUrl, PHP_URL_HOST) !== null)) {
+        $returnUrl = '';
+    }
+}
+
 /** HTML escape */
 function s(?string $v): string { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 
@@ -62,8 +70,9 @@ function stickyArr(string $name, array $default = []): array {
       <p>Employee not found.</p>
     <?php else: ?>
     <div id="form-errors" class="text-danger mb-3"></div>
-    <form id="employeeForm" method="post" action="employee_save.php" autocomplete="off" class="needs-validation" novalidate data-mode="<?= $isEdit ? 'edit' : 'add' ?>">
+    <form id="employeeForm" method="post" action="employee_save.php" autocomplete="off" class="needs-validation" novalidate data-mode="<?= $isEdit ? 'edit' : 'add' ?>" data-return="<?= s($returnUrl) ?>">
       <input type="hidden" name="csrf_token" value="<?= s($__csrf) ?>">
+      <input type="hidden" name="return" value="<?= s($returnUrl) ?>">
       <?php if ($isEdit): ?>
         <input type="hidden" name="id" value="<?= s((string)($employee['id'] ?? '')) ?>">
       <?php endif; ?>
@@ -181,7 +190,8 @@ function stickyArr(string $name, array $default = []): array {
 
       <div class="mt-3">
         <button type="submit" class="btn btn-primary"><?= $isEdit ? 'Save Changes' : 'Save Employee' ?></button>
-        <button type="button" class="btn btn-secondary" onclick="window.location.href='employees.php'">Cancel</button>
+        <?php $cancel = $returnUrl !== '' ? $returnUrl : 'employees.php'; ?>
+        <button type="button" class="btn btn-secondary" onclick="window.location.href='<?= s($cancel) ?>'">Cancel</button>
       </div>
     </form>
     <?php endif; ?>
