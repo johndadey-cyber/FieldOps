@@ -97,11 +97,32 @@ try {
         5 => 'Thursday', 6 => 'Friday', 7 => 'Saturday'
     ];
 
+    // Required skills for this job (id + name)
+    require_once dirname(__DIR__, 3) . '/models/Job.php';
+    $jobSkills = Job::getSkillsForJob($pdo, $jobId);
+    $requiredSkillIds = array_map(static fn(array $r): int => (int)$r['id'], $jobSkills);
+
+    // Preload employee names
+    $namesById = [];
+    if (!empty($employeeIds)) {
+        $placeholders = implode(',', array_fill(0, count($employeeIds), '?'));
+        $stNames = $pdo->prepare("SELECT e.id, p.first_name, p.last_name FROM employees e LEFT JOIN people p ON p.id = e.person_id WHERE e.id IN ($placeholders)");
+        $stNames->execute($employeeIds);
+        foreach ($stNames->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $namesById[(int)$r['id']] = [
+                'firstName' => (string)($r['first_name'] ?? ''),
+                'lastName'  => (string)($r['last_name'] ?? ''),
+            ];
+        }
+    }
+
     // --- Light validation: availability full coverage + (optional) conflict overlap ---
     // NOTE: This mirrors the UI’s minimum need: return 409 so the confirm dialog can appear.
-    $issues = []; // [ ['employeeId'=>X, 'issues'=>['unavailable_for_job_window','time_conflict',...]] ]
+    $issues = []; // [ ['employeeId'=>X, 'firstName'=>..., 'lastName'=>..., 'issues'=>[...]] ]
 
     foreach ($employeeIds as $eid) {
+        $first = $namesById[$eid]['firstName'] ?? '';
+        $last  = $namesById[$eid]['lastName']  ?? '';
         $empIssues = [];
 
         // FULL availability: employee_availability must have a row on that DOW that fully covers the job start/end.
@@ -135,13 +156,13 @@ try {
         ]);
         $hasFull = (bool)$st->fetchColumn();
         if (!$hasFull) {
-            $empIssues[] = 'unavailable_for_job_window';
+            $empIssues['unavailable_for_job_window'] = true;
         }
 
         // OPTIONAL: basic time conflict against other assigned jobs that day (same tables we insert into)
         // Overlap: existing.start < newEnd && newStart < existing.end
         // We only have start_time/duration on jobs table, so conflict if another job for same employee overlaps window.
-        $conflict = false;
+        $conflict = null;
         // choose a union of the two assignment tables we might use; duplicates
         // placeholders need unique names when emulation is disabled
         $confQ = "
@@ -163,12 +184,42 @@ try {
         while ($row = $stc->fetch(PDO::FETCH_ASSOC)) {
             $s2 = strtotime($date . ' ' . ($row['st'] ?? '00:00:00'));
             $e2 = $s2 + (int)$row['dur'] * 60;
-            if ($s2 < $newEnd && $newStart < $e2) { $conflict = true; break; }
+            if ($s2 < $newEnd && $newStart < $e2) {
+                $conflict = [
+                    'jobId' => (int)$row['id'],
+                    'start' => date('H:i:s', $s2),
+                    'end'   => date('H:i:s', $e2),
+                ];
+                break;
+            }
         }
-        if ($conflict) $empIssues[] = 'time_conflict';
+        if ($conflict) {
+            $empIssues['time_conflict'] = $conflict;
+        }
+
+        // Required skills: employee must have all job-required skills
+        if (!empty($requiredSkillIds)) {
+            $qs = $pdo->prepare("SELECT skill_id FROM employee_skills WHERE employee_id = :eid AND skill_id IN (" . implode(',', $requiredSkillIds) . ")");
+            $qs->execute([':eid' => $eid]);
+            $have = array_map('intval', $qs->fetchAll(PDO::FETCH_COLUMN));
+            $missing = [];
+            foreach ($jobSkills as $sk) {
+                if (!in_array($sk['id'], $have, true)) {
+                    $missing[] = $sk['name'];
+                }
+            }
+            if (!empty($missing)) {
+                $empIssues['missing_required_skills'] = $missing;
+            }
+        }
 
         if (!empty($empIssues)) {
-            $issues[] = ['employeeId' => $eid, 'issues' => $empIssues];
+            $issues[] = [
+                'employeeId' => $eid,
+                'firstName'  => $first,
+                'lastName'   => $last,
+                'issues'     => $empIssues,
+            ];
         }
     }
 
