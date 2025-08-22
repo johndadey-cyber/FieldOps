@@ -26,6 +26,7 @@
       var jobTypeSel2 = $('#job_type_ids');
       if (jobTypeSel2.length) {
         jobTypeSel2.select2({ width: '100%' });
+        jobTypeSel2.on('change', loadChecklistFromSelection);
       }
     }
 
@@ -104,6 +105,23 @@
       });
     }
 
+    function loadChecklistFromSelection(){
+      checklistItems = [];
+      Array.from(jobTypeSelect.selectedOptions || []).forEach(function(o){
+        var tpl = o.getAttribute('data-template');
+        if(tpl){
+          try{
+            var arr = JSON.parse(tpl);
+            if(Array.isArray(arr)){
+              checklistItems = checklistItems.concat(arr);
+            }
+          }catch(e){/* ignore parse errors */}
+        }
+      });
+      renderChecklist(checklistItems);
+      updateHiddenInputs();
+    }
+
     if(addBtn){ addBtn.addEventListener('click', function(){ addChecklistInput(''); }); }
     if(checklistLink && checklistModal){
       checklistLink.addEventListener('click', function(e){
@@ -121,22 +139,7 @@
       });
     }
     if(jobTypeSelect){
-      jobTypeSelect.addEventListener('change', function(){
-        checklistItems = [];
-        Array.from(jobTypeSelect.selectedOptions || []).forEach(function(o){
-          var tpl = o.getAttribute('data-template');
-          if(tpl){
-            try{
-              var arr = JSON.parse(tpl);
-              if(Array.isArray(arr)){
-                checklistItems = checklistItems.concat(arr);
-              }
-            }catch(e){/* ignore parse errors */}
-          }
-        });
-        renderChecklist(checklistItems);
-        updateHiddenInputs();
-      });
+      jobTypeSelect.addEventListener('change', loadChecklistFromSelection);
     }
     renderChecklist(checklistItems);
     updateHiddenInputs();
