@@ -444,7 +444,7 @@ if (tableExists($pdo, 'employee_availability_overrides')) {
 }
 
 out("== Ensuring PRIMARY KEYS ==");
-foreach (['people','employees','job_types','employee_availability_overrides','availability_audit','job_checklist_items','job_deletion_log'] as $t) {
+foreach (['people','employees','job_types','employee_availability_overrides','availability_audit','job_checklist_items','job_deletion_log','job_employee_assignment'] as $t) {
     ensureAutoPk($pdo, $t);
 }
 
