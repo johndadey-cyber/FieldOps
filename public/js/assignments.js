@@ -14,6 +14,17 @@
   // If the API doesn't provide start_local/end_local, render using this org timezone:
   const ORG_TZ = 'America/Chicago'; // change if your business operates in a different TZ
 
+  // Map backend issue codes to human friendly labels
+  const ISSUE_MESSAGES = {
+    time_conflict: 'already assigned during this time',
+    unavailable_for_job_window: 'not available during job window',
+    partial_availability: 'partial availability',
+    missing_required_skills: 'missing required skills',
+    inactive_employee: 'inactive employee',
+    wrong_role: 'wrong role',
+    not_available: 'not available',
+  };
+
   // Elements
   const $list      = document.getElementById('candidate-list');
   const $bannerErr = document.getElementById('banner-error');
@@ -318,6 +329,12 @@
     const missingLine = !e.qualified && missing.length
       ? `<div class="small text-danger">Missing: ${escapeHtml(missing.join(', '))}</div>` : '';
 
+    // other issue flags from backend
+    const issueCodes = (e.flags || []).filter(f => f !== 'missing_required_skills');
+    const issuesLine = issueCodes.length
+      ? `<div class="small text-danger">Issues: ${escapeHtml(issueCodes.map(code => ISSUE_MESSAGES[code] || code.replace(/_/g, ' ')).join(', '))}</div>`
+      : '';
+
     // distance/load with tooltip
     const dl = `
       <span class="text-muted"> • </span>
@@ -335,7 +352,9 @@
     const hasRisk = (!e.qualified) || av.status !== 'full' || conflicts.length > 0;
     const disabled = (!ALLOW_OVERRIDE && hasRisk);
     const titleWhy = disabled
-      ? (!e.qualified ? 'Not qualified' : (av.status !== 'full' ? 'Unavailable' : 'Conflict'))
+      ? (issueCodes[0]
+          ? (ISSUE_MESSAGES[issueCodes[0]] || issueCodes[0].replace(/_/g, ' '))
+          : (!e.qualified ? 'Not qualified' : (av.status !== 'full' ? 'Unavailable' : 'Conflict')))
       : '';
 
     li.innerHTML = `
@@ -354,6 +373,7 @@
           </div>
           <div class="small">Skills: ${skillsHtml}</div>
           ${missingLine}
+          ${issuesLine}
           <div class="small">Availability: ${avLabel}</div>
           ${conflictLine}
         </div>
@@ -430,14 +450,6 @@
 
       if (res.status === 409 && !force && json) {
         // Build detailed per-employee issue list and show confirm modal
-        const issueMap = {
-          time_conflict: 'time conflict',
-          partial_availability: 'partial availability',
-          unavailable_for_job_window: 'unavailable for job window',
-          missing_required_skills: 'missing required skills',
-          inactive_employee: 'inactive',
-          wrong_role: 'wrong role',
-        };
         lastIssueDetails = Array.isArray(json.details) ? json.details : [];
 
         const nameById = new Map(
@@ -446,8 +458,9 @@
 
         const items = (json.details || []).map(d => {
           const name = nameById.get(d.employeeId) || `ID ${d.employeeId}`;
-          const issues = (d.issues || [])
-            .map(code => issueMap[code] || code.replace(/_/g, ' '))
+          const issueCodes = Array.isArray(d.issues) ? d.issues : Object.keys(d.issues || {});
+          const issues = issueCodes
+            .map(code => ISSUE_MESSAGES[code] || code.replace(/_/g, ' '))
             .map(escapeHtml)
             .join(', ');
           return `<li>${escapeHtml(name)}: ${issues}</li>`;
