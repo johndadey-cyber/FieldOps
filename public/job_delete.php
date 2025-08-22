@@ -60,6 +60,11 @@ try {
 
   $pdo->beginTransaction();
 
+  $uid = $_SESSION['user']['id'] ?? null;
+  $reason = (string)($_POST['reason'] ?? $_GET['reason'] ?? '');
+  $log = $pdo->prepare('INSERT INTO job_deletion_log (job_id, user_id, reason) VALUES (:jid,:uid,:reason)');
+  $log->execute([':jid'=>$id, ':uid'=>$uid, ':reason'=>$reason]);
+
   $upd = $pdo->prepare('UPDATE jobs SET deleted_at = NOW() WHERE id = :id');
   $upd->execute([':id'=>$id]);
   $changed = $upd->rowCount();

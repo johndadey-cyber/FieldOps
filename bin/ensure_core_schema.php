@@ -387,6 +387,21 @@ if (!tableExists($pdo, 'job_checklist_items')) {
     out('[OK] job_checklist_items created');
 }
 
+// Ensure job_deletion_log table
+if (!tableExists($pdo, 'job_deletion_log')) {
+    out('[..] Creating table job_deletion_log ...');
+    $pdo->exec(
+        "CREATE TABLE `job_deletion_log` (
+            `id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            `job_id` INT NOT NULL,
+            `user_id` INT NULL,
+            `reason` VARCHAR(255) NULL,
+            `deleted_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+    );
+    out('[OK] job_deletion_log created');
+}
+
 // Drop deprecated job_jobtype table if present
 if (tableExists($pdo, 'job_jobtype')) {
     out('[..] Dropping table job_jobtype ...');
@@ -416,7 +431,7 @@ if (tableExists($pdo, 'employee_availability_overrides')) {
 }
 
 out("== Ensuring PRIMARY KEYS ==");
-foreach (['people','employees','job_types','employee_availability_overrides','availability_audit','job_checklist_items'] as $t) {
+foreach (['people','employees','job_types','employee_availability_overrides','availability_audit','job_checklist_items','job_deletion_log'] as $t) {
     ensureAutoPk($pdo, $t);
 }
 
@@ -453,6 +468,8 @@ ensureFk($pdo, 'job_employee_assignment', 'employee_id', 'employees', 'id', 'fk_
 
 ensureFk($pdo, 'employee_availability_overrides', 'employee_id', 'employees', 'id', 'fk_eao_employee', 'CASCADE', 'CASCADE');
 ensureFk($pdo, 'availability_audit', 'employee_id', 'employees', 'id', 'fk_avail_audit_employee', 'CASCADE', 'CASCADE');
+ensureFk($pdo, 'job_deletion_log', 'job_id', 'jobs', 'id', 'fk_job_deletion_log_job', 'CASCADE', 'CASCADE');
+ensureFk($pdo, 'job_deletion_log', 'user_id', 'employees', 'id', 'fk_job_deletion_log_user', 'SET NULL', 'CASCADE');
 
 out(PHP_EOL . "== Ensuring people name columns and index ==");
 ensureVarchar100NotNull($pdo, 'people', 'first_name');
