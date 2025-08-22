@@ -15,6 +15,18 @@ function json_out(array $p, int $code=200): never {
   exit;
 }
 
+function wants_json(): bool {
+  $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+  $xhr    = $_SERVER['HTTP_X_REQUESTED_WITH'] ?? '';
+  $jsonQ  = isset($_GET['json']) && $_GET['json'] === '1';
+  return $jsonQ || stripos($accept, 'application/json') !== false || strtolower($xhr) === 'xmlhttprequest';
+}
+
+function redirect_to(string $path): void {
+  header('Location: ' . $path);
+  exit;
+}
+
 function log_error(string $msg): void {
   error_log(date('[Y-m-d H:i:s] ').$msg.PHP_EOL, 3, __DIR__ . '/../logs/job_errors.log');
 }
@@ -95,6 +107,13 @@ if (!$jobTypeIds && isset($_POST['job_type_id'])) {
 $checklistItems = isset($_POST['checklist_items']) && is_array($_POST['checklist_items'])
     ? array_values(array_filter(array_map(static fn($v) => trim((string)$v), $_POST['checklist_items']), static fn($v) => $v !== ''))
     : [];
+$return = '';
+if (isset($_POST['return'])) {
+  $return = filter_var((string)$_POST['return'], FILTER_SANITIZE_URL);
+  if ($return !== '' && (parse_url($return, PHP_URL_SCHEME) !== null || parse_url($return, PHP_URL_HOST) !== null)) {
+    $return = '';
+  }
+}
 
 // Normalize status to canonical ENUM values (lowercase)
 $map = [
@@ -141,7 +160,8 @@ foreach ($checklistItems as $desc) {
 }
 if ($errors) {
   log_error('Validation failed: '.json_encode($errors));
-  json_out(['ok'=>false,'errors'=>$errors,'code'=>422], 422);
+  wants_json() ? json_out(['ok'=>false,'errors'=>$errors,'code'=>422], 422)
+               : redirect_to('job_form.php');
 }
 
 require_once __DIR__ . '/../config/database.php';
@@ -234,7 +254,11 @@ try {
   $pdo->commit();
   log_error('Transaction committed for job ' . $jobId);
   $action = $id > 0 ? 'updated' : 'created';
-  json_out(['ok'=>true,'id'=>$jobId,'customer_id'=>$customerId,'status'=>$canonical,'action'=>$action], 200);
+  if (wants_json()) {
+    json_out(['ok'=>true,'id'=>$jobId,'customer_id'=>$customerId,'status'=>$canonical,'action'=>$action], 200);
+  } else {
+    redirect_to($return !== '' ? $return : 'jobs.php');
+  }
 
 } catch (Throwable $e) {
   if (isset($pdo) && $pdo->inTransaction()) { $pdo->rollBack(); }
@@ -242,5 +266,9 @@ try {
            . PHP_EOL . $e->getTraceAsString()
            . PHP_EOL . 'POST: ' . json_encode($_POST, JSON_UNESCAPED_SLASHES);
   log_error($detail);
-  json_out(['ok'=>false,'error'=>'Server error','code'=>500,'detail'=>$e->getMessage()], 500);
+  if (wants_json()) {
+    json_out(['ok'=>false,'error'=>'Server error','code'=>500,'detail'=>$e->getMessage()], 500);
+  } else {
+    redirect_to('job_form.php');
+  }
 }

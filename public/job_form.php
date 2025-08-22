@@ -17,6 +17,13 @@ $job         = $job ?? [];
 $jobSkillIds = $jobSkillIds ?? [];
 $jobTypeIds  = $jobTypeIds ?? [];
 $isEdit      = $mode === 'edit';
+$returnUrl   = '';
+if (isset($_GET['return'])) {
+    $returnUrl = filter_var((string)$_GET['return'], FILTER_SANITIZE_URL);
+    if ($returnUrl !== '' && (parse_url($returnUrl, PHP_URL_SCHEME) !== null || parse_url($returnUrl, PHP_URL_HOST) !== null)) {
+        $returnUrl = '';
+    }
+}
 
 $skills    = Skill::all($pdo);
 $statuses  = $isEdit ? Job::allowedStatuses() : array_intersect(['scheduled','draft'], Job::allowedStatuses());
@@ -66,8 +73,9 @@ function stickyArr(string $name, array $default = []): array {
       <p>Job not found.</p>
     <?php else: ?>
     <div id="form-errors" class="text-danger mb-3"></div>
-    <form id="jobForm" method="post" action="job_save.php" autocomplete="off" class="needs-validation" novalidate data-mode="<?= $isEdit ? 'edit' : 'add' ?>">
+    <form id="jobForm" method="post" action="job_save.php" autocomplete="off" class="needs-validation" novalidate data-mode="<?= $isEdit ? 'edit' : 'add' ?>" data-return="<?= s($returnUrl) ?>">
       <input type="hidden" name="csrf_token" value="<?= s($__csrf) ?>">
+      <input type="hidden" name="return" value="<?= s($returnUrl) ?>">
       <?php if ($isEdit): ?>
         <input type="hidden" name="id" value="<?= s((string)($job['id'] ?? '')) ?>">
       <?php endif; ?>
@@ -166,7 +174,8 @@ function stickyArr(string $name, array $default = []): array {
 
       <div class="mt-3">
         <button type="submit" class="btn btn-primary"><?= $isEdit ? 'Save Changes' : 'Save Job' ?></button>
-        <a href="jobs.php" class="btn btn-secondary">Cancel</a>
+        <?php $cancel = $returnUrl !== '' ? $returnUrl : 'jobs.php'; ?>
+        <a href="<?= s($cancel) ?>" class="btn btn-secondary">Cancel</a>
       </div>
     </form>
 
