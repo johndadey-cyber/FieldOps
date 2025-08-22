@@ -101,7 +101,7 @@ foreach ($rows as $r) {
   $label = htmlspecialchars(str_replace('_',' ', $stat), ENT_QUOTES, 'UTF-8');
   echo "  <td><span class=\"badge bg-{$badgeClass}\">{$label}</span></td>";
   echo "  <td class=\"text-end\">";
-  echo "    <button class=\"btn btn-sm btn-outline-primary me-1\" data-bs-toggle=\"modal\" data-bs-target=\"#assignModal\" data-job-id=\"{$jid}\">Assign</button>";
+  echo "    <button type=\"button\" class=\"btn btn-sm btn-outline-primary btn-assign me-1\" data-bs-toggle=\"modal\" data-bs-target=\"#assignmentsModal\" data-job-id=\"{$jid}\">Assign</button>";
   echo "    <a class=\"btn btn-sm btn-outline-secondary\" href=\"edit_job.php?id={$jid}\">Edit</a>";
   echo "  </td>";
   echo "</tr>";
