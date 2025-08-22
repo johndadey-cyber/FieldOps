@@ -444,6 +444,17 @@ if (tableExists($pdo, 'employee_availability_overrides')) {
 }
 
 out("== Ensuring PRIMARY KEYS ==");
+
+// Before adjusting the primary key on job_employee_assignment we need to
+// drop dependent foreign keys and add standalone indexes for them to bind to
+// when recreated.
+if (tableExists($pdo, 'job_employee_assignment')) {
+    try { $pdo->exec('ALTER TABLE job_employee_assignment DROP FOREIGN KEY fk_jea_job'); } catch (PDOException $e) {}
+    try { $pdo->exec('ALTER TABLE job_employee_assignment DROP FOREIGN KEY fk_jea_employee'); } catch (PDOException $e) {}
+    ensureIndex($pdo, 'job_employee_assignment', ['job_id'], 'idx_jea_job_id');
+    ensureIndex($pdo, 'job_employee_assignment', ['employee_id'], 'idx_jea_employee_id');
+}
+
 foreach (['people','employees','job_types','employee_availability_overrides','availability_audit','job_checklist_items','job_deletion_log','job_employee_assignment'] as $t) {
     ensureAutoPk($pdo, $t);
 }
@@ -503,6 +514,7 @@ ensureUnique($pdo, 'employee_skills', ['employee_id','skill_id'], 'uq_employee_s
 ensureUnique($pdo, 'jobtype_skills', ['job_type_id','skill_id'], 'uq_jobtype_skill');
 ensureUnique($pdo, 'job_skill', ['job_id','skill_id'], 'uq_job_skill');
 ensureUnique($pdo, 'job_job_type', ['job_id','job_type_id'], 'uq_job_job_type');
+ensureUnique($pdo, 'job_employee_assignment', ['job_id','employee_id'], 'uq_job_employee');
 
 out(PHP_EOL . "== Cleaning obvious orphan rows (dev only) ==");
 try {
