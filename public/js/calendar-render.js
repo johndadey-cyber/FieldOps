@@ -15,13 +15,24 @@ export function renderCalendar(calendar, availability, overrides, jobs, weekStar
   let added = 0;
 
   for (const it of Array.isArray(availability) ? availability : []) {
-    if (!it.start || !it.end) continue;
-    if (it.start >= it.end) continue;
+    let { start, end } = it;
+    if (!start || !end) {
+      if (!weekStart || !it.day_of_week || !it.start_time || !it.end_time) continue;
+      const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      const idx = days.indexOf(it.day_of_week);
+      if (idx === -1) continue;
+      const base = new Date(weekStart + 'T00:00:00');
+      base.setDate(base.getDate() + idx);
+      const date = base.toISOString().slice(0,10);
+      start = `${date}T${it.start_time}`;
+      end = `${date}T${it.end_time}`;
+    }
+    if (start >= end) continue;
     const color = '#198754';
     calendar.addEvent({
       id: 'win-' + it.id,
-      start: it.start,
-      end: it.end,
+      start,
+      end,
       backgroundColor: color,
       borderColor: color,
       editable: true,
