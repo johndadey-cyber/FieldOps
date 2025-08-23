@@ -15,6 +15,15 @@ if (!is_dir($sessionPath)) {
 }
 ini_set('session.save_path', $sessionPath);
 
+// Use a lightweight SQLite database for tests if none specified
+if (getenv('FIELDOPS_TEST_DSN') === false) {
+    $sqlite = sys_get_temp_dir() . '/fieldops_test.sqlite';
+    @unlink($sqlite);
+    $dsn = 'sqlite:' . $sqlite;
+    putenv('FIELDOPS_TEST_DSN=' . $dsn);
+    $_ENV['FIELDOPS_TEST_DSN'] = $dsn;
+}
+
 if (getenv('APP_ENV') === false) {
     // Ensure config/database.php sees APP_ENV=test
     putenv('APP_ENV=test');
@@ -104,7 +113,9 @@ if (file_exists($migrateScript) && file_exists($testPdo)) {
     try {
         // Suppress any output from migrations; top-level buffer handles echoes.
         $pdo = createTestPdo();
-        migrateTestDb($pdo);
+        if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'sqlite') {
+            migrateTestDb($pdo);
+        }
     } catch (Throwable $e) {
         // Log to STDERR so failures don't pollute STDOUT.
         error_log('[TEST BOOTSTRAP] Migration failed: ' . $e->getMessage());

@@ -78,6 +78,22 @@ if (!function_exists('getPDO')) {
             }
         }
 
+        $dsnOverride = getenv('FIELDOPS_TEST_DSN') ?: getenv('DB_DSN');
+        if ($dsnOverride) {
+            $user = str_starts_with($dsnOverride, 'sqlite:') ? null : $cfg['DB_USER'];
+            $pass = str_starts_with($dsnOverride, 'sqlite:') ? null : $cfg['DB_PASS'];
+            try {
+                $pdo = new PDO($dsnOverride, $user ?? '', $pass ?? '', [
+                    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES   => false,
+                ]);
+                return $pdo;
+            } catch (PDOException $e) {
+                throw new PDOException('DB connection failed: ' . $e->getMessage(), (int)$e->getCode());
+            }
+        }
+
         // Build DSN (no implicit _test logic)
         $dsn = sprintf(
             'mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4',
