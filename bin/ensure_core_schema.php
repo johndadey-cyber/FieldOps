@@ -455,7 +455,7 @@ if (tableExists($pdo, 'job_employee_assignment')) {
     try { $pdo->exec('ALTER TABLE job_employee_assignment ADD INDEX idx_jea_employee_id (employee_id)'); } catch (PDOException $e) {}
 }
 
-foreach (['people','employees','job_types','employee_availability_overrides','availability_audit','job_checklist_items','job_deletion_log','job_employee_assignment'] as $t) {
+foreach (['people','employees','job_types','employee_availability_overrides','availability_audit','job_checklist_items','job_deletion_log','job_employee_assignment','audit_log'] as $t) {
     ensureAutoPk($pdo, $t);
 }
 
@@ -494,6 +494,7 @@ ensureFk($pdo, 'employee_availability_overrides', 'employee_id', 'employees', 'i
 ensureFk($pdo, 'availability_audit', 'employee_id', 'employees', 'id', 'fk_avail_audit_employee', 'CASCADE', 'CASCADE');
 ensureFk($pdo, 'job_deletion_log', 'job_id', 'jobs', 'id', 'fk_job_deletion_log_job', 'CASCADE', 'CASCADE');
 ensureFk($pdo, 'job_deletion_log', 'user_id', 'employees', 'id', 'fk_job_deletion_log_user', 'SET NULL', 'CASCADE');
+ensureFk($pdo, 'audit_log', 'user_id', 'employees', 'id', 'fk_audit_log_user', 'SET NULL', 'CASCADE');
 
 out(PHP_EOL . "== Ensuring people name columns and index ==");
 ensureVarchar100NotNull($pdo, 'people', 'first_name');

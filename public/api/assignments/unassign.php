@@ -10,6 +10,9 @@ require_once $ROOT . '/config/database.php';
 require_once $ROOT . '/helpers/JsonResponse.php';
 require_once $ROOT . '/helpers/auth_helpers.php';
 require_once $ROOT . '/helpers/ErrorCodes.php';
+require_once $ROOT . '/models/AuditLog.php';
+
+if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 
 if (!require_role('dispatcher')) { JsonResponse::json(['ok'=>false,'error'=>'Forbidden','code'=>403], 403); return; }
 $raw  = file_get_contents('php://input');
@@ -41,6 +44,12 @@ try {
     )->execute([':j'=>$jobId]);
 
     $pdo->commit();
+    try {
+        $uid = $_SESSION['user']['id'] ?? null;
+        AuditLog::insert($pdo, $uid, 'unassign', ['job_id' => $jobId, 'employee_id' => $employeeId]);
+    } catch (Throwable $e) {
+        // ignore audit failures
+    }
     JsonResponse::json(['ok'=>true,'jobId'=>$jobId,'unassigned'=>$employeeId]);
 } catch (Throwable $e) {
     if ($pdo && $pdo->inTransaction()) $pdo->rollBack();
