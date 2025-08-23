@@ -27,6 +27,10 @@ The application defaults to `fieldops_development` when `APP_ENV` is `dev`.
 Connection settings can be overridden in `config/local.env.php` or via
 environment variables.
 
+When running integration tests (`APP_ENV=test`), optional credentials can be
+placed in `config/test.env.php`. This keeps test database settings isolated
+from your local development configuration.
+
 ## CDN Scripts
 
 When including scripts from a CDN, always add an `integrity` hash and
