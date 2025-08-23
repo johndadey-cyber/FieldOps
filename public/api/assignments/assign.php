@@ -202,8 +202,10 @@ try {
 
         // Required skills: employee must have all job-required skills
         if (!empty($requiredSkillIds)) {
-            $qs = $pdo->prepare("SELECT skill_id FROM employee_skills WHERE employee_id = :eid AND skill_id IN (" . implode(',', $requiredSkillIds) . ")");
-            $qs->execute([':eid' => $eid]);
+            $placeholders = implode(',', array_fill(0, count($requiredSkillIds), '?'));
+            $qs = $pdo->prepare("SELECT skill_id FROM employee_skills WHERE employee_id = ? AND skill_id IN ($placeholders)");
+            $params = array_merge([$eid], $requiredSkillIds);
+            $qs->execute($params);
             $have = array_map('intval', $qs->fetchAll(PDO::FETCH_COLUMN));
             $missing = [];
             foreach ($jobSkills as $sk) {
