@@ -24,9 +24,25 @@ if (!defined('APP_ENV')) {
     define('APP_ENV', 'test');
 }
 
+// Load dedicated credentials for test runs
+$testEnv = __DIR__ . '/../config/test.env.php';
+if (getenv('APP_ENV') === 'test' && is_file($testEnv)) {
+    $ret = require $testEnv;
+    if (is_array($ret)) {
+        foreach ($ret as $key => $value) {
+            if (getenv($key) === false) {
+                putenv($key . '=' . $value);
+                $_ENV[$key] = (string)$value;
+            }
+        }
+    }
+}
+
 // Use dedicated integration database for tests
-putenv('DB_NAME=fieldops_integration');
-$_ENV['DB_NAME'] = 'fieldops_integration';
+if (getenv('DB_NAME') === false) {
+    putenv('DB_NAME=fieldops_integration');
+    $_ENV['DB_NAME'] = 'fieldops_integration';
+}
 
 // Start a top-level output buffer to absorb any accidental echoes before tests run.
 ob_start();
@@ -93,13 +109,6 @@ if (file_exists($migrateScript) && file_exists($testPdo)) {
         // Log to STDERR so failures don't pollute STDOUT.
         error_log('[TEST BOOTSTRAP] Migration failed: ' . $e->getMessage());
     }
-}
-
-// If your tests rely on a test env file, load it here
-$localEnv = __DIR__ . '/../config/local.env.php';
-if (file_exists($localEnv)) {
-    // Let your database.php read it; we just ensure it exists
-    // and APP_ENV is set to 'test'
 }
 
 // Bootstrap is complete; close the buffer so PHPUnit output is visible.
