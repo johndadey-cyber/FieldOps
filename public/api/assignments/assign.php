@@ -48,6 +48,7 @@ try {
     // Explicit semicolon to prevent parse errors when deploying
     $pdo = getPDO();
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $driver = (string)$pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
 
     // --- Parse JSON body ---
     $raw = file_get_contents('php://input') ?: '';
@@ -62,12 +63,19 @@ try {
     if (count($employeeIds) === 0) throw new InvalidArgumentException('No employeeIds');
 
     // --- Helpers ---
-    $tableExists = function(PDO $pdo, string $name): bool {
+    $tableExists = function(PDO $pdo, string $name) use ($driver): bool {
         static $cache = [];
         if (array_key_exists($name, $cache)) return $cache[$name];
-        $st = $pdo->prepare("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = :t");
-        $st->execute([':t' => $name]);
-        return $cache[$name] = ((int)$st->fetchColumn() > 0);
+        if ($driver === 'sqlite') {
+            $st = $pdo->prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = :t");
+            $st->execute([':t' => $name]);
+            $exists = (bool)$st->fetchColumn();
+        } else {
+            $st = $pdo->prepare("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = :t");
+            $st->execute([':t' => $name]);
+            $exists = ((int)$st->fetchColumn() > 0);
+        }
+        return $cache[$name] = $exists;
     };
 
     $useJE  = $tableExists($pdo, 'job_employee');
@@ -91,9 +99,7 @@ try {
     $dur  = (int)($job['duration_minutes'] ?? 60);
     if ($dur <= 0) $dur = 60;
 
-    // Build window in MySQL terms
     // We'll evaluate availability using (day_of_week, start_time, end_time)
-    $sqlDow = "DAYOFWEEK(:date)"; // MySQL: 1=Sun .. 7=Sat
     // UI/seed sometimes stores names (Tuesday). We'll allow both int and names.
     $dowMap = [
         1 => 'Sunday', 2 => 'Monday', 3 => 'Tuesday', 4 => 'Wednesday',
@@ -135,7 +141,7 @@ try {
       FROM employee_availability ea
       WHERE ea.employee_id = :eid
         AND (
-          ea.day_of_week = $sqlDow
+          ea.day_of_week = :dowNum
           OR ea.day_of_week = :dowName
           OR ea.day_of_week = :dowNameShort
         )
@@ -144,14 +150,13 @@ try {
       LIMIT 1
     ");
         // Compute DOW name strings in PHP (so we’re consistent)
-        $dowNum = (int)date('N', strtotime($date)); // 1=Mon..7=Sun
         $dowNumMySQL = (int)date('w', strtotime($date)) + 1; // 1=Sun..7=Sat
         // Normalize to canonical names
         $dowName = $dowMap[$dowNumMySQL] ?? date('l', strtotime($date)); // 'Tuesday'
         $dowNameShort = substr($dowName, 0, 3); // 'Tue' (defensive)
         $st->execute([
             ':eid'         => $eid,
-            ':date'        => $date,
+            ':dowNum'      => $dowNumMySQL,
             ':dowName'     => $dowName,
             ':dowNameShort'=> $dowNameShort,
             ':jobStart'    => $time,
@@ -235,24 +240,39 @@ try {
             'message' => 'One or more selections have issues.',
             'details' => $issues,
         ]);
+        if (isset($GLOBALS['__FIELDOPS_TEST_CALL__'])) {
+            return;
+        }
         exit;
     }
 
     // --- Insert + update status ---
     $pdo->beginTransaction();
 
+    $insertIgnore = $driver === 'sqlite' ? 'INSERT OR IGNORE' : 'INSERT IGNORE';
     if ($useJE) {
-        $ins = $pdo->prepare("INSERT IGNORE INTO job_employee (job_id, employee_id) VALUES (:j,:e)");
+        $ins = $pdo->prepare("$insertIgnore INTO job_employee (job_id, employee_id) VALUES (:j,:e)");
         foreach ($employeeIds as $eid) { $ins->execute([':j' => $jobId, ':e' => $eid]); }
     }
 
     if ($useJEA) {
-        $ins2 = $pdo->prepare("INSERT IGNORE INTO job_employee_assignment (job_id, employee_id) VALUES (:j,:e)");
+        $ins2 = $pdo->prepare("$insertIgnore INTO job_employee_assignment (job_id, employee_id) VALUES (:j,:e)");
         foreach ($employeeIds as $eid) { $ins2->execute([':j' => $jobId, ':e' => $eid]); }
     }
 
 // Flip status to 'assigned' if any rows now exist for this job
-$upd = $pdo->prepare("
+if ($driver === 'sqlite') {
+    $updSql = "
+    UPDATE jobs
+    SET status = 'assigned'
+    WHERE id = :jobId AND deleted_at IS NULL
+      AND (
+        EXISTS (SELECT 1 FROM job_employee je WHERE je.job_id = jobs.id)
+        OR EXISTS (SELECT 1 FROM job_employee_assignment jea WHERE jea.job_id = jobs.id)
+      )
+";
+} else {
+    $updSql = "
     UPDATE jobs j
     SET j.status = 'assigned'
     WHERE j.id = :jobId AND j.deleted_at IS NULL
@@ -260,7 +280,9 @@ $upd = $pdo->prepare("
         EXISTS (SELECT 1 FROM job_employee je WHERE je.job_id = j.id)
         OR EXISTS (SELECT 1 FROM job_employee_assignment jea WHERE jea.job_id = j.id)
       )
-");
+";
+}
+$upd = $pdo->prepare($updSql);
 $upd->execute([':jobId' => $jobId]);
 
 $rowsUpdated = $upd->rowCount(); // might be 0 if status already 'assigned' or no matches
