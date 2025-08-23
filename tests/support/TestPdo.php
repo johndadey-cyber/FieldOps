@@ -8,6 +8,7 @@ function createTestPdo(): PDO {
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         if (str_starts_with($dsn, 'sqlite:')) {
+            $pdo->exec('PRAGMA foreign_keys = ON');
             seedSqliteSchema($pdo);
         }
         return $pdo;
@@ -46,6 +47,7 @@ function seedSqliteSchema(PDO $pdo): void {
         $sql = preg_replace('/\bUNSIGNED\b/i', '', $sql);
         $sql = preg_replace('/(\w+)\s+INT\s+(?:UNSIGNED\s+)?(?:NOT\s+NULL\s+)?AUTO_INCREMENT\s+PRIMARY\s+KEY/i', '$1 INTEGER PRIMARY KEY AUTOINCREMENT', $sql);
         $sql = preg_replace('/UNIQUE KEY\s+\w+\s*\(([^)]+)\)/i', 'UNIQUE ($1)', $sql);
+        $sql = preg_replace('/ON UPDATE CURRENT_TIMESTAMP/i', '', $sql);
         $sql = preg_replace('/ON DUPLICATE KEY UPDATE[^;]*/i', '', $sql);
         $sql = preg_replace('/\)\s*ENGINE=InnoDB[^;]*;/i', ');', $sql);
 
