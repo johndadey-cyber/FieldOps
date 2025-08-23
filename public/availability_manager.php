@@ -104,7 +104,7 @@ $selectedEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 
 $title = 'Availability Manager';
 $bodyAttrs = 'data-csrf="' . s($__csrf) . '"';
 $headExtra = <<<HTML
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+  <link href="https://uicdn.toast.com/tui.calendar/latest/toastui-calendar.min.css" rel="stylesheet">
   <style>
     body { padding: 24px; }
     .day-badge { min-width: 90px; display: inline-block; }
@@ -515,7 +515,7 @@ require __DIR__ . '/../partials/header.php';
 </div>
 <?php
 $pageScripts = <<<HTML
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<script src="https://uicdn.toast.com/tui.calendar/latest/toastui-calendar.min.js"></script>
 <script type="module" src="/js/availability-manager.js"></script>
 HTML;
 require __DIR__ . '/../partials/footer.php';
