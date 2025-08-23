@@ -167,14 +167,12 @@ try {
             $empIssues['unavailable_for_job_window'] = true;
         }
 
-        // OPTIONAL: basic time conflict against other assigned jobs that day (same tables we insert into)
+        // OPTIONAL: basic time conflict against other assigned jobs that may overlap
         // Overlap: existing.start < newEnd && newStart < existing.end
-        // We only have start_time/duration on jobs table, so conflict if another job for same employee overlaps window.
+        // Check assignments on the job date as well as adjacent days for cross-midnight shifts.
         $conflict = null;
-        // choose a union of the two assignment tables we might use; duplicates
-        // placeholders need unique names when emulation is disabled
         $confQ = "
-      SELECT j2.id, j2.scheduled_time AS st, COALESCE(j2.duration_minutes, 60) AS dur
+      SELECT j2.id, j2.scheduled_date AS d, j2.scheduled_time AS st, COALESCE(j2.duration_minutes, 60) AS dur
       FROM jobs j2
       JOIN (
         SELECT job_id FROM job_employee WHERE employee_id = :eid1
@@ -182,15 +180,23 @@ try {
         SELECT job_id FROM job_employee_assignment WHERE employee_id = :eid2
       ) x ON x.job_id = j2.id
       WHERE j2.deleted_at IS NULL
-        AND j2.scheduled_date = :date
+        AND j2.scheduled_date BETWEEN :prevDate AND :nextDate
         AND j2.id <> :jobId
     ";
         $stc = $pdo->prepare($confQ);
-        $stc->execute([':eid1' => $eid, ':eid2' => $eid, ':date' => $date, ':jobId' => $jobId]);
+        $prevDate = date('Y-m-d', strtotime($date . ' -1 day'));
+        $nextDate = date('Y-m-d', strtotime($date . ' +1 day'));
+        $stc->execute([
+            ':eid1' => $eid,
+            ':eid2' => $eid,
+            ':prevDate' => $prevDate,
+            ':nextDate' => $nextDate,
+            ':jobId' => $jobId,
+        ]);
         $newStart = strtotime("$date $time");
         $newEnd   = $newStart + $dur * 60;
         while ($row = $stc->fetch(PDO::FETCH_ASSOC)) {
-            $s2 = strtotime($date . ' ' . ($row['st'] ?? '00:00:00'));
+            $s2 = strtotime(($row['d'] ?? $date) . ' ' . ($row['st'] ?? '00:00:00'));
             $e2 = $s2 + (int)$row['dur'] * 60;
             if ($s2 < $newEnd && $newStart < $e2) {
                 $conflict = [
