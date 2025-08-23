@@ -171,6 +171,26 @@ final class TechnicianJobFlowTest extends TestCase
         $this->assertSame(0, $state2);
         $this->assertSame(1, $state3);
 
+        // Final sync to complete all checklist items
+        $final = EndpointHarness::run(
+            __DIR__ . '/../../public/api/job_checklist_update.php',
+            [
+                'job_id' => $this->jobId,
+                'items' => json_encode([
+                    ['id' => $this->checklistItems[1]['id'], 'completed' => true],
+                ]),
+            ],
+            ['role' => 'technician'],
+        );
+        $this->assertTrue($final['ok'] ?? false);
+        $state1 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[0]['id'])->fetchColumn();
+        $state2 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[1]['id'])->fetchColumn();
+        $state3 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[2]['id'])->fetchColumn();
+        $this->assertSame(1, $state1);
+        $this->assertSame(1, $state2);
+        $this->assertSame(1, $state3);
+
+
         $img = $this->sampleImage();
         $complete = EndpointHarness::run(
             __DIR__ . '/../../public/api/job_complete.php',
@@ -202,6 +222,6 @@ final class TechnicianJobFlowTest extends TestCase
         $this->assertSame(2, $photoCount);
 
         $completedChecks = (int)$this->pdo->query('SELECT COUNT(*) FROM job_checklist_items WHERE job_id=' . $this->jobId . ' AND is_completed=1')->fetchColumn();
-        $this->assertSame(2, $completedChecks);
+        $this->assertSame(3, $completedChecks);
     }
 }
