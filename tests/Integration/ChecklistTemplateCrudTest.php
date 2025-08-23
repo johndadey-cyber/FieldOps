@@ -16,9 +16,20 @@ final class ChecklistTemplateCrudTest extends TestCase
         $this->pdo = getPDO();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $this->pdo->beginTransaction();
-
-        $this->pdo->prepare('INSERT INTO job_types (id, name) VALUES (:id, :name) ON DUPLICATE KEY UPDATE name = VALUES(name)')
-            ->execute([':id' => $this->jobTypeId, ':name' => 'Checklist CRUD Type']);
+        $driver = $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        if ($driver === 'sqlite') {
+            $sql = 'INSERT INTO job_types (id, name) VALUES (:id, :name) '
+                . 'ON CONFLICT (id) DO UPDATE SET name = excluded.name';
+            $this->pdo->prepare($sql)
+                ->execute([':id' => $this->jobTypeId, ':name' => 'Checklist CRUD Type']);
+        } else {
+            $st = $this->pdo->prepare('UPDATE job_types SET name = :name WHERE id = :id');
+            $st->execute([':name' => 'Checklist CRUD Type', ':id' => $this->jobTypeId]);
+            if ($st->rowCount() === 0) {
+                $this->pdo->prepare('INSERT INTO job_types (id, name) VALUES (:id, :name)')
+                    ->execute([':id' => $this->jobTypeId, ':name' => 'Checklist CRUD Type']);
+            }
+        }
     }
 
     protected function tearDown(): void
