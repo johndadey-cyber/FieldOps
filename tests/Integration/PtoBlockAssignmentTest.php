@@ -24,7 +24,7 @@ final class PtoBlockAssignmentTest extends TestCase
             $this->pdo->exec("DELETE FROM {$t}");
         }
 
-        $this->api = __DIR__ . '/../../public/api/job_assign.php';
+        $this->api = __DIR__ . '/../../public/api/assignments/assign.php';
     }
 
     public function testRejectsAssignmentWhenEmployeeOnPto(): void
