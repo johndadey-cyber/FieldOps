@@ -26,9 +26,15 @@ if (current_role() === 'guest') {
     return;
 }
 
+$jobId = isset($data['job_id']) ? (int)$data['job_id'] : 0;
+
 // New bulk update path
 $itemsRaw = $data['items'] ?? null;
 if ($itemsRaw !== null) {
+    if ($jobId <= 0) {
+        JsonResponse::json(['ok' => false, 'error' => 'Missing job_id', 'code' => \ErrorCodes::VALIDATION_ERROR], 422);
+        return;
+    }
     $items = is_string($itemsRaw) ? json_decode($itemsRaw, true) : null;
     if (!is_array($items)) {
         JsonResponse::json(['ok' => false, 'error' => 'Invalid items', 'code' => \ErrorCodes::VALIDATION_ERROR], 422);
@@ -51,7 +57,8 @@ if ($itemsRaw !== null) {
             ]);
         }
         $pdo->commit();
-        JsonResponse::json(['ok' => true]);
+        $status = $pdo->query('SELECT status FROM jobs WHERE id=' . $jobId)->fetchColumn();
+        JsonResponse::json(['ok' => true, 'status' => $status]);
     } catch (Throwable $e) {
         if (isset($pdo) && $pdo->inTransaction()) {
             $pdo->rollBack();
@@ -75,7 +82,13 @@ try {
         JsonResponse::json(['ok' => false, 'error' => 'Not found', 'code' => \ErrorCodes::NOT_FOUND], 404);
         return;
     }
-    JsonResponse::json(['ok' => true, 'is_completed' => $newState]);
+    $st = $pdo->prepare('SELECT j.status FROM jobs j JOIN job_checklist_items i ON i.job_id = j.id WHERE i.id = :id');
+    $status = null;
+    if ($st !== false) {
+        $st->execute([':id' => $id]);
+        $status = $st->fetchColumn();
+    }
+    JsonResponse::json(['ok' => true, 'is_completed' => $newState, 'status' => $status]);
 } catch (Throwable $e) {
     JsonResponse::json(['ok' => false, 'error' => 'Server error', 'code' => \ErrorCodes::SERVER_ERROR], 500);
 }

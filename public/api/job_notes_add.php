@@ -38,7 +38,8 @@ if ($jobId <= 0 || $technicianId <= 0 || $note === '') {
 try {
     $pdo = getPDO();
     $id  = JobNote::add($pdo, $jobId, $technicianId, $note);
-    JsonResponse::json(['ok' => true, 'id' => $id]);
+    $status = $pdo->query('SELECT status FROM jobs WHERE id=' . $jobId)->fetchColumn();
+    JsonResponse::json(['ok' => true, 'id' => $id, 'status' => $status]);
 } catch (Throwable $e) {
     JsonResponse::json(['ok' => false, 'error' => 'Server error', 'code' => \ErrorCodes::SERVER_ERROR], 500);
 }
