@@ -16,17 +16,15 @@ final class JobChecklistSubmitTest extends TestCase
     {
         $this->pdo = getPDO();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        $this->pdo->exec('DELETE FROM job_checklist_items');
-        $this->pdo->exec('DELETE FROM jobs');
-        $this->pdo->exec('DELETE FROM customers');
+        $this->pdo->beginTransaction();
     }
 
     protected function tearDown(): void
     {
-        $this->pdo->exec('DELETE FROM job_checklist_items');
-        $this->pdo->exec('DELETE FROM jobs');
-        $this->pdo->exec('DELETE FROM customers');
+        if ($this->pdo->inTransaction()) {
+            $this->pdo->rollBack();
+        }
+        parent::tearDown();
     }
 
     public function testChecklistItemsPersistOnJobSave(): void

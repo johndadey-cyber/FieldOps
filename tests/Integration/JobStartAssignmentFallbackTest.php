@@ -17,12 +17,7 @@ final class JobStartAssignmentFallbackTest extends TestCase
     {
         $this->pdo = getPDO();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        $this->pdo->exec('DELETE FROM job_employee_assignment');
-        $this->pdo->exec('DELETE FROM jobs');
-        $this->pdo->exec('DELETE FROM employees');
-        $this->pdo->exec('DELETE FROM people');
-        $this->pdo->exec('DELETE FROM customers');
+        $this->pdo->beginTransaction();
 
         $customerId = TestDataFactory::createCustomer($this->pdo);
         $this->techId = TestDataFactory::createEmployee($this->pdo);
@@ -34,6 +29,14 @@ final class JobStartAssignmentFallbackTest extends TestCase
 
         $this->pdo->prepare('INSERT INTO job_employee_assignment (job_id, employee_id) VALUES (:j,:e)')
             ->execute([':j' => $this->jobId, ':e' => $this->techId]);
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->pdo->inTransaction()) {
+            $this->pdo->rollBack();
+        }
+        parent::tearDown();
     }
 
     public function testFallbackToAssignmentTableWhenTechnicianIdColumnEmpty(): void

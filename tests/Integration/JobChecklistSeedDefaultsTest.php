@@ -17,14 +17,7 @@ final class JobChecklistSeedDefaultsTest extends TestCase
     {
         $this->pdo = getPDO();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        $this->pdo->exec('DELETE FROM job_checklist_items');
-        $this->pdo->exec('DELETE FROM jobs');
-        $this->pdo->exec('DELETE FROM customers');
-        $this->pdo->prepare('DELETE FROM checklist_templates WHERE job_type_id = :jt')
-            ->execute([':jt' => $this->jobTypeId]);
-        $this->pdo->prepare('DELETE FROM job_types WHERE id = :id')
-            ->execute([':id' => $this->jobTypeId]);
+        $this->pdo->beginTransaction();
 
         $this->pdo->prepare('INSERT INTO job_types (id, name) VALUES (:id, :name)')
             ->execute([':id' => $this->jobTypeId, ':name' => 'Seed Defaults Type']);
@@ -35,13 +28,10 @@ final class JobChecklistSeedDefaultsTest extends TestCase
 
     protected function tearDown(): void
     {
-        $this->pdo->exec('DELETE FROM job_checklist_items');
-        $this->pdo->exec('DELETE FROM jobs');
-        $this->pdo->exec('DELETE FROM customers');
-        $this->pdo->prepare('DELETE FROM checklist_templates WHERE job_type_id = :jt')
-            ->execute([':jt' => $this->jobTypeId]);
-        $this->pdo->prepare('DELETE FROM job_types WHERE id = :id')
-            ->execute([':id' => $this->jobTypeId]);
+        if ($this->pdo->inTransaction()) {
+            $this->pdo->rollBack();
+        }
+        parent::tearDown();
     }
 
     public function testSeedDefaultsFromDatabaseOnJobCreate(): void

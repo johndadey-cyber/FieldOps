@@ -15,9 +15,15 @@ final class AvailabilityCopyTest extends TestCase
     {
         $this->pdo = createTestPdo();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $this->pdo->exec('DELETE FROM employee_availability');
-        $this->pdo->exec('DELETE FROM employees');
-        $this->pdo->exec('DELETE FROM people');
+        $this->pdo->beginTransaction();
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->pdo->inTransaction()) {
+            $this->pdo->rollBack();
+        }
+        parent::tearDown();
     }
 
     public function testCopyReplacesExistingWithStartDate(): void

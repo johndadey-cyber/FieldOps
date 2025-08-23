@@ -20,17 +20,7 @@ final class JobStatusTransitionTest extends TestCase
     {
         $this->pdo = getPDO();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        $this->pdo->exec('DELETE FROM job_deletion_log');
-        $this->pdo->exec('DELETE FROM job_completion');
-        $this->pdo->exec('DELETE FROM job_checklist_items');
-        $this->pdo->exec('DELETE FROM job_photos');
-        $this->pdo->exec('DELETE FROM job_notes');
-        $this->pdo->exec('DELETE FROM job_employee_assignment');
-        $this->pdo->exec('DELETE FROM jobs');
-        $this->pdo->exec('DELETE FROM employees');
-        $this->pdo->exec('DELETE FROM people');
-        $this->pdo->exec('DELETE FROM customers');
+        $this->pdo->beginTransaction();
 
         $this->customerId = TestDataFactory::createCustomer($this->pdo);
         $this->techId     = TestDataFactory::createEmployee($this->pdo);
@@ -47,6 +37,9 @@ final class JobStatusTransitionTest extends TestCase
 
     protected function tearDown(): void
     {
+        if ($this->pdo->inTransaction()) {
+            $this->pdo->rollBack();
+        }
         $base = __DIR__ . '/../../public/uploads';
         foreach (["jobs", "signatures"] as $sub) {
             $dir = $base . '/' . $sub;
@@ -62,6 +55,7 @@ final class JobStatusTransitionTest extends TestCase
         if (is_dir($base)) {
             rmdir($base);
         }
+        parent::tearDown();
     }
 
     public function testIllegalTransitionsFail(): void

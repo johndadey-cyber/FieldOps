@@ -14,13 +14,18 @@ final class JobWriteRbacTest extends TestCase
     {
         $this->pdo = getPDO();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        // Clean minimal fixtures
-        $this->pdo->exec("DELETE FROM jobs");
-        $this->pdo->exec("DELETE FROM customers");
+        $this->pdo->beginTransaction();
 
         // Seed
         $this->pdo->exec("INSERT INTO customers (first_name,last_name,phone,created_at) VALUES ('Test','Customer','555-0000',NOW())");
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->pdo->inTransaction()) {
+            $this->pdo->rollBack();
+        }
+        parent::tearDown();
     }
 
     /**

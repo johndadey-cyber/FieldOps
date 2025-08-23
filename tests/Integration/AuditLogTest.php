@@ -14,10 +14,7 @@ final class AuditLogTest extends TestCase
     {
         $this->pdo = createTestPdo();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $this->pdo->exec('DELETE FROM audit_log');
-        $this->pdo->exec('DELETE FROM job_employee_assignment');
-        $this->pdo->exec('DELETE FROM jobs');
-        $this->pdo->exec('DELETE FROM customers');
+        $this->pdo->beginTransaction();
 
         $need = 1 - (int)$this->pdo->query("SELECT COUNT(*) FROM employees WHERE is_active = 1")->fetchColumn();
         if ($need > 0) {
@@ -29,6 +26,14 @@ final class AuditLogTest extends TestCase
 
         $this->pdo->exec("INSERT INTO customers (first_name,last_name,phone,created_at) VALUES ('Aud','Test','555',NOW())");
         $this->pdo->exec("INSERT INTO jobs (customer_id,description,scheduled_date,scheduled_time,status,duration_minutes,created_at,updated_at) VALUES (LAST_INSERT_ID(),'Audit Job',CURDATE(),'09:00:00','scheduled',60,NOW(),NOW())");
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->pdo->inTransaction()) {
+            $this->pdo->rollBack();
+        }
+        parent::tearDown();
     }
 
     public function testAuditLogCapturesAssignmentAndRbacDenial(): void

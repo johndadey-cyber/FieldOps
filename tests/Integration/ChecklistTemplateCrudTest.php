@@ -15,19 +15,18 @@ final class ChecklistTemplateCrudTest extends TestCase
     {
         $this->pdo = getPDO();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $this->pdo->beginTransaction();
 
         $this->pdo->prepare('INSERT INTO job_types (id, name) VALUES (:id, :name) ON DUPLICATE KEY UPDATE name = VALUES(name)')
             ->execute([':id' => $this->jobTypeId, ':name' => 'Checklist CRUD Type']);
-        $this->pdo->prepare('DELETE FROM checklist_templates WHERE job_type_id = :jt')
-            ->execute([':jt' => $this->jobTypeId]);
     }
 
     protected function tearDown(): void
     {
-        $this->pdo->prepare('DELETE FROM checklist_templates WHERE job_type_id = :jt')
-            ->execute([':jt' => $this->jobTypeId]);
-        $this->pdo->prepare('DELETE FROM job_types WHERE id = :id')
-            ->execute([':id' => $this->jobTypeId]);
+        if ($this->pdo->inTransaction()) {
+            $this->pdo->rollBack();
+        }
+        parent::tearDown();
     }
 
     public function testCrudOperations(): void

@@ -18,10 +18,7 @@ final class JobChecklistUpdateTest extends TestCase
     {
         $this->pdo = getPDO();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        $this->pdo->exec('DELETE FROM job_checklist_items');
-        $this->pdo->exec('DELETE FROM jobs');
-        $this->pdo->exec('DELETE FROM customers');
+        $this->pdo->beginTransaction();
 
         $customerId   = TestDataFactory::createCustomer($this->pdo);
         $this->jobId  = TestDataFactory::createJob($this->pdo, $customerId, 'Checklist job', '2025-01-01', '09:00:00');
@@ -31,6 +28,14 @@ final class JobChecklistUpdateTest extends TestCase
         $this->item1 = (int)$this->pdo->lastInsertId();
         $st->execute([':j' => $this->jobId, ':d' => 'Second']);
         $this->item2 = (int)$this->pdo->lastInsertId();
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->pdo->inTransaction()) {
+            $this->pdo->rollBack();
+        }
+        parent::tearDown();
     }
 
     public function testBulkChecklistUpdate(): void

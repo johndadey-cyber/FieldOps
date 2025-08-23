@@ -21,15 +21,7 @@ final class TechnicianJobFlowTest extends TestCase
     {
         $this->pdo = getPDO();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        $this->pdo->exec('DELETE FROM job_completion');
-        $this->pdo->exec('DELETE FROM job_checklist_items');
-        $this->pdo->exec('DELETE FROM job_photos');
-        $this->pdo->exec('DELETE FROM job_notes');
-        $this->pdo->exec('DELETE FROM jobs');
-        $this->pdo->exec('DELETE FROM employees');
-        $this->pdo->exec('DELETE FROM people');
-        $this->pdo->exec('DELETE FROM customers');
+        $this->pdo->beginTransaction();
 
         $customerId   = TestDataFactory::createCustomer($this->pdo);
         $this->techId = TestDataFactory::createEmployee($this->pdo);
@@ -64,6 +56,14 @@ final class TechnicianJobFlowTest extends TestCase
             static fn(array $r): array => ['id' => $r['id'], 'description' => $r['description']],
             JobChecklistItem::listForJob($this->pdo, $this->jobId)
         );
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->pdo->inTransaction()) {
+            $this->pdo->rollBack();
+        }
+        parent::tearDown();
     }
 
     private function sampleImage(): string
