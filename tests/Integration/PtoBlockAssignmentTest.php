@@ -17,14 +17,17 @@ final class PtoBlockAssignmentTest extends TestCase
         parent::setUp();
         $this->pdo = createTestPdo();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        // clean tables we touch
-        $tables = ['job_employee_assignment', 'employee_availability_overrides', 'employee_availability', 'jobs', 'employees', 'people', 'customers'];
-        foreach ($tables as $t) {
-            $this->pdo->exec("DELETE FROM {$t}");
-        }
+        $this->pdo->beginTransaction();
 
         $this->api = __DIR__ . '/../../public/api/assignments/assign.php';
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->pdo->inTransaction()) {
+            $this->pdo->rollBack();
+        }
+        parent::tearDown();
     }
 
     public function testRejectsAssignmentWhenEmployeeOnPto(): void

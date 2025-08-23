@@ -16,11 +16,15 @@ final class AvailabilityExportPrintTest extends TestCase
         parent::setUp();
         $this->pdo = createTestPdo();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $this->pdo->beginTransaction();
+    }
 
-        $tables = ['employee_availability_overrides', 'employee_availability', 'employees', 'people'];
-        foreach ($tables as $t) {
-            $this->pdo->exec("DELETE FROM {$t}");
+    protected function tearDown(): void
+    {
+        if ($this->pdo->inTransaction()) {
+            $this->pdo->rollBack();
         }
+        parent::tearDown();
     }
 
     private function seed(): array

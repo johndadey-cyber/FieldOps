@@ -17,16 +17,17 @@ final class AssignmentConflictTest extends TestCase
         parent::setUp();
         $this->pdo = createTestPdo();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        // clean tables
-        $this->pdo->exec('DELETE FROM job_employee_assignment');
-        $this->pdo->exec('DELETE FROM employee_availability');
-        $this->pdo->exec('DELETE FROM jobs');
-        $this->pdo->exec('DELETE FROM employees');
-        $this->pdo->exec('DELETE FROM people');
-        $this->pdo->exec('DELETE FROM customers');
+        $this->pdo->beginTransaction();
 
         $this->api = __DIR__ . '/../../public/api/assignments/assign.php';
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->pdo->inTransaction()) {
+            $this->pdo->rollBack();
+        }
+        parent::tearDown();
     }
 
     public function testRejectsOverlappingAssignments(): void

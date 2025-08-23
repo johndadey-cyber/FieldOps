@@ -16,12 +16,15 @@ final class JobEmployeeViewTest extends TestCase
         parent::setUp();
 
         $this->pdo = createTestPdo();
+        $this->pdo->beginTransaction();
+    }
 
-        $this->pdo->exec('DELETE FROM job_employee_assignment');
-        $this->pdo->exec('DELETE FROM jobs');
-        $this->pdo->exec('DELETE FROM employees');
-        $this->pdo->exec('DELETE FROM people');
-        $this->pdo->exec('DELETE FROM customers');
+    protected function tearDown(): void
+    {
+        if ($this->pdo->inTransaction()) {
+            $this->pdo->rollBack();
+        }
+        parent::tearDown();
     }
 
     public function testViewReflectsAssignments(): void

@@ -14,11 +14,7 @@ final class AssignmentsApiTest extends TestCase
     {
         $this->pdo = createTestPdo();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        // Start clean for what we touch
-        $this->pdo->exec("DELETE FROM job_employee_assignment");
-        $this->pdo->exec("DELETE FROM jobs");
-        $this->pdo->exec("DELETE FROM customers");
+        $this->pdo->beginTransaction();
 
         // Ensure we have at least 3 employees (self-seed if not)
         $need = 3 - (int)$this->pdo->query("SELECT COUNT(*) FROM employees WHERE is_active = 1")->fetchColumn();
@@ -41,6 +37,14 @@ final class AssignmentsApiTest extends TestCase
           INSERT INTO jobs (customer_id,description,scheduled_date,scheduled_time,status,duration_minutes,created_at,updated_at)
           VALUES (LAST_INSERT_ID(),'Assignment API Job',CURDATE(),'08:30:00','scheduled',60,NOW(),NOW())
         ");
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->pdo->inTransaction()) {
+            $this->pdo->rollBack();
+        }
+        parent::tearDown();
     }
 
     /** @return int[] */

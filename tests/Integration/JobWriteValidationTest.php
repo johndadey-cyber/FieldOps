@@ -14,11 +14,17 @@ final class JobWriteValidationTest extends TestCase
     {
         $this->pdo = getPDO();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        $this->pdo->exec("DELETE FROM jobs");
-        $this->pdo->exec("DELETE FROM customers");
+        $this->pdo->beginTransaction();
 
         $this->pdo->exec("INSERT INTO customers (first_name,last_name,phone,created_at) VALUES ('Val','Customer','555-1111',NOW())");
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->pdo->inTransaction()) {
+            $this->pdo->rollBack();
+        }
+        parent::tearDown();
     }
 
     public function testValidationErrorsAreReturned(): void
