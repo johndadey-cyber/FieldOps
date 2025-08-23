@@ -26,7 +26,7 @@ final class AssignmentConflictTest extends TestCase
         $this->pdo->exec('DELETE FROM people');
         $this->pdo->exec('DELETE FROM customers');
 
-        $this->api = __DIR__ . '/../../public/api/assignments/assign.php';
+        $this->api = __DIR__ . '/../../public/api/job_assign.php';
     }
 
     public function testRejectsOverlappingAssignments(): void
