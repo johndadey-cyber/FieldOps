@@ -71,8 +71,8 @@ configure a database and seed it with minimal data so an active employee exists.
    ```sql
    INSERT INTO people (first_name, last_name, email)
    VALUES ('Test', 'Employee', 'test@example.com');
-   SET @person_id = LAST_INSERT_ID();
-   INSERT INTO employees (person_id, is_active) VALUES (@person_id, 1);
+   -- Capture the inserted ID using your database driver (e.g., $pdo->lastInsertId())
+   INSERT INTO employees (person_id, is_active) VALUES (<inserted_person_id>, 1);
    ```
 
 4. **Verify connectivity** – run the sanity check script to ensure the database is reachable

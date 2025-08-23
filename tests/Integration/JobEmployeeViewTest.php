@@ -38,8 +38,8 @@ final class JobEmployeeViewTest extends TestCase
             $this->pdo, $custId, 'Check view mirrors assignment', $date, '10:00:00', 45, 'scheduled'
         );
 
-        $stmt = $this->pdo->prepare('INSERT INTO job_employee_assignment (job_id, employee_id, assigned_at) VALUES (?,?,NOW())');
-        $stmt->execute([$jobId, $empId]);
+        $stmt = $this->pdo->prepare('INSERT INTO job_employee_assignment (job_id, employee_id, assigned_at) VALUES (?,?,?)');
+        $stmt->execute([$jobId, $empId, date('Y-m-d H:i:s')]);
 
         // Assert: row appears in view
         $q = $this->pdo->prepare('SELECT job_id, employee_id FROM job_employee WHERE job_id = ? AND employee_id = ?');

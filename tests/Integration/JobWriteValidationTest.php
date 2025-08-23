@@ -16,7 +16,10 @@ final class JobWriteValidationTest extends TestCase
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $this->pdo->beginTransaction();
 
-        $this->pdo->exec("INSERT INTO customers (first_name,last_name,phone,created_at) VALUES ('Val','Customer','555-1111',NOW())");
+        $stmt = $this->pdo->prepare(
+            "INSERT INTO customers (first_name,last_name,phone,created_at) VALUES ('Val','Customer','555-1111',:created_at)"
+        );
+        $stmt->execute([':created_at' => date('Y-m-d H:i:s')]);
     }
 
     protected function tearDown(): void
