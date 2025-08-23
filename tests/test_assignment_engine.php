@@ -44,13 +44,20 @@ if ($jobIdArg > 0 && method_exists('Job', 'getById')) {
 
 if (!$job) {
     // Try to find an upcoming job first
-    $stmt = $pdo->query("
-        SELECT id, description, scheduled_date, scheduled_time, duration_minutes
-        FROM jobs
-        WHERE TIMESTAMP(scheduled_date, scheduled_time) >= NOW()
-        ORDER BY scheduled_date ASC, scheduled_time ASC
-        LIMIT 1
-    ");
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    $sql = $driver === 'sqlite'
+        ? "SELECT id, description, scheduled_date, scheduled_time, duration_minutes
+           FROM jobs
+           WHERE datetime(scheduled_date || ' ' || scheduled_time) >= :now
+           ORDER BY scheduled_date ASC, scheduled_time ASC
+           LIMIT 1"
+        : "SELECT id, description, scheduled_date, scheduled_time, duration_minutes
+           FROM jobs
+           WHERE TIMESTAMP(scheduled_date, scheduled_time) >= :now
+           ORDER BY scheduled_date ASC, scheduled_time ASC
+           LIMIT 1";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([':now' => date('Y-m-d H:i:s')]);
     $job = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 

@@ -17,7 +17,10 @@ final class JobWriteRbacTest extends TestCase
         $this->pdo->beginTransaction();
 
         // Seed
-        $this->pdo->exec("INSERT INTO customers (first_name,last_name,phone,created_at) VALUES ('Test','Customer','555-0000',NOW())");
+        $stmt = $this->pdo->prepare(
+            "INSERT INTO customers (first_name,last_name,phone,created_at) VALUES ('Test','Customer','555-0000',:created_at)"
+        );
+        $stmt->execute([':created_at' => date('Y-m-d H:i:s')]);
     }
 
     protected function tearDown(): void

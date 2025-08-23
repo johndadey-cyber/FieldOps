@@ -20,23 +20,50 @@ final class AssignmentsApiTest extends TestCase
         $need = 3 - (int)$this->pdo->query("SELECT COUNT(*) FROM employees WHERE is_active = 1")->fetchColumn();
         if ($need > 0) {
             // Test-only: allow inserting employees without a real person row
-            $this->pdo->exec("SET FOREIGN_KEY_CHECKS=0");
-            $ins = $this->pdo->prepare("
-                INSERT INTO employees (person_id, hire_date, status, is_active, role_id, created_at, updated_at)
-                VALUES (0, CURDATE(), 'active', 1, NULL, NOW(), NOW())
-            ");
-            for ($i = 0; $i < $need; $i++) {
-                $ins->execute();
+            $driver = $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+            if ($driver === 'sqlite') {
+                $this->pdo->exec('PRAGMA foreign_keys = OFF');
+            } else {
+                $this->pdo->exec('SET FOREIGN_KEY_CHECKS=0');
             }
-            $this->pdo->exec("SET FOREIGN_KEY_CHECKS=1");
+
+            $ins = $this->pdo->prepare(
+                "INSERT INTO employees (person_id, hire_date, status, is_active, role_id, created_at, updated_at)
+                 VALUES (0, :hire_date, 'active', 1, NULL, :created_at, :updated_at)"
+            );
+            $today = date('Y-m-d');
+            $now   = date('Y-m-d H:i:s');
+            for ($i = 0; $i < $need; $i++) {
+                $ins->execute([':hire_date' => $today, ':created_at' => $now, ':updated_at' => $now]);
+            }
+
+            if ($driver === 'sqlite') {
+                $this->pdo->exec('PRAGMA foreign_keys = ON');
+            } else {
+                $this->pdo->exec('SET FOREIGN_KEY_CHECKS=1');
+            }
         }
 
         // Seed a customer + job
-        $this->pdo->exec("INSERT INTO customers (first_name,last_name,phone,created_at) VALUES ('Assign','Tester','555-2000',NOW())");
-        $this->pdo->exec("
-          INSERT INTO jobs (customer_id,description,scheduled_date,scheduled_time,status,duration_minutes,created_at,updated_at)
-          VALUES (LAST_INSERT_ID(),'Assignment API Job',CURDATE(),'08:30:00','scheduled',60,NOW(),NOW())
-        ");
+        $now   = date('Y-m-d H:i:s');
+        $today = date('Y-m-d');
+
+        $custStmt = $this->pdo->prepare(
+            "INSERT INTO customers (first_name,last_name,phone,created_at) VALUES ('Assign','Tester','555-2000',:created_at)"
+        );
+        $custStmt->execute([':created_at' => $now]);
+        $custId = (int)$this->pdo->lastInsertId();
+
+        $jobStmt = $this->pdo->prepare(
+            "INSERT INTO jobs (customer_id,description,scheduled_date,scheduled_time,status,duration_minutes,created_at,updated_at)
+             VALUES (:cust_id,'Assignment API Job',:scheduled_date,'08:30:00','scheduled',60,:created_at,:updated_at)"
+        );
+        $jobStmt->execute([
+            ':cust_id'       => $custId,
+            ':scheduled_date'=> $today,
+            ':created_at'    => $now,
+            ':updated_at'    => $now,
+        ]);
     }
 
     protected function tearDown(): void
