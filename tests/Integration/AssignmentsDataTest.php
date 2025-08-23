@@ -60,10 +60,6 @@ final class AssignmentsDataTest extends TestCase
 
     public function testReplaceAssignmentsForAJob(): void
     {
-        // Ensure we start clean for job 9101
-        $del = $this->pdo->prepare("DELETE FROM job_employee_assignment WHERE job_id = :job_id");
-        $del->execute([':job_id' => 9101]);
-
         // Insert a single assignment
         $ins = $this->pdo->prepare("
             INSERT INTO job_employee_assignment (job_id, employee_id)
@@ -94,9 +90,6 @@ final class AssignmentsDataTest extends TestCase
 
     public function testUniqueConstraintPreventsDuplicatePairs(): void
     {
-        $this->pdo->prepare("DELETE FROM job_employee_assignment WHERE job_id = :job_id")
-                  ->execute([':job_id' => 9101]);
-
         $ins = $this->pdo->prepare("
             INSERT INTO job_employee_assignment (job_id, employee_id)
             VALUES (:job_id, :employee_id)
@@ -111,8 +104,6 @@ final class AssignmentsDataTest extends TestCase
     public function testCascadeDeleteFromJobsRemovesAssignments(): void
     {
         // Seed an assignment
-        $this->pdo->prepare("DELETE FROM job_employee_assignment WHERE job_id = :job_id")
-                  ->execute([':job_id' => 9101]);
         $this->pdo->prepare("
             INSERT INTO job_employee_assignment (job_id, employee_id)
             VALUES (9101, 9302)
