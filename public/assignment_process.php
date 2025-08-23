@@ -6,6 +6,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 $pdo = getPDO();
+$driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
 
 /* ---- Read action & body (JSON or form) ---- */
 $raw = file_get_contents('php://input');
@@ -23,8 +24,9 @@ if (in_array($action, ['assign','unassign','list'], true) && (!isset($_SESSION['
 /* ---- helper: update status based on current crew ---- */
 if (!function_exists('updateJobStatus')) {
   function updateJobStatus(PDO $pdo, int $jobId): string {
-    // lock row
-    $s = $pdo->prepare("SELECT status FROM jobs WHERE id=? AND deleted_at IS NULL FOR UPDATE");
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    $lock = $driver === 'mysql' ? ' FOR UPDATE' : '';
+    $s = $pdo->prepare("SELECT status FROM jobs WHERE id=? AND deleted_at IS NULL$lock");
     $s->execute([$jobId]);
     $cur = $s->fetchColumn();
     if ($cur === false) return 'unknown';
@@ -40,7 +42,7 @@ if (!function_exists('updateJobStatus')) {
     }
 
     if ($target !== $cur) {
-      $u = $pdo->prepare("UPDATE jobs SET status=?, updated_at=NOW() WHERE id=? AND deleted_at IS NULL");
+      $u = $pdo->prepare("UPDATE jobs SET status=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND deleted_at IS NULL");
       $u->execute([$target, $jobId]);
     }
     return $target;
@@ -78,7 +80,10 @@ try {
       if ($replace) {
         $pdo->prepare('DELETE FROM job_employee_assignment WHERE job_id=?')->execute([$jobId]);
       }
-      $ins = $pdo->prepare('INSERT IGNORE INTO job_employee_assignment (job_id, employee_id, assigned_at) VALUES (?,?,NOW())');
+      $insertSql = $driver === 'sqlite'
+        ? 'INSERT OR IGNORE INTO job_employee_assignment (job_id, employee_id, assigned_at) VALUES (?,?,CURRENT_TIMESTAMP)'
+        : 'INSERT IGNORE INTO job_employee_assignment (job_id, employee_id, assigned_at) VALUES (?,?,NOW())';
+      $ins = $pdo->prepare($insertSql);
       $changed = 0;
       foreach ($empIds as $eid) {
         $ins->execute([$jobId, $eid]);
