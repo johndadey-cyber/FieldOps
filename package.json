@@ -1,0 +1,20 @@
+{
+  "name": "fieldops",
+  "version": "1.0.0",
+  "description": "FieldOps is a scheduling and job assignment application for service teams.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test:ui": "playwright test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.41.2"
+  }
+}
