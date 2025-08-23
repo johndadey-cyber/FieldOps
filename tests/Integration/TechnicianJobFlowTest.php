@@ -177,7 +177,9 @@ final class TechnicianJobFlowTest extends TestCase
             [
                 'job_id' => $this->jobId,
                 'items' => json_encode([
+                    ['id' => $this->checklistItems[0]['id'], 'completed' => true],
                     ['id' => $this->checklistItems[1]['id'], 'completed' => true],
+                    ['id' => $this->checklistItems[2]['id'], 'completed' => true],
                 ]),
             ],
             ['role' => 'technician'],
@@ -220,6 +222,13 @@ final class TechnicianJobFlowTest extends TestCase
 
         $photoCount = (int)$this->pdo->query('SELECT COUNT(*) FROM job_photos WHERE job_id=' . $this->jobId)->fetchColumn();
         $this->assertSame(2, $photoCount);
+
+        $state1 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[0]['id'])->fetchColumn();
+        $state2 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[1]['id'])->fetchColumn();
+        $state3 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[2]['id'])->fetchColumn();
+        $this->assertSame(1, $state1);
+        $this->assertSame(1, $state2);
+        $this->assertSame(1, $state3);
 
         $completedChecks = (int)$this->pdo->query('SELECT COUNT(*) FROM job_checklist_items WHERE job_id=' . $this->jobId . ' AND is_completed=1')->fetchColumn();
         $this->assertSame(3, $completedChecks);
