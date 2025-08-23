@@ -29,11 +29,36 @@ function createTestPdo(): PDO {
 }
 
 function seedSqliteSchema(PDO $pdo): void {
-    $pdo->exec('CREATE TABLE IF NOT EXISTS people (id INTEGER PRIMARY KEY AUTOINCREMENT, first_name TEXT, last_name TEXT)');
-    $pdo->exec('CREATE TABLE IF NOT EXISTS customers (id INTEGER PRIMARY KEY AUTOINCREMENT, first_name TEXT, last_name TEXT, phone TEXT)');
-    $pdo->exec('CREATE TABLE IF NOT EXISTS employees (id INTEGER PRIMARY KEY AUTOINCREMENT, person_id INTEGER, employment_type TEXT, hire_date TEXT, status TEXT, is_active INTEGER)');
-    $pdo->exec('CREATE TABLE IF NOT EXISTS jobs (id INTEGER PRIMARY KEY AUTOINCREMENT, customer_id INTEGER, description TEXT, status TEXT, scheduled_date TEXT, scheduled_time TEXT, duration_minutes INTEGER, deleted_at TEXT)');
-    $pdo->exec('CREATE TABLE IF NOT EXISTS employee_availability (id INTEGER PRIMARY KEY AUTOINCREMENT, employee_id INTEGER, day_of_week TEXT, start_time TEXT, end_time TEXT)');
-    $pdo->exec('CREATE TABLE IF NOT EXISTS job_employee_assignment (id INTEGER PRIMARY KEY AUTOINCREMENT, job_id INTEGER, employee_id INTEGER, UNIQUE(job_id, employee_id))');
-    $pdo->exec('CREATE TABLE IF NOT EXISTS job_employee (id INTEGER PRIMARY KEY AUTOINCREMENT, job_id INTEGER, employee_id INTEGER, UNIQUE(job_id, employee_id))');
+    $dir = __DIR__ . '/../migrations';
+    if (!is_dir($dir)) {
+        return;
+    }
+
+    $files = glob($dir . '/*.sql');
+    sort($files);
+
+    foreach ($files as $file) {
+        $sql = file_get_contents($file);
+        if ($sql === false) {
+            continue;
+        }
+
+        $sql = preg_replace('/\bUNSIGNED\b/i', '', $sql);
+        $sql = preg_replace('/(\w+)\s+INT\s+(?:UNSIGNED\s+)?(?:NOT\s+NULL\s+)?AUTO_INCREMENT\s+PRIMARY\s+KEY/i', '$1 INTEGER PRIMARY KEY AUTOINCREMENT', $sql);
+        $sql = preg_replace('/UNIQUE KEY\s+\w+\s*\(([^)]+)\)/i', 'UNIQUE ($1)', $sql);
+        $sql = preg_replace('/ON DUPLICATE KEY UPDATE[^;]*/i', '', $sql);
+        $sql = preg_replace('/\)\s*ENGINE=InnoDB[^;]*;/i', ');', $sql);
+
+        $statements = array_filter(array_map('trim', explode(';', $sql)));
+        foreach ($statements as $statement) {
+            if ($statement === '') {
+                continue;
+            }
+            try {
+                $pdo->exec($statement);
+            } catch (PDOException $e) {
+                // Skip statements that SQLite cannot execute
+            }
+        }
+    }
 }
