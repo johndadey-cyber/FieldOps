@@ -104,4 +104,5 @@ if (empty($uploaded)) {
     return;
 }
 
-JsonResponse::json(['ok' => true, 'photos' => $uploaded]);
+$status = $pdo->query('SELECT status FROM jobs WHERE id=' . $jobId)->fetchColumn();
+JsonResponse::json(['ok' => true, 'photos' => $uploaded, 'status' => $status]);

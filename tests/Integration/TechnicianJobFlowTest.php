@@ -113,8 +113,9 @@ final class TechnicianJobFlowTest extends TestCase
         );
         $this->assertTrue($start['ok'] ?? false);
         $this->assertSame('in_progress', $start['status'] ?? null);
-        $startedAt = $this->pdo->query('SELECT started_at FROM jobs WHERE id=' . $this->jobId)->fetchColumn();
-        $this->assertNotNull($startedAt);
+        $row = $this->pdo->query('SELECT status, started_at FROM jobs WHERE id=' . $this->jobId)->fetch(PDO::FETCH_ASSOC);
+        $this->assertSame('in_progress', $row['status']);
+        $this->assertNotNull($row['started_at']);
 
         $note = EndpointHarness::run(
             __DIR__ . '/../../public/api/job_notes_add.php',
@@ -126,8 +127,11 @@ final class TechnicianJobFlowTest extends TestCase
             ['role' => 'technician']
         );
         $this->assertTrue($note['ok'] ?? false);
+        $this->assertSame('in_progress', $note['status'] ?? null);
         $noteCount = (int)$this->pdo->query('SELECT COUNT(*) FROM job_notes WHERE job_id=' . $this->jobId)->fetchColumn();
         $this->assertSame(1, $noteCount);
+        $status = $this->pdo->query('SELECT status FROM jobs WHERE id=' . $this->jobId)->fetchColumn();
+        $this->assertSame('in_progress', $status);
 
         $f = $this->sampleUpload();
         $_FILES = ['photos' => [
@@ -148,8 +152,11 @@ final class TechnicianJobFlowTest extends TestCase
         );
         unset($_FILES);
         $this->assertTrue($photo['ok'] ?? false);
+        $this->assertSame('in_progress', $photo['status'] ?? null);
         $photoCount = (int)$this->pdo->query('SELECT COUNT(*) FROM job_photos WHERE job_id=' . $this->jobId)->fetchColumn();
         $this->assertSame(1, $photoCount);
+        $status = $this->pdo->query('SELECT status FROM jobs WHERE id=' . $this->jobId)->fetchColumn();
+        $this->assertSame('in_progress', $status);
 
         // Fetch checklist items for the job
         $list = EndpointHarness::run(
@@ -173,12 +180,15 @@ final class TechnicianJobFlowTest extends TestCase
             ['role' => 'technician']
         );
         $this->assertTrue($batch['ok'] ?? false);
+        $this->assertSame('in_progress', $batch['status'] ?? null);
         $state1 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[0]['id'])->fetchColumn();
         $state2 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[1]['id'])->fetchColumn();
         $state3 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[2]['id'])->fetchColumn();
         $this->assertSame(1, $state1);
         $this->assertSame(1, $state2);
         $this->assertSame(0, $state3);
+        $status = $this->pdo->query('SELECT status FROM jobs WHERE id=' . $this->jobId)->fetchColumn();
+        $this->assertSame('in_progress', $status);
 
         // Simulate offline queue replay with further changes
         $replay = EndpointHarness::run(
@@ -193,12 +203,15 @@ final class TechnicianJobFlowTest extends TestCase
             ['role' => 'technician']
         );
         $this->assertTrue($replay['ok'] ?? false);
+        $this->assertSame('in_progress', $replay['status'] ?? null);
         $state1 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[0]['id'])->fetchColumn();
         $state2 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[1]['id'])->fetchColumn();
         $state3 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[2]['id'])->fetchColumn();
         $this->assertSame(1, $state1);
         $this->assertSame(0, $state2);
         $this->assertSame(1, $state3);
+        $status = $this->pdo->query('SELECT status FROM jobs WHERE id=' . $this->jobId)->fetchColumn();
+        $this->assertSame('in_progress', $status);
 
         // Completing with an incomplete checklist should be rejected
         $img = $this->sampleImage();
@@ -239,12 +252,15 @@ final class TechnicianJobFlowTest extends TestCase
             ['role' => 'technician'],
         );
         $this->assertTrue($final['ok'] ?? false);
+        $this->assertSame('in_progress', $final['status'] ?? null);
         $state1 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[0]['id'])->fetchColumn();
         $state2 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[1]['id'])->fetchColumn();
         $state3 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[2]['id'])->fetchColumn();
         $this->assertSame(1, $state1);
         $this->assertSame(1, $state2);
         $this->assertSame(1, $state3);
+        $status = $this->pdo->query('SELECT status FROM jobs WHERE id=' . $this->jobId)->fetchColumn();
+        $this->assertSame('in_progress', $status);
 
         $img = $this->sampleImage();
         $complete = EndpointHarness::run(
