@@ -24,7 +24,9 @@ final class JobWriteRbacTest extends TestCase
     }
 
     /**
-     * @dataProvider forbiddenRoleProvider
+     * Ensure non-dispatcher roles cannot create jobs.
+     *
+     * @dataProvider nonDispatcherRoleProvider
      */
     public function testNonDispatcherCannotCreate(array $session): void
     {
@@ -48,12 +50,12 @@ final class JobWriteRbacTest extends TestCase
         $this->assertSame($before, $after, 'Job count should remain unchanged for unauthorized roles');
     }
 
-    public static function forbiddenRoleProvider(): array
+    public static function nonDispatcherRoleProvider(): array
     {
         return [
-            'technician' => [['role' => 'technician']],
-            'customer'   => [['role' => 'customer']],
-            'guest'      => [[]],
+            'technician'       => [['role' => 'technician']],
+            'customer'         => [['role' => 'customer']],
+            'unauthenticated'  => [[]],
         ];
     }
 
