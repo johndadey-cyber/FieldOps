@@ -23,9 +23,13 @@ final class JobWriteRbacTest extends TestCase
         $this->pdo->exec("INSERT INTO customers (first_name,last_name,phone,created_at) VALUES ('Test','Customer','555-0000',NOW())");
     }
 
-    public function testNonDispatcherCannotCreate(): void
+    /**
+     * @dataProvider forbiddenRoleProvider
+     */
+    public function testNonDispatcherCannotCreate(array $session): void
     {
         $customerId = (int)$this->pdo->query("SELECT id FROM customers LIMIT 1")->fetchColumn();
+        $before = (int)$this->pdo->query('SELECT COUNT(*) FROM jobs')->fetchColumn();
 
         $res = EndpointHarness::run(__DIR__ . '/../../public/job_save.php', [
             'customer_id'    => $customerId,
@@ -34,12 +38,23 @@ final class JobWriteRbacTest extends TestCase
             'scheduled_time' => '10:00',
             'status'         => 'scheduled',
             'skills'         => [1],
-        ], [
-            'role' => 'field_tech',
-        ]);
+        ], $session);
+
+        $after = (int)$this->pdo->query('SELECT COUNT(*) FROM jobs')->fetchColumn();
 
         $this->assertFalse($res['ok'] ?? true);
         $this->assertSame(403, $res['code'] ?? 0);
+        $this->assertSame('Forbidden', $res['error'] ?? '');
+        $this->assertSame($before, $after, 'Job count should remain unchanged for unauthorized roles');
+    }
+
+    public static function forbiddenRoleProvider(): array
+    {
+        return [
+            'technician' => [['role' => 'technician']],
+            'customer'   => [['role' => 'customer']],
+            'guest'      => [[]],
+        ];
     }
 
     public function testMissingCsrfIsRejected(): void
