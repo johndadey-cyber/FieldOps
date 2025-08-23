@@ -8,7 +8,7 @@ $host = getenv('DB_HOST') ?: '127.0.0.1';
 $port = getenv('DB_PORT') ?: '3306';
 $db   = getenv('DB_NAME') ?: 'fieldops_integration';
 $user = getenv('DB_USER') ?: 'root';
-$pass = getenv('DB_PASS') ?: 'root';
+$pass = getenv('DB_PASS') ?: '1234!@#$';
 
 try {
     $pdo = new PDO("mysql:host={$host};port={$port};dbname={$db};charset=utf8mb4", $user, $pass, [

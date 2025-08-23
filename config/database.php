@@ -26,11 +26,11 @@ if (!function_exists('getPDO')) {
         // Defaults (MAMP-friendly)
         $cfg = [
             'DB_HOST' => '127.0.0.1',
-            'DB_PORT' => '8889',
+            'DB_PORT' => '3306',
             // Default to the integration DB in tests, otherwise use the development DB
             'DB_NAME' => getenv('APP_ENV') === 'test' ? 'fieldops_integration' : 'fieldops_development',
             'DB_USER' => 'root',
-            'DB_PASS' => 'root',
+            'DB_PASS' => '1234!@#$',
             'APP_ENV' => getenv('APP_ENV') ?: 'dev',
         ];
 
