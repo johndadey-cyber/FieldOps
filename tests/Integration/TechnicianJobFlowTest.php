@@ -168,48 +168,51 @@ final class TechnicianJobFlowTest extends TestCase
         $this->assertCount(count($this->checklistItems), $list['items'] ?? []);
 
         // Batch update two items (online)
+        $batchItems = [];
+        foreach (array_slice($this->checklistItems, 0, 2) as $item) {
+            $batchItems[] = ['id' => $item['id'], 'completed' => true];
+        }
         $batch = EndpointHarness::run(
             __DIR__ . '/../../public/api/job_checklist_update.php',
             [
                 'job_id' => $this->jobId,
-                'items' => json_encode([
-                    ['id' => $this->checklistItems[0]['id'], 'completed' => true],
-                    ['id' => $this->checklistItems[1]['id'], 'completed' => true],
-                ]),
+                'items' => json_encode($batchItems),
             ],
             ['role' => 'technician']
         );
         $this->assertTrue($batch['ok'] ?? false);
         $this->assertSame('in_progress', $batch['status'] ?? null);
-        $state1 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[0]['id'])->fetchColumn();
-        $state2 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[1]['id'])->fetchColumn();
-        $state3 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[2]['id'])->fetchColumn();
-        $this->assertSame(1, $state1);
-        $this->assertSame(1, $state2);
-        $this->assertSame(0, $state3);
+        foreach ($this->checklistItems as $i => $item) {
+            $state = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $item['id'])->fetchColumn();
+            $this->assertSame($i < 2 ? 1 : 0, $state);
+        }
         $status = $this->pdo->query('SELECT status FROM jobs WHERE id=' . $this->jobId)->fetchColumn();
         $this->assertSame('in_progress', $status);
 
         // Simulate offline queue replay with further changes
+        $replayItems = [];
+        foreach ($this->checklistItems as $i => $item) {
+            if ($i === 1) {
+                $replayItems[] = ['id' => $item['id'], 'completed' => false];
+            } elseif ($i === 2) {
+                $replayItems[] = ['id' => $item['id'], 'completed' => true];
+            }
+        }
         $replay = EndpointHarness::run(
             __DIR__ . '/../../public/api/job_checklist_update.php',
             [
                 'job_id' => $this->jobId,
-                'items' => json_encode([
-                    ['id' => $this->checklistItems[1]['id'], 'completed' => false],
-                    ['id' => $this->checklistItems[2]['id'], 'completed' => true],
-                ]),
+                'items' => json_encode($replayItems),
             ],
             ['role' => 'technician']
         );
         $this->assertTrue($replay['ok'] ?? false);
         $this->assertSame('in_progress', $replay['status'] ?? null);
-        $state1 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[0]['id'])->fetchColumn();
-        $state2 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[1]['id'])->fetchColumn();
-        $state3 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[2]['id'])->fetchColumn();
-        $this->assertSame(1, $state1);
-        $this->assertSame(0, $state2);
-        $this->assertSame(1, $state3);
+        foreach ($this->checklistItems as $i => $item) {
+            $state = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $item['id'])->fetchColumn();
+            $expected = $i === 0 || $i === 2 ? 1 : 0;
+            $this->assertSame($expected, $state);
+        }
         $status = $this->pdo->query('SELECT status FROM jobs WHERE id=' . $this->jobId)->fetchColumn();
         $this->assertSame('in_progress', $status);
 
@@ -239,26 +242,24 @@ final class TechnicianJobFlowTest extends TestCase
         $this->assertSame(0, $sigCount);
 
         // Final sync to complete all checklist items
+        $finalItems = [];
+        foreach ($this->checklistItems as $item) {
+            $finalItems[] = ['id' => $item['id'], 'completed' => true];
+        }
         $final = EndpointHarness::run(
             __DIR__ . '/../../public/api/job_checklist_update.php',
             [
                 'job_id' => $this->jobId,
-                'items' => json_encode([
-                    ['id' => $this->checklistItems[0]['id'], 'completed' => true],
-                    ['id' => $this->checklistItems[1]['id'], 'completed' => true],
-                    ['id' => $this->checklistItems[2]['id'], 'completed' => true],
-                ]),
+                'items' => json_encode($finalItems),
             ],
             ['role' => 'technician'],
         );
         $this->assertTrue($final['ok'] ?? false);
         $this->assertSame('in_progress', $final['status'] ?? null);
-        $state1 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[0]['id'])->fetchColumn();
-        $state2 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[1]['id'])->fetchColumn();
-        $state3 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[2]['id'])->fetchColumn();
-        $this->assertSame(1, $state1);
-        $this->assertSame(1, $state2);
-        $this->assertSame(1, $state3);
+        foreach ($this->checklistItems as $item) {
+            $state = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $item['id'])->fetchColumn();
+            $this->assertSame(1, $state);
+        }
         $status = $this->pdo->query('SELECT status FROM jobs WHERE id=' . $this->jobId)->fetchColumn();
         $this->assertSame('in_progress', $status);
 
@@ -294,14 +295,12 @@ final class TechnicianJobFlowTest extends TestCase
         $completionCount = (int)$this->pdo->query('SELECT COUNT(*) FROM job_completion WHERE job_id=' . $this->jobId)->fetchColumn();
         $this->assertSame(1, $completionCount);
 
-        $state1 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[0]['id'])->fetchColumn();
-        $state2 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[1]['id'])->fetchColumn();
-        $state3 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[2]['id'])->fetchColumn();
-        $this->assertSame(1, $state1);
-        $this->assertSame(1, $state2);
-        $this->assertSame(1, $state3);
+        foreach ($this->checklistItems as $item) {
+            $state = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $item['id'])->fetchColumn();
+            $this->assertSame(1, $state);
+        }
 
         $completedChecks = (int)$this->pdo->query('SELECT COUNT(*) FROM job_checklist_items WHERE job_id=' . $this->jobId . ' AND is_completed=1')->fetchColumn();
-        $this->assertSame(3, $completedChecks);
+        $this->assertSame(count($this->checklistItems), $completedChecks);
     }
 }
