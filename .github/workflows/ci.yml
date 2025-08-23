@@ -62,5 +62,21 @@ jobs:
           DB_NAME: fieldops_integration
           DB_USER: root
           DB_PASS: '1234!@#$'
-
         run: vendor/bin/phpunit
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install UI test dependencies
+        run: npm install
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+      - name: Run UI smoke tests
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: fieldops_integration
+          DB_USER: root
+          DB_PASS: '1234!@#$'
+          APP_ENV: dev
+        run: npm run test:ui
