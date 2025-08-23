@@ -88,6 +88,14 @@ if (!function_exists('getPDO')) {
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                     PDO::ATTR_EMULATE_PREPARES   => false,
                 ]);
+                if (str_starts_with($dsnOverride, 'sqlite:')) {
+                    require_once __DIR__ . '/../tests/support/TestPdo.php';
+                    $exists = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='people'")
+                        ->fetchColumn();
+                    if (!$exists) {
+                        seedSqliteSchema($pdo);
+                    }
+                }
                 return $pdo;
             } catch (PDOException $e) {
                 throw new PDOException('DB connection failed: ' . $e->getMessage(), (int)$e->getCode());
