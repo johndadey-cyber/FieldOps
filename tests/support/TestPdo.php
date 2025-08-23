@@ -8,6 +8,7 @@ function createTestPdo(): PDO {
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         if (str_starts_with($dsn, 'sqlite:')) {
+            $pdo->setAttribute(PDO::ATTR_TIMEOUT, 5);
             $pdo->exec('PRAGMA foreign_keys = ON');
             seedSqliteSchema($pdo);
         }

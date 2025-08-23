@@ -83,11 +83,15 @@ if (!function_exists('getPDO')) {
             $user = str_starts_with($dsnOverride, 'sqlite:') ? null : $cfg['DB_USER'];
             $pass = str_starts_with($dsnOverride, 'sqlite:') ? null : $cfg['DB_PASS'];
             try {
-                $pdo = new PDO($dsnOverride, $user ?? '', $pass ?? '', [
+                $options = [
                     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                     PDO::ATTR_EMULATE_PREPARES   => false,
-                ]);
+                ];
+                if (str_starts_with($dsnOverride, 'sqlite:')) {
+                    $options[PDO::ATTR_TIMEOUT] = 5;
+                }
+                $pdo = new PDO($dsnOverride, $user ?? '', $pass ?? '', $options);
                 if (str_starts_with($dsnOverride, 'sqlite:')) {
                     require_once __DIR__ . '/../tests/support/TestPdo.php';
                     $exists = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='people'")
