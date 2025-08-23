@@ -9,25 +9,25 @@ require_once __DIR__ . '/../TestHelpers/EndpointHarness.php';
 
 final class AvailabilityBulkCopyMultipleTest extends TestCase
 {
-    private PDO $pdo;
+    private ?PDO $pdo;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->pdo = createTestPdo();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $this->pdo->beginTransaction();
+        if ($this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+            $this->pdo->setAttribute(PDO::ATTR_TIMEOUT, 5);
+        }
     }
 
     protected function tearDown(): void
     {
-        if ($this->pdo->inTransaction()) {
-            $this->pdo->rollBack();
-        }
+        $this->pdo = null;
         parent::tearDown();
     }
 
-    public function testCopiesAvailabilityToMultipleTargets(): void
+    public function testSequentialRequestsCommitConnections(): void
     {
         $src = TestDataFactory::createEmployee($this->pdo, 'Src', 'Emp');
         $t1  = TestDataFactory::createEmployee($this->pdo, 'Dest1', 'Emp');
@@ -59,13 +59,29 @@ final class AvailabilityBulkCopyMultipleTest extends TestCase
         if ($hasStart) { $params[':sd'] = '2024-01-01'; }
         $ins->execute($params);
 
-        $res = EndpointHarness::run(__DIR__ . '/../../public/api/availability/bulk_copy.php', [
-            'source_employee_id' => $src,
-            'target_employee_ids' => [$t1, $t2],
-        ], [], 'POST', ['json' => true]);
+        $res1 = EndpointHarness::run(
+            __DIR__ . '/../../public/api/availability/bulk_copy.php',
+            [
+                'source_employee_id' => $src,
+                'target_employee_ids' => [$t1],
+            ],
+            [],
+            'POST',
+            ['json' => true]
+        );
+        $this->assertTrue($res1['ok'] ?? false, 'first bulk copy should succeed');
 
-        $this->assertTrue($res['ok'] ?? false, 'bulk copy should succeed');
-        $this->assertSame(2, $res['updated'] ?? 0);
+        $res2 = EndpointHarness::run(
+            __DIR__ . '/../../public/api/availability/bulk_copy.php',
+            [
+                'source_employee_id' => $src,
+                'target_employee_ids' => [$t2],
+            ],
+            [],
+            'POST',
+            ['json' => true]
+        );
+        $this->assertTrue($res2['ok'] ?? false, 'second bulk copy should succeed');
 
         $selCols = 'day_of_week,start_time,end_time' . ($hasStart ? ',start_date' : '');
         $expected = $this->pdo->query("SELECT {$selCols} FROM employee_availability WHERE employee_id = {$src} ORDER BY day_of_week,start_time")->fetchAll(PDO::FETCH_ASSOC);

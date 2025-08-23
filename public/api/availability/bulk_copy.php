@@ -40,17 +40,32 @@ if ($targets === []) {
 /**
  * Determine if employee_availability.start_date exists.
  */
-function has_start_date(PDO $pdo): bool {
-    static $has = null;
-    if ($has !== null) return $has;
-    try {
-        $row = $pdo->query("SHOW COLUMNS FROM employee_availability LIKE 'start_date'")
-            ->fetch(PDO::FETCH_ASSOC);
-        $has = $row !== false;
-    } catch (Throwable $e) {
-        $has = false;
+if (!function_exists('has_start_date')) {
+    function has_start_date(PDO $pdo): bool {
+        static $has = null;
+        if ($has !== null) return $has;
+        try {
+            $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+            if ($driver === 'sqlite') {
+                $cols = $pdo->query("PRAGMA table_info(employee_availability)")
+                    ->fetchAll(PDO::FETCH_ASSOC);
+                $has = false;
+                foreach ($cols as $col) {
+                    if (strcasecmp($col['name'] ?? '', 'start_date') === 0) {
+                        $has = true;
+                        break;
+                    }
+                }
+            } else {
+                $row = $pdo->query("SHOW COLUMNS FROM employee_availability LIKE 'start_date'")
+                    ->fetch(PDO::FETCH_ASSOC);
+                $has = $row !== false;
+            }
+        } catch (Throwable $e) {
+            $has = false;
+        }
+        return $has;
     }
-    return $has;
 }
 
 $pdo = null;
@@ -89,4 +104,8 @@ try {
     error_log('[bulk_copy] '.$e->getMessage());
     http_response_code(500);
     echo json_encode(['ok'=>false,'error'=>'server_error']);
+} finally {
+    if (isset($pdo)) {
+        $pdo = null;
+    }
 }
