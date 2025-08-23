@@ -13,6 +13,18 @@ The employees view displays a badge describing each worker's schedule status. Th
 
 These badges mirror the `status` and `summary` computed in `Availability::statusForEmployeesOnDate`.
 
+## Testing Setup
+
+The test suite expects a MySQL service running on port `3306` with the root
+password `1234!@#$`. A quick way to start one is with Docker:
+
+```
+docker run --name fieldops-mysql -e MYSQL_ROOT_PASSWORD='1234!@#$' -p 3306:3306 -d mysql:8
+```
+
+If you use a different port or password, set `DB_PORT` and `DB_PASS` in your
+environment to match the running service.
+
 ## Development Database
 
 To keep development data separate from integration tests, create a local MySQL
