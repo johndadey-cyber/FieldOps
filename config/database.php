@@ -56,6 +56,20 @@ if (!function_exists('getPDO')) {
             }
         }
 
+        // Integration test overrides
+        $testEnv = __DIR__ . '/test.env.php';
+        if ($cfg['APP_ENV'] === 'test' && is_file($testEnv)) {
+            $ret = require $testEnv;
+
+            if (is_array($ret)) {
+                foreach (['DB_HOST','DB_PORT','DB_NAME','DB_USER','DB_PASS'] as $k) {
+                    if (array_key_exists($k, $ret) && $ret[$k] !== '' && $ret[$k] !== null) {
+                        $cfg[$k] = (string)$ret[$k];
+                    }
+                }
+            }
+        }
+
         // Env var overrides (final say)
         foreach (['DB_HOST','DB_PORT','DB_NAME','DB_USER','DB_PASS','APP_ENV'] as $k) {
             $v = getenv($k);
