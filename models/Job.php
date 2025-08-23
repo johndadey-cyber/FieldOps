@@ -163,6 +163,30 @@ final class Job
      */
     public static function start(PDO $pdo, int $jobId, ?float $lat, ?float $lng): bool
     {
+        // Enforce scheduled window: job must not start before its scheduled
+        // time and must be started before the expected end time (scheduled
+        // time + duration). If either check fails, return false so callers can
+        // respond with a validation error.
+        $st = $pdo->prepare('SELECT scheduled_date, scheduled_time, duration_minutes FROM jobs WHERE id = :id AND deleted_at IS NULL');
+        if ($st === false) {
+            return false;
+        }
+        $st->execute([':id' => $jobId]);
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+        if ($row === false) {
+            return false;
+        }
+
+        $schedAt = strtotime($row['scheduled_date'] . ' ' . $row['scheduled_time']);
+        $duration = isset($row['duration_minutes']) ? (int)$row['duration_minutes'] : 0;
+        $now      = time();
+        if ($schedAt !== false) {
+            $end = $duration > 0 ? $schedAt + $duration * 60 : null;
+            if ($now < $schedAt || ($end !== null && $now > $end)) {
+                return false;
+            }
+        }
+
         $st = $pdo->prepare(
             'UPDATE jobs
              SET status = "in_progress", started_at = NOW(), location_lat = :lat, location_lng = :lng, updated_at = NOW()

@@ -13,6 +13,7 @@ final class TechnicianJobFlowTest extends TestCase
     private PDO $pdo;
     private int $jobId;
     private int $techId;
+    private int $futureJobId;
     /** @var list<array{id:int,description:string}> */
     private array $checklistItems = [];
 
@@ -32,12 +33,26 @@ final class TechnicianJobFlowTest extends TestCase
 
         $customerId   = TestDataFactory::createCustomer($this->pdo);
         $this->techId = TestDataFactory::createEmployee($this->pdo);
+
+        // Main job scheduled slightly in the past so it can be started
         $this->jobId = TestDataFactory::createJob(
             $this->pdo,
             $customerId,
             'Technician flow job',
-            '2025-01-01',
-            '09:00:00',
+            date('Y-m-d'),
+            date('H:i:s', time() - 300),
+            60,
+            'assigned',
+            $this->techId
+        );
+
+        // Future job used to test starting outside the scheduled window
+        $this->futureJobId = TestDataFactory::createJob(
+            $this->pdo,
+            $customerId,
+            'Future job',
+            date('Y-m-d', time() + 86400),
+            date('H:i:s'),
             60,
             'assigned',
             $this->techId
@@ -73,6 +88,20 @@ final class TechnicianJobFlowTest extends TestCase
 
     public function testTechnicianJobFlow(): void
     {
+        // Attempting to start a job before its scheduled time should fail
+        $early = EndpointHarness::run(
+            __DIR__ . '/../../public/api/job_start.php',
+            [
+                'job_id' => $this->futureJobId,
+                'location_lat' => '1',
+                'location_lng' => '2',
+            ],
+            ['role' => 'technician', 'user' => ['id' => $this->techId]]
+        );
+        $this->assertFalse($early['ok'] ?? true);
+        $futureStatus = $this->pdo->query('SELECT status FROM jobs WHERE id=' . $this->futureJobId)->fetchColumn();
+        $this->assertSame('assigned', $futureStatus);
+
         $start = EndpointHarness::run(
             __DIR__ . '/../../public/api/job_start.php',
             [
@@ -171,6 +200,31 @@ final class TechnicianJobFlowTest extends TestCase
         $this->assertSame(0, $state2);
         $this->assertSame(1, $state3);
 
+        // Completing with an incomplete checklist should be rejected
+        $img = $this->sampleImage();
+        $fail = EndpointHarness::run(
+            __DIR__ . '/../../public/api/job_complete.php',
+            [
+                'job_id' => $this->jobId,
+                'technician_id' => $this->techId,
+                'location_lat' => '1',
+                'location_lng' => '2',
+                'final_note' => 'All done',
+                'final_photos' => [$img],
+                'signature' => $img,
+            ],
+            ['role' => 'technician']
+        );
+        $this->assertFalse($fail['ok'] ?? true);
+        $status = $this->pdo->query('SELECT status FROM jobs WHERE id=' . $this->jobId)->fetchColumn();
+        $this->assertSame('in_progress', $status);
+        $noteCount = (int)$this->pdo->query('SELECT COUNT(*) FROM job_notes WHERE job_id=' . $this->jobId)->fetchColumn();
+        $this->assertSame(1, $noteCount);
+        $photoCount = (int)$this->pdo->query('SELECT COUNT(*) FROM job_photos WHERE job_id=' . $this->jobId)->fetchColumn();
+        $this->assertSame(1, $photoCount);
+        $sigCount = (int)$this->pdo->query('SELECT COUNT(*) FROM job_completion WHERE job_id=' . $this->jobId)->fetchColumn();
+        $this->assertSame(0, $sigCount);
+
         // Final sync to complete all checklist items
         $final = EndpointHarness::run(
             __DIR__ . '/../../public/api/job_checklist_update.php',
@@ -191,7 +245,6 @@ final class TechnicianJobFlowTest extends TestCase
         $this->assertSame(1, $state1);
         $this->assertSame(1, $state2);
         $this->assertSame(1, $state3);
-
 
         $img = $this->sampleImage();
         $complete = EndpointHarness::run(
@@ -222,6 +275,8 @@ final class TechnicianJobFlowTest extends TestCase
 
         $photoCount = (int)$this->pdo->query('SELECT COUNT(*) FROM job_photos WHERE job_id=' . $this->jobId)->fetchColumn();
         $this->assertSame(2, $photoCount);
+        $completionCount = (int)$this->pdo->query('SELECT COUNT(*) FROM job_completion WHERE job_id=' . $this->jobId)->fetchColumn();
+        $this->assertSame(1, $completionCount);
 
         $state1 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[0]['id'])->fetchColumn();
         $state2 = (int)$this->pdo->query('SELECT is_completed FROM job_checklist_items WHERE id=' . $this->checklistItems[1]['id'])->fetchColumn();
