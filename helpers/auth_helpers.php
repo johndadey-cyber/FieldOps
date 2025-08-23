@@ -4,6 +4,8 @@ declare(strict_types=1);
 // Load dependencies defensively with absolute paths.
 require_once __DIR__ . '/JsonResponse.php';
 require_once __DIR__ . '/ErrorCodes.php';
+require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../config/database.php';
 
 // Final fallback: if JsonResponse/ErrorCodes aren't loaded for any reason,
 // provide minimal shims so we never fatal during tests.
@@ -43,6 +45,13 @@ if (!function_exists('current_role')) {
 if (!function_exists('require_role')) {
     function require_role(string $role): void {
         if (current_role() !== $role) {
+            try {
+                $pdo = getPDO();
+                $uid = $_SESSION['user']['id'] ?? null;
+                AuditLog::insert($pdo, $uid, 'rbac_denied', ['required' => $role, 'current' => current_role()]);
+            } catch (Throwable) {
+                // ignore audit errors
+            }
             \JsonResponse::json(['ok' => false, 'error' => 'Forbidden', 'code' => \ErrorCodes::FORBIDDEN], 403);
             exit;
         }

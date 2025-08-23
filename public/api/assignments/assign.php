@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 header('Content-Type: application/json');
 
+if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
+require_once dirname(__DIR__, 3) . '/models/AuditLog.php';
+
 // Centralized logging so deploys can inspect failures.  The closure is cheap and
 // allows us to reference the log file without sprinkling error_log calls.
 $__assignLogFile = dirname(__DIR__, 3) . '/logs/assign_error.log';
@@ -263,6 +266,13 @@ $upd->execute([':jobId' => $jobId]);
 $rowsUpdated = $upd->rowCount(); // might be 0 if status already 'assigned' or no matches
 
 $pdo->commit();
+
+try {
+    $uid = $_SESSION['user']['id'] ?? null;
+    AuditLog::insert($pdo, $uid, 'assign', ['job_id' => $jobId, 'employee_ids' => $employeeIds]);
+} catch (Throwable $e) {
+    // ignore audit failures
+}
 
 echo json_encode([
     'ok'            => true,
