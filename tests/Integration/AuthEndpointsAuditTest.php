@@ -16,15 +16,8 @@ final class AuthEndpointsAuditTest extends TestCase
     {
         $this->pdo = createTestPdo();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        // Users table is provided by migrations; audit_log requires manual setup in SQLite.
-        $this->pdo->exec('CREATE TABLE IF NOT EXISTS audit_log (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INT NULL,
-            action TEXT NOT NULL,
-            details TEXT NULL,
-            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )');
-        // Ensure a clean state for each test run.
+
+
         $this->pdo->exec('DELETE FROM audit_log');
         $this->pdo->exec('DELETE FROM users');
     }
