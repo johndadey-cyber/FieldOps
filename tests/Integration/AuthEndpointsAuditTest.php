@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
@@ -15,6 +16,8 @@ final class AuthEndpointsAuditTest extends TestCase
     {
         $this->pdo = createTestPdo();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+
         $this->pdo->exec('DELETE FROM audit_log');
         $this->pdo->exec('DELETE FROM users');
     }
