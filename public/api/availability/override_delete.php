@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require dirname(__DIR__, 2) . '/_cli_guard.php';
+
 /**
  * DELETE /api/availability/override_delete.php?id=123
  * Remove an override by id.

@@ -2,6 +2,8 @@
 // /public/api/assignments/assign.php
 declare(strict_types=1);
 
+require dirname(__DIR__, 2) . '/_cli_guard.php';
+
 header('Content-Type: application/json');
 
 if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }

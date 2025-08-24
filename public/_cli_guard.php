@@ -36,3 +36,6 @@ if (PHP_SAPI === 'cli') {
         return;
     }
 }
+
+// Initialize session handling for web requests
+require_once __DIR__ . '/../helpers/session.php';
