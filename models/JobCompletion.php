@@ -7,10 +7,13 @@ final class JobCompletion
      */
     public static function save(PDO $pdo, int $jobId, string $signaturePath): bool
     {
-        $st = $pdo->prepare(
-            'INSERT INTO job_completion (job_id, signature_path) VALUES (:jid, :sp)
-             ON DUPLICATE KEY UPDATE signature_path = VALUES(signature_path)'
-        );
+        $sql = 'INSERT INTO job_completion (job_id, signature_path) VALUES (:jid, :sp)';
+        if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+            $sql .= ' ON CONFLICT(job_id) DO UPDATE SET signature_path=excluded.signature_path';
+        } else {
+            $sql .= ' ON DUPLICATE KEY UPDATE signature_path = VALUES(signature_path)';
+        }
+        $st = $pdo->prepare($sql);
         if ($st === false) {
             return false;
         }
