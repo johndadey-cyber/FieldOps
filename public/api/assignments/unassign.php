@@ -27,21 +27,28 @@ if ($jobId <= 0 || $employeeId <= 0) {
 }
 
 try {
-    $pdo = get_pdo();
+    $pdo = getPDO();
     $pdo->beginTransaction();
 
     $del = $pdo->prepare("DELETE FROM job_employee_assignment WHERE job_id=:j AND employee_id=:e");
     $del->execute([':j'=>$jobId, ':e'=>$employeeId]);
 
     // If no crew remains and job hasn't started, revert to scheduled
-    $pdo->prepare(
-        "UPDATE jobs j
-         SET j.status='scheduled', j.status_updated_at=NOW()
-         WHERE j.id=:j
-           AND j.status='assigned'
-           AND j.deleted_at IS NULL
-           AND NOT EXISTS (SELECT 1 FROM job_employee_assignment a WHERE a.job_id=j.id)"
-    )->execute([':j'=>$jobId]);
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    $sql = ($driver === 'sqlite')
+        ? "UPDATE jobs
+            SET status='scheduled', status_updated_at=CURRENT_TIMESTAMP
+            WHERE id=:j
+              AND status='assigned'
+              AND deleted_at IS NULL
+              AND NOT EXISTS (SELECT 1 FROM job_employee_assignment a WHERE a.job_id=jobs.id)"
+        : "UPDATE jobs j
+            SET j.status='scheduled', j.status_updated_at=CURRENT_TIMESTAMP
+            WHERE j.id=:j
+              AND j.status='assigned'
+              AND j.deleted_at IS NULL
+              AND NOT EXISTS (SELECT 1 FROM job_employee_assignment a WHERE a.job_id=j.id)";
+    $pdo->prepare($sql)->execute([':j'=>$jobId]);
 
     $pdo->commit();
     try {
