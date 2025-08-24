@@ -2,7 +2,19 @@
 declare(strict_types=1);
 
 require __DIR__ . '/../_cli_guard.php';
+
 require_once __DIR__ . '/../../helpers/auth_helpers.php';
+
+
+if (!function_exists('json_out')) {
+    /** @param array<string,mixed> $payload */
+    function json_out(array $payload, int $code = 200): void {
+        http_response_code($code);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($payload, JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+}
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 if ($method !== 'POST') {
@@ -19,6 +31,12 @@ if (empty($data) && is_string($raw) && $raw !== '') {
     if (is_array($json)) {
         $data = $json;
     }
+}
+
+$token = (string)($data['csrf_token'] ?? '');
+if (!csrf_verify($token)) {
+    csrf_log_failure_payload($raw, $data);
+    return json_out(['ok' => false, 'error' => 'Invalid CSRF token'], 422);
 }
 
 $identifier = '';

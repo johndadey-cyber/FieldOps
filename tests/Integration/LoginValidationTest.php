@@ -14,7 +14,7 @@ final class LoginValidationTest extends TestCase
             [],
             [],
             'POST',
-            ['json' => true, 'inject_csrf' => false]
+            ['json' => true, 'inject_csrf' => true]
         );
         $this->assertFalse($res['ok'] ?? true);
         $this->assertSame('Missing fields', $res['error'] ?? '');
