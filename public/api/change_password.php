@@ -4,6 +4,7 @@ declare(strict_types=1);
 require __DIR__ . '/../_cli_guard.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/User.php';
+require_once __DIR__ . '/../../models/AuditLog.php';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 if ($method !== 'POST') {
@@ -50,6 +51,11 @@ try {
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode(['ok' => false, 'error' => $res['error'] ?? 'Invalid password'], JSON_UNESCAPED_SLASHES);
         return;
+    }
+    try {
+        AuditLog::insert($pdo, $userId, 'password_reset', ['ip' => $_SERVER['REMOTE_ADDR'] ?? '']);
+    } catch (Throwable) {
+        // ignore
     }
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['ok' => true], JSON_UNESCAPED_SLASHES);
