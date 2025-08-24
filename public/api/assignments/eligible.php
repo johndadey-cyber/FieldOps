@@ -53,13 +53,26 @@ $ORG_TZ = 'America/Chicago';
 
 /* -------------- Schema helpers -------------- */
 function tableExists(PDO $pdo, string $name): bool {
-  $st = $pdo->prepare("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = :n");
-  $st->execute([':n'=>$name]);
+  $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+  if ($driver === 'sqlite') {
+    $st = $pdo->prepare("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name = :n");
+  } else {
+    $st = $pdo->prepare("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = :n");
+  }
+  $st->execute([':n' => $name]);
   return (int)$st->fetchColumn() > 0;
 }
 function colExists(PDO $pdo, string $table, string $col): bool {
+  $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+  if ($driver === 'sqlite') {
+    $tableQuoted = str_replace("'", "''", $table);
+    $sql = "SELECT COUNT(*) FROM pragma_table_info('{$tableQuoted}') WHERE name = :c";
+    $st = $pdo->prepare($sql);
+    $st->execute([':c' => $col]);
+    return (int)$st->fetchColumn() > 0;
+  }
   $st = $pdo->prepare("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = :t AND column_name = :c");
-  $st->execute([':t'=>$table, ':c'=>$col]);
+  $st->execute([':t' => $table, ':c' => $col]);
   return (int)$st->fetchColumn() > 0;
 }
 
