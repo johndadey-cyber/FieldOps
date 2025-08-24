@@ -1,7 +1,14 @@
 <?php
+
 declare(strict_types=1);
 
+namespace Tests\Integration;
+
+use EndpointHarness;
+use PDO;
 use PHPUnit\Framework\TestCase;
+use TestDataFactory;
+use DateTimeImmutable;
 
 require_once __DIR__ . '/../support/TestPdo.php';
 require_once __DIR__ . '/../support/TestDataFactory.php';
@@ -17,6 +24,20 @@ final class AssignmentConflictTest extends TestCase
         parent::setUp();
         $this->pdo = createTestPdo();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        // The assignment endpoint still checks the legacy job_employee table when
+        // evaluating overlap/conflict rules. Some environments (including the
+        // SQLite test database) only create the newer job_employee_assignment
+        // table, so ensure the legacy table exists to satisfy the query and
+        // foreign keys before running any assignment logic.
+        $this->pdo->exec(
+            'CREATE TABLE IF NOT EXISTS job_employee (
+                job_id INTEGER NOT NULL,
+                employee_id INTEGER NOT NULL,
+                UNIQUE(job_id, employee_id),
+                FOREIGN KEY(job_id) REFERENCES jobs(id),
+                FOREIGN KEY(employee_id) REFERENCES employees(id)
+            )'
+        );
         $this->pdo->beginTransaction();
 
         $this->api = __DIR__ . '/../../public/api/assignments/assign.php';
