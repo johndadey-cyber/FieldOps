@@ -42,6 +42,22 @@ if (!function_exists('current_role')) {
     }
 }
 
+if (!function_exists('require_auth')) {
+    function require_auth(): void {
+        if (current_role() === 'guest') {
+            try {
+                $pdo = getPDO();
+                $uid = $_SESSION['user']['id'] ?? null;
+                AuditLog::insert($pdo, $uid, 'auth_required', []);
+            } catch (Throwable) {
+                // ignore audit errors
+            }
+            \JsonResponse::json(['ok' => false, 'error' => 'Forbidden', 'code' => \ErrorCodes::FORBIDDEN], 403);
+            exit;
+        }
+    }
+}
+
 if (!function_exists('require_role')) {
     function require_role(string $role): void {
         if (current_role() !== $role) {
@@ -63,6 +79,52 @@ if (!function_exists('require_csrf')) {
         $token = $_POST['csrf_token'] ?? '';
         if (!is_string($token) || $token === '' || !isset($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $token)) {
             \JsonResponse::json(['ok' => false, 'error' => 'Invalid CSRF token', 'code' => \ErrorCodes::CSRF_INVALID], 400);
+            exit;
+        }
+    }
+}
+
+if (!function_exists('require_job_owner')) {
+    function require_job_owner(PDO $pdo, int $jobId): void {
+        $userId = isset($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : 0;
+        $assigned = false;
+
+        $hasTechColumn = false;
+        try {
+            $pdo->query('SELECT technician_id FROM jobs LIMIT 0');
+            $hasTechColumn = true;
+        } catch (Throwable) {
+            $hasTechColumn = false;
+        }
+
+        if ($hasTechColumn) {
+            $st = $pdo->prepare('SELECT technician_id FROM jobs WHERE id = :id AND deleted_at IS NULL');
+            if ($st !== false) {
+                $st->execute([':id' => $jobId]);
+                $techId = (int)$st->fetchColumn();
+                $assigned = ($techId === $userId && $techId !== 0);
+                if (!$assigned) {
+                    try {
+                        $st = $pdo->prepare('SELECT 1 FROM job_employee_assignment WHERE job_id = :jid AND employee_id = :eid LIMIT 1');
+                        if ($st !== false) {
+                            $st->execute([':jid' => $jobId, ':eid' => $userId]);
+                            $assigned = ($st->fetchColumn() !== false);
+                        }
+                    } catch (Throwable) {
+                        // ignore
+                    }
+                }
+            }
+        } else {
+            $st = $pdo->prepare('SELECT 1 FROM job_employee_assignment WHERE job_id = :jid AND employee_id = :eid LIMIT 1');
+            if ($st !== false) {
+                $st->execute([':jid' => $jobId, ':eid' => $userId]);
+                $assigned = ($st->fetchColumn() !== false);
+            }
+        }
+
+        if (!$assigned) {
+            \JsonResponse::json(['ok' => false, 'error' => 'Forbidden', 'code' => \ErrorCodes::FORBIDDEN], 403);
             exit;
         }
     }

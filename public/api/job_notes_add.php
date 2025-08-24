@@ -20,11 +20,8 @@ if (!verify_csrf_token($data['csrf_token'] ?? null)) {
     JsonResponse::json(['ok' => false, 'error' => 'Invalid CSRF token', 'code' => \ErrorCodes::CSRF_INVALID], 400);
     return;
 }
-
-if (current_role() === 'guest') {
-    JsonResponse::json(['ok' => false, 'error' => 'Forbidden', 'code' => \ErrorCodes::FORBIDDEN], 403);
-    return;
-}
+require_auth();
+require_role('tech');
 
 $jobId        = isset($data['job_id']) ? (int)$data['job_id'] : 0;
 $technicianId = isset($data['technician_id']) ? (int)$data['technician_id'] : 0;
@@ -35,8 +32,15 @@ if ($jobId <= 0 || $technicianId <= 0 || $note === '') {
     return;
 }
 
+$sessionId = isset($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : 0;
+if ($sessionId !== $technicianId) {
+    JsonResponse::json(['ok' => false, 'error' => 'Forbidden', 'code' => \ErrorCodes::FORBIDDEN], 403);
+    return;
+}
+
 try {
     $pdo = getPDO();
+    require_job_owner($pdo, $jobId);
     $id  = JobNote::add($pdo, $jobId, $technicianId, $note);
     $status = $pdo->query('SELECT status FROM jobs WHERE id=' . $jobId)->fetchColumn();
     JsonResponse::json(['ok' => true, 'id' => $id, 'status' => $status]);

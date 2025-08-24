@@ -5,7 +5,11 @@
 declare(strict_types=1);
 
 require __DIR__ . '/_cli_guard.php';
+require __DIR__ . '/_auth.php';
 require __DIR__ . '/_csrf.php';
+
+require_auth();
+require_role('tech');
 
 $csrf = csrf_token();
 $techId = isset($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : 0;

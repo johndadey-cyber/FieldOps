@@ -20,11 +20,8 @@ if (!verify_csrf_token($data['csrf_token'] ?? null)) {
     JsonResponse::json(['ok' => false, 'error' => 'Invalid CSRF token', 'code' => \ErrorCodes::CSRF_INVALID], 400);
     return;
 }
-
-if (current_role() === 'guest') {
-    JsonResponse::json(['ok' => false, 'error' => 'Forbidden', 'code' => \ErrorCodes::FORBIDDEN], 403);
-    return;
-}
+require_auth();
+require_role('tech');
 
 $jobId = isset($data['job_id']) ? (int)$data['job_id'] : 0;
 
@@ -42,6 +39,7 @@ if ($itemsRaw !== null) {
     }
     try {
         $pdo = getPDO();
+        require_job_owner($pdo, $jobId);
         $pdo->beginTransaction();
         $st = $pdo->prepare('UPDATE job_checklist_items SET is_completed = :c, completed_at = :ts WHERE id = :id');
         foreach ($items as $it) {
@@ -77,6 +75,17 @@ if ($id <= 0) {
 
 try {
     $pdo = getPDO();
+    $stJob = $pdo->prepare('SELECT job_id FROM job_checklist_items WHERE id = :id');
+    $jobRow = null;
+    if ($stJob !== false) {
+        $stJob->execute([':id' => $id]);
+        $jobRow = $stJob->fetchColumn();
+    }
+    if ($jobRow === false || $jobRow === null) {
+        JsonResponse::json(['ok' => false, 'error' => 'Not found', 'code' => \ErrorCodes::NOT_FOUND], 404);
+        return;
+    }
+    require_job_owner($pdo, (int)$jobRow);
     $newState = JobChecklistItem::toggle($pdo, $id);
     if ($newState === null) {
         JsonResponse::json(['ok' => false, 'error' => 'Not found', 'code' => \ErrorCodes::NOT_FOUND], 404);

@@ -14,11 +14,8 @@ if (!verify_csrf_token($data['csrf_token'] ?? null)) {
     JsonResponse::json(['ok' => false, 'error' => 'Invalid CSRF token', 'code' => \ErrorCodes::CSRF_INVALID], 400);
     return;
 }
-
-if (current_role() === 'guest') {
-    JsonResponse::json(['ok' => false, 'error' => 'Forbidden', 'code' => \ErrorCodes::FORBIDDEN], 403);
-    return;
-}
+require_auth();
+require_role('tech');
 
 $jobId = isset($data['job_id']) ? (int)$data['job_id'] : 0;
 if ($jobId <= 0) {
@@ -28,6 +25,7 @@ if ($jobId <= 0) {
 
 try {
     $pdo    = getPDO();
+    require_job_owner($pdo, $jobId);
     $photos = JobPhoto::listForJob($pdo, $jobId);
     JsonResponse::json(['ok' => true, 'photos' => $photos]);
 } catch (Throwable $e) {
