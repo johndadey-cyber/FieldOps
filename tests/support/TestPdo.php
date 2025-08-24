@@ -4,15 +4,26 @@ declare(strict_types=1);
 function createTestPdo(): PDO {
     $dsn = getenv('FIELDOPS_TEST_DSN');
     if ($dsn) {
-        $pdo = new PDO($dsn);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        $options = [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ];
+
         if (str_starts_with($dsn, 'sqlite:')) {
+            $pdo = new PDO($dsn, null, null, $options);
             $pdo->setAttribute(PDO::ATTR_TIMEOUT, 5);
             $pdo->exec('PRAGMA foreign_keys = ON');
             seedSqliteSchema($pdo);
+            return $pdo;
         }
-        return $pdo;
+
+        $user = getenv('FIELDOPS_TEST_USER') ?: getenv('DB_USER');
+        $pass = getenv('FIELDOPS_TEST_PASS') ?: getenv('DB_PASS');
+        if ($user !== false || $pass !== false) {
+            return new PDO($dsn, $user ?: '', $pass ?: '', $options);
+        }
+
+        return new PDO($dsn, null, null, $options);
     }
 
     $dsn = sprintf(
