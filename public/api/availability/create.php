@@ -52,10 +52,24 @@ function dow_is_int(PDO $pdo): bool {
     static $isInt = null;
     if ($isInt !== null) return $isInt;
     try {
-        $row = $pdo->query("SHOW COLUMNS FROM employee_availability LIKE 'day_of_week'")
-            ->fetch(PDO::FETCH_ASSOC);
-        $type = strtolower((string)($row['Type'] ?? ''));
-        $isInt = str_contains($type, 'int');
+        $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        if ($driver === 'sqlite') {
+            $cols = $pdo->query("PRAGMA table_info(employee_availability)")
+                ->fetchAll(PDO::FETCH_ASSOC);
+            $isInt = false;
+            foreach ($cols as $col) {
+                if (strcasecmp($col['name'] ?? '', 'day_of_week') === 0) {
+                    $type = strtolower((string)($col['type'] ?? ''));
+                    $isInt = str_contains($type, 'int');
+                    break;
+                }
+            }
+        } else {
+            $row = $pdo->query("SHOW COLUMNS FROM employee_availability LIKE 'day_of_week'")
+                ->fetch(PDO::FETCH_ASSOC);
+            $type = strtolower((string)($row['Type'] ?? ''));
+            $isInt = str_contains($type, 'int');
+        }
     } catch (Throwable $e) {
         $isInt = false;
     }
@@ -66,9 +80,22 @@ function has_start_date(PDO $pdo): bool {
     static $has = null;
     if ($has !== null) return $has;
     try {
-        $row = $pdo->query("SHOW COLUMNS FROM employee_availability LIKE 'start_date'")
-            ->fetch(PDO::FETCH_ASSOC);
-        $has = $row !== false;
+        $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        if ($driver === 'sqlite') {
+            $cols = $pdo->query("PRAGMA table_info(employee_availability)")
+                ->fetchAll(PDO::FETCH_ASSOC);
+            $has = false;
+            foreach ($cols as $col) {
+                if (strcasecmp($col['name'] ?? '', 'start_date') === 0) {
+                    $has = true;
+                    break;
+                }
+            }
+        } else {
+            $row = $pdo->query("SHOW COLUMNS FROM employee_availability LIKE 'start_date'")
+                ->fetch(PDO::FETCH_ASSOC);
+            $has = $row !== false;
+        }
     } catch (Throwable $e) {
         $has = false;
     }
