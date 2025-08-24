@@ -4,9 +4,15 @@ declare(strict_types=1);
 // Session bootstrap for FieldOps
 // Sets secure cookie parameters and enforces inactivity/absolute timeouts.
 
+$appEnv = getenv('APP_ENV') ?: 'dev';
+$sessionSecure = getenv('SESSION_SECURE');
+$secure = ($sessionSecure !== false)
+    ? filter_var($sessionSecure, FILTER_VALIDATE_BOOLEAN)
+    : ($appEnv !== 'dev');
+
 $cookieParams = [
     'httponly' => true,
-    'secure' => true,
+    'secure' => $secure,
     'samesite' => 'Strict',
 ];
 

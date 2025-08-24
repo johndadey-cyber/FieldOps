@@ -43,6 +43,12 @@ When running integration tests (`APP_ENV=test`), optional credentials can be
 placed in `config/test.env.php`. This keeps test database settings isolated
 from your local development configuration.
 
+## Session Cookies
+
+Session cookies are marked `secure` in all environments except `dev` so that
+local development can run without HTTPS. Set the `SESSION_SECURE` environment
+variable to override this behavior.
+
 ## CDN Scripts
 
 When including scripts from a CDN, always add an `integrity` hash and
