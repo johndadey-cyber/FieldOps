@@ -1,6 +1,6 @@
 import { fetchAvailability, fetchJobs } from './availability-fetch.js';
 import { renderList, showAlert, hideAlert, currentGroups, allGroups } from './list-render.js';
-import { initCalendar, renderCalendar } from './tui-calendar-render.js';
+import { initCalendar, renderCalendar } from './calendar-render.js';
 import { openOvAdd, openOvEdit, delOverride } from './override-handlers.js';
 
 const DEBUG = false;
