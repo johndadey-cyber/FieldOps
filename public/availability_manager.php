@@ -236,6 +236,7 @@ require __DIR__ . '/../partials/header.php';
         </div>
       </div>
       <div class="tab-pane fade" id="calendarView" role="tabpanel">
+        <div id="calendarLoading" class="text-center py-3">Loading…</div>
         <div id="calendar" class="mt-3"></div>
         <div id="calendarEmpty" class="text-muted text-center py-3 d-none">No calendar events</div>
       </div>
