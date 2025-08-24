@@ -11,7 +11,7 @@ This demo page renders availability, overrides and scheduled jobs on a calendar.
    php -S 127.0.0.1:8010 -t public
    ```
 2. Visit [http://127.0.0.1:8010/poc_availability_calendar.php](http://127.0.0.1:8010/poc_availability_calendar.php).
-3. The page uses `initCalendar` and `renderCalendar` from `js/calendar-render.js` with sample data.
+3. FullCalendar CSS/JS is loaded from the jsDelivr CDN and the page imports `initCalendar` and `renderCalendar` from `js/calendar-render.js` with sample data.
 
 ### What to look for
 
