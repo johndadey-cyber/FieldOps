@@ -19,28 +19,24 @@ final class AssignmentsApiTest extends TestCase
         // Ensure we have at least 3 employees (self-seed if not)
         $need = 3 - (int)$this->pdo->query("SELECT COUNT(*) FROM employees WHERE is_active = 1")->fetchColumn();
         if ($need > 0) {
-            // Test-only: allow inserting employees without a real person row
-            $driver = $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
-            if ($driver === 'sqlite') {
-                $this->pdo->exec('PRAGMA foreign_keys = OFF');
-            } else {
-                $this->pdo->exec('SET FOREIGN_KEY_CHECKS=0');
-            }
-
-            $ins = $this->pdo->prepare(
+            $personStmt = $this->pdo->prepare(
+                "INSERT INTO people (first_name, last_name, created_at) VALUES ('Emp', 'Tester', :created_at)"
+            );
+            $empStmt = $this->pdo->prepare(
                 "INSERT INTO employees (person_id, hire_date, status, is_active, role_id, created_at, updated_at)
-                 VALUES (0, :hire_date, 'active', 1, NULL, :created_at, :updated_at)"
+                 VALUES (:person_id, :hire_date, 'active', 1, NULL, :created_at, :updated_at)"
             );
             $today = date('Y-m-d');
             $now   = date('Y-m-d H:i:s');
             for ($i = 0; $i < $need; $i++) {
-                $ins->execute([':hire_date' => $today, ':created_at' => $now, ':updated_at' => $now]);
-            }
-
-            if ($driver === 'sqlite') {
-                $this->pdo->exec('PRAGMA foreign_keys = ON');
-            } else {
-                $this->pdo->exec('SET FOREIGN_KEY_CHECKS=1');
+                $personStmt->execute([':created_at' => $now]);
+                $personId = (int)$this->pdo->lastInsertId();
+                $empStmt->execute([
+                    ':person_id'  => $personId,
+                    ':hire_date'  => $today,
+                    ':created_at' => $now,
+                    ':updated_at' => $now,
+                ]);
             }
         }
 
@@ -64,6 +60,9 @@ final class AssignmentsApiTest extends TestCase
             ':created_at'    => $now,
             ':updated_at'    => $now,
         ]);
+
+        // Make seeded data visible to endpoint connections
+        $this->pdo->commit();
     }
 
     protected function tearDown(): void
