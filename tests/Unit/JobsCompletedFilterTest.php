@@ -43,7 +43,7 @@ final class JobsCompletedFilterTest extends TestCase
         }
         $GLOBALS['__FIELDOPS_TEST_CALL__'] = true;
 
-        $_GET = ['status' => 'completed'];
+        $_GET = ['status' => 'completed', 'show_past' => '1'];
         ob_start();
         require __DIR__ . '/../../public/api/jobs.php';
         $output = ob_get_clean();
