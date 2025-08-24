@@ -16,6 +16,9 @@ if (!function_exists('getPDO')) {
 
 final class JobsDateFilterTest extends TestCase
 {
+    private string $start;
+    private string $end;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -32,7 +35,11 @@ final class JobsDateFilterTest extends TestCase
         $pdo->exec('CREATE TABLE people (id INTEGER PRIMARY KEY, first_name TEXT, last_name TEXT)');
 
         $pdo->exec("INSERT INTO customers (id, first_name, last_name, address_line1, city) VALUES (1,'A','Cust','123','Town'), (2,'B','Cust','456','Town')");
-        $pdo->exec("INSERT INTO jobs (id, scheduled_date, scheduled_time, status, duration_minutes, customer_id) VALUES (1,'2025-08-20','09:00','assigned',60,1),(2,'2025-08-29','09:00','assigned',60,2)");
+
+        $today = new DateTimeImmutable();
+        $this->start = $today->modify('+9 days')->format('Y-m-d');
+        $this->end = $today->modify('+10 days')->format('Y-m-d');
+        $pdo->exec("INSERT INTO jobs (id, scheduled_date, scheduled_time, status, duration_minutes, customer_id) VALUES (1,'{$this->start}','09:00','assigned',60,1),(2,'{$this->end}','09:00','assigned',60,2)");
     }
 
     public function testDateRangeFiltersJobs(): void
@@ -43,8 +50,8 @@ final class JobsDateFilterTest extends TestCase
         $GLOBALS['__FIELDOPS_TEST_CALL__'] = true;
 
         $_GET = [
-            'start' => '2025-08-29',
-            'end'   => '2025-08-29',
+            'start' => $this->end,
+            'end'   => $this->end,
             'status' => 'assigned'
         ];
 
