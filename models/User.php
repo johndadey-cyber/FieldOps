@@ -76,15 +76,38 @@ final class User
      *
      * @return array{ok:bool,error?:string,id?:int}
      */
-    public static function create(PDO $pdo, string $username, string $email, string $password): array
-    {
+    public static function create(
+        PDO $pdo,
+        string $username,
+        string $email,
+        string $password,
+        string $role = 'user'
+    ): array {
         [$valid, $message] = self::validatePassword($password);
         if (!$valid) {
             return ['ok' => false, 'error' => $message];
         }
+
+        try {
+            $st = $pdo->prepare(
+                'SELECT id FROM users WHERE LOWER(username) = LOWER(:username) OR LOWER(email) = LOWER(:email) LIMIT 1'
+            );
+            if ($st === false) {
+                return ['ok' => false, 'error' => 'Server error'];
+            }
+            $st->execute([':username' => $username, ':email' => $email]);
+            if ($st->fetch(PDO::FETCH_ASSOC) !== false) {
+                return ['ok' => false, 'error' => 'Username or email already exists'];
+            }
+        } catch (Throwable $e) {
+            return ['ok' => false, 'error' => 'Server error'];
+        }
+
         $hash = self::hashPassword($password);
         try {
-            $st = $pdo->prepare('INSERT INTO users (username, email, password, role) VALUES (:username, :email, :password, :role)');
+            $st = $pdo->prepare(
+                'INSERT INTO users (username, email, password, role) VALUES (:username, :email, :password, :role)'
+            );
             if ($st === false) {
                 return ['ok' => false, 'error' => 'Server error'];
             }
@@ -92,7 +115,7 @@ final class User
                 ':username' => $username,
                 ':email' => $email,
                 ':password' => $hash,
-                ':role' => 'user',
+                ':role' => $role,
             ]);
             return ['ok' => true, 'id' => (int)$pdo->lastInsertId()];
         } catch (Throwable $e) {
