@@ -41,7 +41,7 @@ require __DIR__ . '/../partials/header.php';
           <button type="submit" class="btn btn-primary">Log In</button>
         </div>
         <div class="text-center"><a href="/forgot_password.php">Forgot password?</a></div>
-        <div id="login-error" class="text-danger mt-3 d-none">Invalid credentials</div>
+        <div id="login-error" class="text-danger mt-3 d-none"></div>
       </form>
     </div>
   </div>
@@ -64,9 +64,11 @@ $pageScripts = <<<HTML
         else if(data.role === 'field_tech'){ dest = '/tech_jobs.php'; }
         window.location.href = dest;
       } else {
+        err.textContent = (data && data.error) ? data.error : 'Invalid credentials';
         err.classList.remove('d-none');
       }
     } catch(e) {
+      err.textContent = 'An unexpected error occurred';
       err.classList.remove('d-none');
     }
   });
