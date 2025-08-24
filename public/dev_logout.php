@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require __DIR__ . '/_cli_guard.php';
 /** DEV-ONLY logout shim (localhost + test) */
 if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 $ip = $_SERVER['REMOTE_ADDR'] ?? '';

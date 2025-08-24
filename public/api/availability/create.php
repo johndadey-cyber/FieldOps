@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require dirname(__DIR__, 2) . '/_cli_guard.php';
+
 /**
  * POST /api/availability/create.php
  * Save or update recurring availability windows.
