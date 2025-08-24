@@ -2,11 +2,13 @@
 declare(strict_types=1);
 
 require __DIR__ . '/../_cli_guard.php';
+
 require __DIR__ . '/../_csrf.php';
 require_once __DIR__ . '/../../helpers/json_out.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/User.php';
 require_once __DIR__ . '/../../models/AuditLog.php';
+
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 if ($method !== 'POST') {
@@ -42,6 +44,7 @@ if ($identifier === '' || $password === '') {
 
 try {
     $pdo  = getPDO();
+
     $user = User::findByIdentifier($pdo, $identifier);
     if ($user === null || !password_verify($password, (string)$user['password'])) {
         try {
@@ -54,8 +57,10 @@ try {
             // ignore
         }
         return json_out(['ok' => false, 'error' => 'Invalid credentials'], 401);
+
     }
 
+    $user = $result['user'];
     if (session_status() !== PHP_SESSION_ACTIVE) {
         session_start();
     }
@@ -65,6 +70,7 @@ try {
     $_SESSION['user_id'] = $id;
     $_SESSION['role']    = $role;
     $_SESSION['user']    = ['id' => $id, 'role' => $role];
+
 
     User::updateLastLogin($pdo, $id);
 
@@ -78,6 +84,7 @@ try {
     }
 
     json_out(['ok' => true, 'role' => $role]);
+
 } catch (Throwable $e) {
     json_out(['ok' => false, 'error' => 'Server error'], 500);
 }
