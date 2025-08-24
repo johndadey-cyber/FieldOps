@@ -159,7 +159,9 @@ try {
     out("OK: No conflict reported for employee #{$employeeId} (job #{$jobId}, {$scheduledDate} {$scheduledTime}).");
 
     // Roll back to leave DB clean
-    $pdo->rollBack();
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     exit(0);
 
 } catch (Throwable $e) {

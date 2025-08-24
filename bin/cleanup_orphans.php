@@ -19,7 +19,9 @@ $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 function out(string $m): void { echo $m, PHP_EOL; }
 
-$pdo->beginTransaction();
+if (!$pdo->inTransaction()) {
+    $pdo->beginTransaction();
+}
 
 try {
     // 1) employee_skills → employees
@@ -67,10 +69,14 @@ try {
     ");
     out("[OK] jobtype_skills deleted (no skill): " . (int)$n5);
 
-    $pdo->commit();
+    if ($pdo->inTransaction()) {
+        $pdo->commit();
+    }
     out("Done.");
 } catch (Throwable $e) {
-    if ($pdo->inTransaction()) $pdo->rollBack();
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     fwrite(STDERR, "[ERR] ".$e->getMessage().PHP_EOL);
     exit(1);
 }
