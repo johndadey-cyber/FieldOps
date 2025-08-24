@@ -59,7 +59,9 @@ function fkInfo(PDO $pdo, string $table, string $column): array {
     return $st->fetchAll(PDO::FETCH_ASSOC);
 }
 
-$pdo->beginTransaction();
+if (!$pdo->inTransaction()) {
+    $pdo->beginTransaction();
+}
 
 try {
     // 1) job_employee_assignment UNIQUE(job_id, employee_id)
@@ -130,10 +132,14 @@ try {
         out('[ea] UNIQUE availability window already present.');
     }
 
-    $pdo->commit();
+    if ($pdo->inTransaction()) {
+        $pdo->commit();
+    }
     out('Done. All constraints ensured.');
 } catch (Throwable $e) {
-    if ($pdo->inTransaction()) $pdo->rollBack();
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     fwrite(STDERR, "[ERROR] " . $e->getMessage() . PHP_EOL);
     exit(1);
 }
