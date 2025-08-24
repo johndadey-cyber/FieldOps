@@ -35,6 +35,18 @@ The availability manager JavaScript has been split into ES modules located in `p
 
 Use these modules when extending the page to keep concerns separated and logic testable.
 
+## Calendar tab rendering
+
+1. **Verify the `#calendar-tab` listener**
+   - In the browser console, run `getEventListeners(document.querySelector('#calendar-tab'))` and confirm a `click` handler is registered.
+   - Click the Calendar tab and ensure the handler triggers by watching for network requests or console logs.
+
+2. **Look for the loading indicator**
+   - A spinner should appear while availability data loads. If the indicator never shows, the listener or fetch may be failing.
+
+3. **Check debug logs**
+   - Open the console and look for messages tagged `calendar` to trace rendering. Enable verbose output with `localStorage.debug = 'calendar:*'` before reloading.
+
 ## Upgrading core schema
 
 Run the core schema migration after pulling updates to ensure new columns are present:
