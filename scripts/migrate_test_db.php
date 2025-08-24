@@ -44,10 +44,28 @@ function migrateTestDb(PDO $pdo): void
             throw new RuntimeException("Failed to read migration {$name}");
         }
 
-        $pdo->exec($sql);
-        $stmt = $pdo->prepare('INSERT INTO migrations (filename) VALUES (?)');
-        $stmt->execute([$name]);
-        echo "Applied migration: {$name}\n";
+        try {
+            $pdo->beginTransaction();
+            $pdo->exec($sql);
+            $stmt = $pdo->prepare('INSERT INTO migrations (filename) VALUES (?)');
+            $stmt->execute([$name]);
+            $pdo->commit();
+            echo "Applied migration: {$name}\n";
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            if ($e->getCode() === '42S01') {
+                // Table already exists; mark migration as applied for idempotency
+                $pdo->beginTransaction();
+                $stmt = $pdo->prepare('INSERT INTO migrations (filename) VALUES (?)');
+                $stmt->execute([$name]);
+                $pdo->commit();
+                echo "Skipped migration (table exists): {$name}\n";
+                continue;
+            }
+            throw new RuntimeException("Failed migration {$name}: " . $e->getMessage(), 0, $e);
+        }
     }
 
     echo "✅ Schema migrations complete.\n";
