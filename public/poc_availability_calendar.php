@@ -5,6 +5,7 @@
   <meta charset="utf-8">
   <title>Availability Calendar POC</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
 </head>
 <body class="p-3">
   <div id="calendar"></div>
