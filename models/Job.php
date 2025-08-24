@@ -84,15 +84,16 @@ final class Job
      * Delete a job by id. Returns affected rows (0/1).
      * Note: relies on FK ON DELETE CASCADE for related rows.
      */
-    public static function delete(PDO $pdo, int $jobId): int
+    public static function delete(PDO $pdo, int $jobId, ?string $now = null): int
     {
         $driver = (string)$pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
         $limitClause = in_array($driver, ['mysql', 'mariadb'], true) ? ' LIMIT 1' : '';
-        $st = $pdo->prepare('UPDATE jobs SET deleted_at = NOW() WHERE id = :id' . $limitClause);
+        $now = $now ?? date('Y-m-d H:i:s');
+        $st = $pdo->prepare('UPDATE jobs SET deleted_at = :now WHERE id = :id' . $limitClause);
         if ($st === false) {
             return 0;
         }
-        $st->execute([':id' => $jobId]);
+        $st->execute([':id' => $jobId, ':now' => $now]);
         return $st->rowCount();
     }
     /**
@@ -161,7 +162,7 @@ final class Job
      * Mark a job as started. Sets status to in_progress, records start time and location.
      * Returns true if the row was updated.
      */
-    public static function start(PDO $pdo, int $jobId, ?float $lat, ?float $lng): bool
+    public static function start(PDO $pdo, int $jobId, ?float $lat, ?float $lng, ?string $now = null): bool
     {
         // Enforce scheduled window: job must not start before its scheduled
         // time and must be started before the expected end time (scheduled
@@ -179,23 +180,24 @@ final class Job
 
         $schedAt = strtotime($row['scheduled_date'] . ' ' . $row['scheduled_time']);
         $duration = isset($row['duration_minutes']) ? (int)$row['duration_minutes'] : 0;
-        $now      = time();
+        $nowTs    = $now !== null ? strtotime($now) : time();
         if ($schedAt !== false) {
             $end = $duration > 0 ? $schedAt + $duration * 60 : null;
-            if ($now < $schedAt || ($end !== null && $now > $end)) {
+            if ($nowTs < $schedAt || ($end !== null && $nowTs > $end)) {
                 return false;
             }
         }
 
+        $now = $now ?? date('Y-m-d H:i:s');
         $st = $pdo->prepare(
             'UPDATE jobs
-             SET status = "in_progress", started_at = NOW(), location_lat = :lat, location_lng = :lng, updated_at = NOW()
+             SET status = "in_progress", started_at = :now, location_lat = :lat, location_lng = :lng, updated_at = :now
              WHERE id = :id AND status = "assigned" AND started_at IS NULL AND deleted_at IS NULL'
         );
         if ($st === false) {
             return false;
         }
-        $st->execute([':lat' => $lat, ':lng' => $lng, ':id' => $jobId]);
+        $st->execute([':lat' => $lat, ':lng' => $lng, ':id' => $jobId, ':now' => $now]);
         return $st->rowCount() > 0;
     }
 
@@ -203,7 +205,7 @@ final class Job
      * Mark a job as completed. Sets status to completed, records completion time and location.
      * Returns true if the row was updated.
      */
-    public static function complete(PDO $pdo, int $jobId, ?float $lat, ?float $lng): bool
+    public static function complete(PDO $pdo, int $jobId, ?float $lat, ?float $lng, ?string $now = null): bool
     {
         $noteSt  = $pdo->prepare('SELECT COUNT(*) FROM job_notes WHERE job_id = :id AND is_final = 1');
         $photoSt = $pdo->prepare('SELECT COUNT(*) FROM job_photos WHERE job_id = :id');
@@ -218,15 +220,16 @@ final class Job
             return false;
         }
 
+        $now = $now ?? date('Y-m-d H:i:s');
         $st = $pdo->prepare(
             'UPDATE jobs
-             SET status = "completed", completed_at = NOW(), location_lat = :lat, location_lng = :lng, updated_at = NOW()
+             SET status = "completed", completed_at = :now, location_lat = :lat, location_lng = :lng, updated_at = :now
              WHERE id = :id AND status = "in_progress" AND completed_at IS NULL AND deleted_at IS NULL'
         );
         if ($st === false) {
             return false;
         }
-        $st->execute([':lat' => $lat, ':lng' => $lng, ':id' => $jobId]);
+        $st->execute([':lat' => $lat, ':lng' => $lng, ':id' => $jobId, ':now' => $now]);
         return $st->rowCount() > 0;
     }
 }
