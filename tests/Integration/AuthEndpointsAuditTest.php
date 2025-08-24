@@ -39,13 +39,13 @@ final class AuthEndpointsAuditTest extends TestCase
         EndpointHarness::run(__DIR__ . '/../../public/api/login.php', [
             'username' => $username,
             'password' => $pass,
-        ], [], 'POST', ['json' => true, 'inject_csrf' => false]);
+        ], [], 'POST', ['json' => true, 'inject_csrf' => true]);
 
         // Failed login
         EndpointHarness::run(__DIR__ . '/../../public/api/login.php', [
             'username' => $username,
             'password' => 'badpass',
-        ], [], 'POST', ['json' => true, 'inject_csrf' => false]);
+        ], [], 'POST', ['json' => true, 'inject_csrf' => true]);
 
         // Logout
         EndpointHarness::run(__DIR__ . '/../../public/api/logout.php', [], [

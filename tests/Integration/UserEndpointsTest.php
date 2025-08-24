@@ -81,7 +81,7 @@ final class UserEndpointsTest extends TestCase
             ],
             [],
             'POST',
-            ['json' => true, 'inject_csrf' => false]
+            ['json' => true, 'inject_csrf' => true]
         );
         $this->assertTrue($login['ok'] ?? false);
         $this->assertSame('dispatcher', $login['role'] ?? '');
