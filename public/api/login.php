@@ -2,10 +2,9 @@
 declare(strict_types=1);
 
 require __DIR__ . '/../_cli_guard.php';
-require __DIR__ . '/../_csrf.php';
-require_once __DIR__ . '/../../config/database.php';
-require_once __DIR__ . '/../../models/User.php';
-require_once __DIR__ . '/../../models/AuditLog.php';
+
+require_once __DIR__ . '/../../helpers/auth_helpers.php';
+
 
 if (!function_exists('json_out')) {
     /** @param array<string,mixed> $payload */
@@ -57,23 +56,16 @@ if ($identifier === '' || $password === '') {
 
 try {
     $pdo  = getPDO();
-    $user = User::findByIdentifier($pdo, $identifier);
-    if ($user === null || !password_verify($password, (string)$user['password'])) {
-        http_response_code(401);
+    $result = authenticate($pdo, $identifier, $password);
+    if (!$result['ok']) {
+        $status = ($result['error'] === 'Invalid credentials') ? 401 : 500;
+        http_response_code($status);
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['ok' => false, 'error' => 'Invalid credentials'], JSON_UNESCAPED_SLASHES);
-        try {
-            $uid = $user['id'] ?? null;
-            AuditLog::insert($pdo, $uid ? (int)$uid : null, 'login_failure', [
-                'identifier' => $identifier,
-                'ip' => $_SERVER['REMOTE_ADDR'] ?? '',
-            ]);
-        } catch (Throwable) {
-            // ignore
-        }
+        echo json_encode(['ok' => false, 'error' => $result['error']], JSON_UNESCAPED_SLASHES);
         return;
     }
 
+    $user = $result['user'];
     if (session_status() !== PHP_SESSION_ACTIVE) {
         session_start();
     }
@@ -83,17 +75,6 @@ try {
     $_SESSION['user_id'] = $id;
     $_SESSION['role']    = $role;
     $_SESSION['user']    = ['id' => $id, 'role' => $role];
-
-    User::updateLastLogin($pdo, $id);
-
-    try {
-        AuditLog::insert($pdo, $id, 'login_success', [
-            'identifier' => $identifier,
-            'ip' => $_SERVER['REMOTE_ADDR'] ?? '',
-        ]);
-    } catch (Throwable) {
-        // ignore
-    }
 
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['ok' => true, 'role' => $role], JSON_UNESCAPED_SLASHES);

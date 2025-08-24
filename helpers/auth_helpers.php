@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/JsonResponse.php';
 require_once __DIR__ . '/ErrorCodes.php';
 require_once __DIR__ . '/../models/AuditLog.php';
+require_once __DIR__ . '/../models/User.php';
 require_once __DIR__ . '/../config/database.php';
 
 // Final fallback: if JsonResponse/ErrorCodes aren't loaded for any reason,
@@ -29,6 +30,47 @@ if (!class_exists('ErrorCodes')) {
         public const FORBIDDEN        = 403;
         public const CSRF_INVALID     = 400;
         public const VALIDATION_ERROR = 422;
+    }
+}
+
+/**
+ * Attempt to authenticate a user by identifier and password.
+ *
+ * @return array{ok:bool,user:array|null,error:string|null}
+ */
+if (!function_exists('authenticate')) {
+    function authenticate(PDO $pdo, string $identifier, string $password): array
+    {
+        try {
+            $user = User::findByIdentifier($pdo, $identifier);
+            if ($user === null || !password_verify($password, (string)$user['password'])) {
+                try {
+                    $uid = $user['id'] ?? null;
+                    AuditLog::insert($pdo, $uid ? (int)$uid : null, 'login_failure', [
+                        'identifier' => $identifier,
+                        'ip' => $_SERVER['REMOTE_ADDR'] ?? '',
+                    ]);
+                } catch (Throwable) {
+                    // ignore
+                }
+                return ['ok' => false, 'user' => null, 'error' => 'Invalid credentials'];
+            }
+
+            $id = (int)$user['id'];
+            User::updateLastLogin($pdo, $id);
+            try {
+                AuditLog::insert($pdo, $id, 'login_success', [
+                    'identifier' => $identifier,
+                    'ip' => $_SERVER['REMOTE_ADDR'] ?? '',
+                ]);
+            } catch (Throwable) {
+                // ignore
+            }
+
+            return ['ok' => true, 'user' => $user, 'error' => null];
+        } catch (Throwable) {
+            return ['ok' => false, 'user' => null, 'error' => 'Server error'];
+        }
     }
 }
 
