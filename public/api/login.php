@@ -4,6 +4,7 @@ declare(strict_types=1);
 require __DIR__ . '/../_cli_guard.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/User.php';
+require_once __DIR__ . '/../../models/AuditLog.php';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 if ($method !== 'POST') {
@@ -34,6 +35,15 @@ if ($identifier === '' || $password === '') {
     http_response_code(401);
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['ok' => false, 'error' => 'Invalid credentials'], JSON_UNESCAPED_SLASHES);
+    try {
+        $pdo = getPDO();
+        AuditLog::insert($pdo, null, 'login_failure', [
+            'identifier' => $identifier,
+            'ip' => $_SERVER['REMOTE_ADDR'] ?? '',
+        ]);
+    } catch (Throwable) {
+        // ignore
+    }
     return;
 }
 
@@ -44,6 +54,15 @@ try {
         http_response_code(401);
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode(['ok' => false, 'error' => 'Invalid credentials'], JSON_UNESCAPED_SLASHES);
+        try {
+            $uid = $user['id'] ?? null;
+            AuditLog::insert($pdo, $uid ? (int)$uid : null, 'login_failure', [
+                'identifier' => $identifier,
+                'ip' => $_SERVER['REMOTE_ADDR'] ?? '',
+            ]);
+        } catch (Throwable) {
+            // ignore
+        }
         return;
     }
 
@@ -58,6 +77,15 @@ try {
     $_SESSION['user']    = ['id' => $id, 'role' => $role];
 
     User::updateLastLogin($pdo, $id);
+
+    try {
+        AuditLog::insert($pdo, $id, 'login_success', [
+            'identifier' => $identifier,
+            'ip' => $_SERVER['REMOTE_ADDR'] ?? '',
+        ]);
+    } catch (Throwable) {
+        // ignore
+    }
 
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['ok' => true, 'role' => $role], JSON_UNESCAPED_SLASHES);
