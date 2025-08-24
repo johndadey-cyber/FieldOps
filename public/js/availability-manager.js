@@ -214,11 +214,18 @@ function handleSelect(info) {
 function handleEventEdit(ev) {
   const type = ev.extendedProps.type;
   if (type === 'window') {
+    // Availability windows represent the normal weekly schedule. When one is
+    // clicked we open the window editor for that day and, on submission, reload
+    // the calendar so the change is reflected immediately.
     const s = ev.start;
     const day = daysOrder[(s.getDay() + 6) % 7];
     const sd = ev.extendedProps.raw && ev.extendedProps.raw.start_date ? ev.extendedProps.raw.start_date : '';
     openEditDay(day, sd);
+    winForm.addEventListener('submit', () => loadAvailability(), { once: true });
   } else if (type === 'override') {
+    // Overrides are one-off adjustments such as PTO or temporary conflicts.
+    // We open the override editor pre-filled with the event details and reload
+    // the calendar after the override form is submitted.
     const raw = { ...ev.extendedProps.raw };
     const s = ev.start;
     const e = ev.end || s;
@@ -226,6 +233,7 @@ function handleEventEdit(ev) {
     raw.start_time = s.toISOString().slice(11,16);
     raw.end_time = e.toISOString().slice(11,16);
     openOvEdit(raw);
+    ovForm.addEventListener('submit', () => loadAvailability(), { once: true });
   }
 }
 
