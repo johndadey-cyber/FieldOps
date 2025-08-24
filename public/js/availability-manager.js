@@ -23,6 +23,8 @@ const weekDisplay = document.getElementById('weekDisplay');
 
 const btnExport = document.getElementById('btnExport');
 const btnPrint = document.getElementById('btnPrint');
+const calendarEl = document.getElementById('calendar');
+const calendarLoading = document.getElementById('calendarLoading');
 
 const bulkAction = document.getElementById('bulk_action');
 const bulkApply = document.getElementById('bulk_apply');
@@ -400,6 +402,8 @@ async function delRow(it) {
 async function loadAvailability() {
   const eid = currentEmployeeId();
   const ws = currentWeekStart();
+  calendarLoading.classList.remove('d-none');
+  calendarEl.classList.add('d-none');
   const [data, jobs] = await Promise.all([
     fetchAvailability(eid, ws),
     eid ? fetchJobs(ws) : Promise.resolve([])
@@ -413,6 +417,8 @@ async function loadAvailability() {
   }, { weekStart: ws });
   const events = Array.isArray(data.events) && data.events.length ? data.events : data.availability;
   renderCalendar(calendar, events, data.overrides, jobs, ws, eid);
+  calendarLoading.classList.add('d-none');
+  calendarEl.classList.remove('d-none');
 }
 
 winForm.addEventListener('submit', async (e) => {
