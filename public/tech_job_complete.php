@@ -5,11 +5,19 @@
 declare(strict_types=1);
 
 require __DIR__ . '/_cli_guard.php';
+require __DIR__ . '/_auth.php';
 require __DIR__ . '/_csrf.php';
+require __DIR__ . '/../config/database.php';
+
+require_auth();
+require_role('tech');
+
+$jobId  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$pdo    = getPDO();
+require_job_owner($pdo, $jobId);
 
 $csrf   = csrf_token();
 $techId = isset($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : 0;
-$jobId  = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 ?>
 <!doctype html>
 <html lang="en">

@@ -20,11 +20,8 @@ if (!verify_csrf_token($data['csrf_token'] ?? null)) {
     JsonResponse::json(['ok' => false, 'error' => 'Invalid CSRF token', 'code' => \ErrorCodes::CSRF_INVALID], 400);
     return;
 }
-
-if (current_role() === 'guest') {
-    JsonResponse::json(['ok' => false, 'error' => 'Forbidden', 'code' => \ErrorCodes::FORBIDDEN], 403);
-    return;
-}
+require_auth();
+require_role('tech');
 
 $id = isset($data['id']) ? (int)$data['id'] : 0;
 if ($id <= 0) {
@@ -39,6 +36,12 @@ try {
         JsonResponse::json(['ok' => false, 'error' => 'Not found', 'code' => 404], 404);
         return;
     }
+    $sessionId = isset($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : 0;
+    if ($photo['technician_id'] !== $sessionId) {
+        JsonResponse::json(['ok' => false, 'error' => 'Forbidden', 'code' => \ErrorCodes::FORBIDDEN], 403);
+        return;
+    }
+    require_job_owner($pdo, $photo['job_id']);
     $deleted = JobPhoto::delete($pdo, $id);
     if ($deleted) {
         $fullPath = __DIR__ . '/../' . $photo['path'];
