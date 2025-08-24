@@ -20,7 +20,10 @@ if ($role === 'admin' || $role === 'dispatcher') {
         'availability_manager.php' => 'Availability',
     ];
     if ($role === 'admin') {
-        $items = ['admin/index.php' => 'Admin'] + $items;
+        $items = [
+            'admin/index.php'     => 'Admin',
+            'admin/user_form.php' => 'New User',
+        ] + $items;
     }
 } elseif ($role === 'tech' || $role === 'field_tech') {
     $items = [
