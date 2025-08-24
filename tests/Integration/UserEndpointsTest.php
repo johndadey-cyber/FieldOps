@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
@@ -14,14 +15,7 @@ final class UserEndpointsTest extends TestCase
     {
         $this->pdo = getPDO();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $this->pdo->exec('CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL UNIQUE,
-            email TEXT NOT NULL UNIQUE,
-            password TEXT NOT NULL,
-            role TEXT NOT NULL,
-            last_login DATETIME NULL
-        )');
+        // Users table is provided by migrations; audit_log requires manual setup in SQLite.
         $this->pdo->exec('CREATE TABLE IF NOT EXISTS audit_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INT NULL,
@@ -29,6 +23,7 @@ final class UserEndpointsTest extends TestCase
             details TEXT NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         )');
+        // Ensure a clean state for each test run.
         $this->pdo->exec('DELETE FROM users');
         $this->pdo->exec('DELETE FROM audit_log');
     }
