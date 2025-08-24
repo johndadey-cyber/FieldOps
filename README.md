@@ -48,3 +48,8 @@ from your local development configuration.
 When including scripts from a CDN, always add an `integrity` hash and
 `crossorigin="anonymous"` attribute. These enable Subresource Integrity (SRI),
 helping ensure the fetched resources have not been tampered with.
+
+The application currently loads [FullCalendar](https://fullcalendar.io/) from
+the jsDelivr CDN. If you need offline support, install the appropriate
+`@fullcalendar/*` packages with npm and bundle them locally instead of relying
+on the CDN.
