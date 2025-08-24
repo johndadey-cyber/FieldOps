@@ -57,6 +57,10 @@ configure a database and seed it with minimal data so an active employee exists.
    ];
    ```
 
+   For tests that specify a non-SQLite DSN using `FIELDOPS_TEST_DSN`, you can
+   provide dedicated credentials via `FIELDOPS_TEST_USER` and
+   `FIELDOPS_TEST_PASS`. These fall back to `DB_USER` / `DB_PASS` when unset.
+
 2. **Create the database schema**:
 
    ```bash
