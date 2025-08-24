@@ -7,13 +7,16 @@
     "doc": "docs",
     "test": "tests"
   },
+
     "scripts": {
       "test:ui": "playwright test"
     },
+
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+
     "dependencies": {},
     "devDependencies": {
       "@playwright/test": "^1.41.2"
