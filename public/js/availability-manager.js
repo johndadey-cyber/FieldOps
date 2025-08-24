@@ -227,6 +227,7 @@ function handleEventEdit(ev) {
 }
 
 const calendar = initCalendar(handleSelect, handleEventEdit);
+document.getElementById('calendar-tab').addEventListener('shown.bs.tab', () => calendar.render(), { once: true });
 
 async function searchEmployees() {
   hideAlert();
