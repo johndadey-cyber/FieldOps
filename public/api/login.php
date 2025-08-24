@@ -3,25 +3,16 @@ declare(strict_types=1);
 
 require __DIR__ . '/../_cli_guard.php';
 
-require_once __DIR__ . '/../../helpers/auth_helpers.php';
+require __DIR__ . '/../_csrf.php';
+require_once __DIR__ . '/../../helpers/json_out.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../models/User.php';
+require_once __DIR__ . '/../../models/AuditLog.php';
 
-
-if (!function_exists('json_out')) {
-    /** @param array<string,mixed> $payload */
-    function json_out(array $payload, int $code = 200): void {
-        http_response_code($code);
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($payload, JSON_UNESCAPED_SLASHES);
-        exit;
-    }
-}
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 if ($method !== 'POST') {
-    http_response_code(405);
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['ok' => false, 'error' => 'Method not allowed'], JSON_UNESCAPED_SLASHES);
-    return;
+    return json_out(['ok' => false, 'error' => 'Method not allowed'], 405);
 }
 
 $raw  = file_get_contents('php://input');
@@ -48,21 +39,25 @@ if (isset($data['username']) && is_string($data['username'])) {
 $password = isset($data['password']) && is_string($data['password']) ? $data['password'] : '';
 
 if ($identifier === '' || $password === '') {
-    http_response_code(400);
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['ok' => false, 'error' => 'Missing fields'], JSON_UNESCAPED_SLASHES);
-    return;
+    return json_out(['ok' => false, 'error' => 'Missing fields'], 400);
 }
 
 try {
     $pdo  = getPDO();
-    $result = authenticate($pdo, $identifier, $password);
-    if (!$result['ok']) {
-        $status = ($result['error'] === 'Invalid credentials') ? 401 : 500;
-        http_response_code($status);
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['ok' => false, 'error' => $result['error']], JSON_UNESCAPED_SLASHES);
-        return;
+
+    $user = User::findByIdentifier($pdo, $identifier);
+    if ($user === null || !password_verify($password, (string)$user['password'])) {
+        try {
+            $uid = $user['id'] ?? null;
+            AuditLog::insert($pdo, $uid ? (int)$uid : null, 'login_failure', [
+                'identifier' => $identifier,
+                'ip' => $_SERVER['REMOTE_ADDR'] ?? '',
+            ]);
+        } catch (Throwable) {
+            // ignore
+        }
+        return json_out(['ok' => false, 'error' => 'Invalid credentials'], 401);
+
     }
 
     $user = $result['user'];
@@ -76,10 +71,20 @@ try {
     $_SESSION['role']    = $role;
     $_SESSION['user']    = ['id' => $id, 'role' => $role];
 
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['ok' => true, 'role' => $role], JSON_UNESCAPED_SLASHES);
+
+    User::updateLastLogin($pdo, $id);
+
+    try {
+        AuditLog::insert($pdo, $id, 'login_success', [
+            'identifier' => $identifier,
+            'ip' => $_SERVER['REMOTE_ADDR'] ?? '',
+        ]);
+    } catch (Throwable) {
+        // ignore
+    }
+
+    json_out(['ok' => true, 'role' => $role]);
+
 } catch (Throwable $e) {
-    http_response_code(500);
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['ok' => false, 'error' => 'Server error'], JSON_UNESCAPED_SLASHES);
+    json_out(['ok' => false, 'error' => 'Server error'], 500);
 }
