@@ -25,25 +25,16 @@ if (empty($data) && is_string($raw) && $raw !== '') {
 
 $identifier = '';
 if (isset($data['username']) && is_string($data['username'])) {
-    $identifier = $data['username'];
+    $identifier = trim($data['username']);
 } elseif (isset($data['email']) && is_string($data['email'])) {
-    $identifier = $data['email'];
+    $identifier = trim($data['email']);
 }
 $password = isset($data['password']) && is_string($data['password']) ? $data['password'] : '';
 
 if ($identifier === '' || $password === '') {
-    http_response_code(401);
+    http_response_code(400);
     header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['ok' => false, 'error' => 'Invalid credentials'], JSON_UNESCAPED_SLASHES);
-    try {
-        $pdo = getPDO();
-        AuditLog::insert($pdo, null, 'login_failure', [
-            'identifier' => $identifier,
-            'ip' => $_SERVER['REMOTE_ADDR'] ?? '',
-        ]);
-    } catch (Throwable) {
-        // ignore
-    }
+    echo json_encode(['ok' => false, 'error' => 'Missing fields'], JSON_UNESCAPED_SLASHES);
     return;
 }
 
