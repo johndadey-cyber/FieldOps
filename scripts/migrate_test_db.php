@@ -31,6 +31,13 @@ function migrateTestDb(PDO $pdo): void
     $files = glob($dir . '/*.sql') ?: [];
     sort($files);
 
+    $usersMigration = $dir . '/20241004185000_create_users.sql';
+    $usersIndex = array_search($usersMigration, $files, true);
+    if ($usersIndex !== false) {
+        unset($files[$usersIndex]);
+        array_unshift($files, $usersMigration);
+    }
+
     foreach ($files as $file) {
         $name = basename($file);
         $stmt = $pdo->prepare('SELECT 1 FROM migrations WHERE filename = ?');
