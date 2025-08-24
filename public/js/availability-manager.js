@@ -3,6 +3,7 @@ import { renderList, showAlert, hideAlert, currentGroups, allGroups } from './li
 import { initCalendar, renderCalendar } from './calendar-render.js';
 import { openOvAdd, openOvEdit, delOverride } from './override-handlers.js';
 
+// Toggle to true to enable debug logging in this module
 const DEBUG = false;
 const CSRF = document.body.dataset.csrf;
 const daysOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
@@ -408,6 +409,9 @@ async function loadAvailability() {
     fetchAvailability(eid, ws),
     eid ? fetchJobs(ws) : Promise.resolve([])
   ]);
+  if (DEBUG) {
+    console.log('calendar data', data, jobs);
+  }
   renderList(data.availability, data.overrides, {
     openEditDay,
     openCopy,
