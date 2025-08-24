@@ -59,8 +59,6 @@ try {
         return json_out(['ok' => false, 'error' => 'Invalid credentials'], 401);
 
     }
-
-    $user = $result['user'];
     if (session_status() !== PHP_SESSION_ACTIVE) {
         session_start();
     }
