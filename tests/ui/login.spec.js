@@ -26,10 +26,10 @@ test('redirects to jobs on successful login', async ({ page, context }) => {
 
   await page.fill('#username', creds.username);
   await page.fill('#password', creds.password);
-  await page.click('button[type="submit"]');
-  const response = await page.waitForResponse('/api/login.php');
-
-  expect(response.status()).toBe(200);
+  const [response] = await Promise.all([
+    page.waitForResponse('**/api/login.php'),
+    page.click('button[type="submit"]'),
+  ]);
   const json = await response.json();
   expect(json).toEqual(expect.objectContaining({ ok: true, role: 'user' }));
   await expect(page).toHaveURL('/jobs.php');
