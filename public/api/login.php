@@ -68,7 +68,15 @@ try {
     $user = User::findByIdentifier($pdo, $identifier);
     $userFound = $user !== null;
     $context['user_found'] = $userFound;
-    if ($user === null || !password_verify($password, (string)$user['password'])) {
+    error_log('user_found=' . ($userFound ? 'yes' : 'no'), 3, __DIR__.'/../../logs/login_debug.log');
+
+    $passwordMatch = false;
+    if ($user !== null) {
+        $passwordMatch = password_verify($password, (string)$user['password']);
+        error_log('password match=' . ($passwordMatch ? 'yes' : 'no'), 3, __DIR__.'/../../logs/login_debug.log');
+    }
+
+    if ($user === null || !$passwordMatch) {
         try {
             $uid = $user['id'] ?? null;
             AuditLog::insert($pdo, $uid ? (int)$uid : null, 'login_failure', [
@@ -95,6 +103,8 @@ try {
     $_SESSION['user_id'] = $id;
     $_SESSION['role']    = $role;
     $_SESSION['user']    = ['id' => $id, 'role' => $role];
+    $context['user_id'] = $id;
+    $context['role']    = $role;
 
     User::updateLastLogin($pdo, $id);
 
@@ -106,6 +116,9 @@ try {
     } catch (Throwable) {
         // ignore
     }
+
+    $context['event'] = 'login_success';
+    error_log(print_r($context, true), 3, __DIR__.'/../../logs/login_debug.log');
 
     return json_out([
         'ok' => true,
