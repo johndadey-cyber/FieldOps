@@ -1,0 +1,9 @@
+Array
+(
+    [identifier] => auuser
+    [ip] => 
+    [csrf_valid] => 1
+    [user_found] => 1
+    [password] => [redacted]
+    [error] => invalid_credentials
+)
