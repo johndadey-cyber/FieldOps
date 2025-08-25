@@ -8,7 +8,7 @@ module.exports = defineConfig({
   },
   webServer: {
     command: 'php -S 127.0.0.1:8000 -t public',
-    url: 'http://127.0.0.1:8000',
+    url: 'http://127.0.0.1:8000/login.php',
     reuseExistingServer: !process.env.CI,
     env: {
       DB_HOST: process.env.DB_HOST || '127.0.0.1',
