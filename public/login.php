@@ -46,17 +46,23 @@ require __DIR__ . '/../partials/header.php';
     </div>
   </div>
 <?php
+$debugLogin = getenv('DEBUG_LOGIN') ? 'true' : 'false';
 $pageScripts = <<<HTML
 <script>
 (function(){
+  const DEBUG = {$debugLogin};
   const form = document.getElementById('login-form');
   const err = document.getElementById('login-error');
   form.addEventListener('submit', async function(ev){
     ev.preventDefault();
     err.classList.add('d-none');
     const fd = new FormData(form);
+    if (DEBUG) {
+      for (const [k, v] of fd.entries()) console.debug('login form', k, v);
+    }
     try {
       const res = await fetch(form.action, {method:'POST', body:fd});
+      if (DEBUG) console.debug('login response', res.status, await res.clone().text());
       const data = await res.json();
       if(res.ok && data && data.ok){
         let dest = '/jobs.php';
