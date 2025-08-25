@@ -11,12 +11,12 @@ require_once __DIR__ . '/../../models/AuditLog.php';
 
 $ip         = $_SERVER['REMOTE_ADDR'] ?? '';
 $identifier = '';
-$csrfValid  = null;
+$csrfOk     = null;
 $userFound  = null;
 $context    = [
     'identifier' => $identifier,
     'ip' => $ip,
-    'csrf_valid' => $csrfValid,
+    'csrf_valid' => $csrfOk,
     'user_found' => $userFound,
     'password' => '[redacted]',
 ];
@@ -46,10 +46,11 @@ if (isset($data['username']) && is_string($data['username'])) {
 $context['identifier'] = $identifier;
 $password = isset($data['password']) && is_string($data['password']) ? $data['password'] : '';
 
-$csrfValid = csrf_verify($token);
-$context['csrf_valid'] = $csrfValid;
-if (!$csrfValid) {
+$csrfOk = csrf_verify($token);
+$context['csrf_valid'] = $csrfOk;
+if (!$csrfOk) {
     csrf_log_failure_payload($raw, $data);
+    error_log("CSRF validation failed\n", 3, __DIR__.'/../../logs/login_debug.log');
     $context['error'] = 'invalid_csrf';
     error_log(print_r($context, true), 3, __DIR__.'/../../logs/login_debug.log');
     return json_out(['ok' => false, 'error' => 'Invalid CSRF token'], 422);
