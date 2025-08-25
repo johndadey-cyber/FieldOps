@@ -9,9 +9,22 @@ require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/User.php';
 require_once __DIR__ . '/../../models/AuditLog.php';
 
+$ip         = $_SERVER['REMOTE_ADDR'] ?? '';
+$identifier = '';
+$csrfValid  = null;
+$userFound  = null;
+$context    = [
+    'identifier' => $identifier,
+    'ip' => $ip,
+    'csrf_valid' => $csrfValid,
+    'user_found' => $userFound,
+    'password' => '[redacted]',
+];
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 if ($method !== 'POST') {
+    $context['error'] = 'method_not_allowed';
+    error_log(print_r($context, true), 3, __DIR__.'/../../logs/login_debug.log');
     return json_out(['ok' => false, 'error' => 'Method not allowed'], 405);
 }
 
@@ -25,20 +38,26 @@ if (empty($data) && is_string($raw) && $raw !== '') {
 }
 
 $token = (string)($data['csrf_token'] ?? '');
-if (!csrf_verify($token)) {
-    csrf_log_failure_payload($raw, $data);
-    return json_out(['ok' => false, 'error' => 'Invalid CSRF token'], 422);
-}
-
-$identifier = '';
 if (isset($data['username']) && is_string($data['username'])) {
     $identifier = trim($data['username']);
 } elseif (isset($data['email']) && is_string($data['email'])) {
     $identifier = trim($data['email']);
 }
+$context['identifier'] = $identifier;
 $password = isset($data['password']) && is_string($data['password']) ? $data['password'] : '';
 
+$csrfValid = csrf_verify($token);
+$context['csrf_valid'] = $csrfValid;
+if (!$csrfValid) {
+    csrf_log_failure_payload($raw, $data);
+    $context['error'] = 'invalid_csrf';
+    error_log(print_r($context, true), 3, __DIR__.'/../../logs/login_debug.log');
+    return json_out(['ok' => false, 'error' => 'Invalid CSRF token'], 422);
+}
+
 if ($identifier === '' || $password === '') {
+    $context['error'] = 'missing_fields';
+    error_log(print_r($context, true), 3, __DIR__.'/../../logs/login_debug.log');
     return json_out(['ok' => false, 'error' => 'Missing fields'], 400);
 }
 
@@ -46,6 +65,8 @@ try {
     $pdo  = getPDO();
 
     $user = User::findByIdentifier($pdo, $identifier);
+    $userFound = $user !== null;
+    $context['user_found'] = $userFound;
     if ($user === null || !password_verify($password, (string)$user['password'])) {
         try {
             $uid = $user['id'] ?? null;
@@ -56,6 +77,8 @@ try {
         } catch (Throwable) {
             // ignore
         }
+        $context['error'] = 'invalid_credentials';
+        error_log(print_r($context, true), 3, __DIR__.'/../../logs/login_debug.log');
         return json_out([
             'ok' => false,
             'message' => 'Invalid credentials',
@@ -71,7 +94,6 @@ try {
     $_SESSION['user_id'] = $id;
     $_SESSION['role']    = $role;
     $_SESSION['user']    = ['id' => $id, 'role' => $role];
-
 
     User::updateLastLogin($pdo, $id);
 
@@ -91,5 +113,7 @@ try {
     ]);
 
 } catch (Throwable $e) {
+    $context['error'] = 'exception: ' . $e->getMessage();
+    error_log(print_r($context, true), 3, __DIR__.'/../../logs/login_debug.log');
     return json_out(['ok' => false, 'error' => 'Server error'], 500);
 }
