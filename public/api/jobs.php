@@ -37,13 +37,18 @@ try {
     if ($onlyCompleted) {
         $showPast = true; // Automatically show past jobs when only completed is requested
     }
+    if ($showPast && !isset($_GET['start'])) {
+        // When showing past jobs without an explicit start date, default
+        // to a very early date so completed jobs in the past are included.
+        $start = '1970-01-01';
+    }
     $where = ['j.deleted_at IS NULL'];
     $args = [];
     if (!$onlyCompleted) {
         if (!$showPast && $start < $today) {
             $start = $today;
         }
-        $where[] = 'DATE(j.scheduled_date) BETWEEN :start_date AND :end_date';
+        $where[] = 'j.scheduled_date BETWEEN :start_date AND :end_date';
         $args[':start_date'] = $start;
         $args[':end_date'] = $end;
     }
