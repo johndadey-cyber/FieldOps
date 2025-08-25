@@ -18,7 +18,7 @@ test.beforeAll(async ({ request }) => {
 });
 
 test('redirects to jobs on successful login', async ({ page }) => {
-  await page.goto('/login.php');
+  await page.goto('/integration_login.php');
   await expect(page.locator('input[name="csrf_token"][type="hidden"]')).toHaveCount(1);
 
   await page.fill('#username', creds.username);
@@ -31,7 +31,7 @@ test('redirects to jobs on successful login', async ({ page }) => {
 });
 
 test('shows error on invalid credentials', async ({ page }) => {
-  await page.goto('/login.php');
+  await page.goto('/integration_login.php');
   await page.fill('#username', creds.username);
   await page.fill('#password', 'wrongpass');
   await page.click('button[type="submit"]');
