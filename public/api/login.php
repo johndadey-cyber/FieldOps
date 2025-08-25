@@ -56,7 +56,10 @@ try {
         } catch (Throwable) {
             // ignore
         }
-        return json_out(['ok' => false, 'error' => 'Invalid credentials'], 401);
+        return json_out([
+            'ok' => false,
+            'message' => 'Invalid credentials',
+        ], 401);
 
     }
     if (session_status() !== PHP_SESSION_ACTIVE) {
@@ -81,7 +84,11 @@ try {
         // ignore
     }
 
-    return json_out(['ok' => true, 'role' => $role]);
+    return json_out([
+        'ok' => true,
+        'role' => $role,
+        'message' => 'Login successful',
+    ]);
 
 } catch (Throwable $e) {
     return json_out(['ok' => false, 'error' => 'Server error'], 500);

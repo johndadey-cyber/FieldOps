@@ -64,7 +64,9 @@ $pageScripts = <<<HTML
         else if(data.role === 'field_tech'){ dest = '/tech_jobs.php'; }
         window.location.href = dest;
       } else {
-        err.textContent = (data && data.error) ? data.error : 'Invalid credentials';
+        err.textContent = (data && (data.message || data.error))
+          ? (data.message || data.error)
+          : 'Invalid credentials';
         err.classList.remove('d-none');
       }
     } catch(e) {
