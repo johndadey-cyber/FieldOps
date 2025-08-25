@@ -16,7 +16,8 @@ module.exports = defineConfig({
       DB_NAME: process.env.DB_NAME || 'fieldops_integration',
       DB_USER: process.env.DB_USER || 'root',
       DB_PASS: process.env.DB_PASS || '1234!@#$',
-      APP_ENV: 'dev'
+      APP_ENV: 'test',
+      FIELDOPS_TEST_DSN: process.env.FIELDOPS_TEST_DSN || 'sqlite:/tmp/fieldops_test.db'
     }
   }
 });
