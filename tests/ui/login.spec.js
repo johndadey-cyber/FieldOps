@@ -31,8 +31,8 @@ test('redirects to jobs on successful login', async ({ page, context }) => {
 
   expect(response.status()).toBe(200);
   const json = await response.json();
-  expect(json).toEqual({ ok: true });
-  await expect(page).toHaveURL(/\/jobs\.php$/);
+  expect(json).toEqual(expect.objectContaining({ ok: true, role: 'user' }));
+  await expect(page).toHaveURL('/jobs.php');
 });
 
 test('shows error on invalid credentials', async ({ page }) => {
