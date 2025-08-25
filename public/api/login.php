@@ -81,8 +81,8 @@ try {
         // ignore
     }
 
-    json_out(['ok' => true, 'role' => $role]);
+    return json_out(['ok' => true, 'role' => $role]);
 
 } catch (Throwable $e) {
-    json_out(['ok' => false, 'error' => 'Server error'], 500);
+    return json_out(['ok' => false, 'error' => 'Server error'], 500);
 }
