@@ -45,6 +45,7 @@ if (isset($data['username']) && is_string($data['username'])) {
 }
 $context['identifier'] = $identifier;
 $password = isset($data['password']) && is_string($data['password']) ? $data['password'] : '';
+$debugLogin = getenv('DEBUG_LOGIN');
 
 $csrfOk = csrf_verify($token);
 $context['csrf_valid'] = $csrfOk;
@@ -76,10 +77,9 @@ try {
         error_log('password match=' . ($passwordMatch ? 'yes' : 'no'), 3, __DIR__.'/../../logs/login_debug.log');
     }
 
-    if ($user === null || !$passwordMatch) {
+    if ($user === null) {
         try {
-            $uid = $user['id'] ?? null;
-            AuditLog::insert($pdo, $uid ? (int)$uid : null, 'login_failure', [
+            AuditLog::insert($pdo, null, 'login_failure', [
                 'identifier' => $identifier,
                 'ip' => $_SERVER['REMOTE_ADDR'] ?? '',
             ]);
@@ -88,11 +88,36 @@ try {
         }
         $context['error'] = 'invalid_credentials';
         error_log(print_r($context, true), 3, __DIR__.'/../../logs/login_debug.log');
-        return json_out([
+        $resp = [
             'ok' => false,
-            'message' => 'Invalid credentials',
-        ], 401);
+            'message' => $debugLogin ? 'Unknown username' : 'Invalid credentials',
+        ];
+        if ($debugLogin) {
+            $resp['username_ok'] = false;
+        }
+        return json_out($resp, 401);
+    }
 
+    if (!$passwordMatch) {
+        try {
+            AuditLog::insert($pdo, (int)$user['id'], 'login_failure', [
+                'identifier' => $identifier,
+                'ip' => $_SERVER['REMOTE_ADDR'] ?? '',
+            ]);
+        } catch (Throwable) {
+            // ignore
+        }
+        $context['error'] = 'invalid_credentials';
+        error_log(print_r($context, true), 3, __DIR__.'/../../logs/login_debug.log');
+        $resp = [
+            'ok' => false,
+            'message' => $debugLogin ? 'Incorrect password' : 'Invalid credentials',
+        ];
+        if ($debugLogin) {
+            $resp['username_ok'] = true;
+            $resp['password_ok'] = false;
+        }
+        return json_out($resp, 401);
     }
     if (session_status() !== PHP_SESSION_ACTIVE) {
         session_start();
@@ -120,11 +145,16 @@ try {
     $context['event'] = 'login_success';
     error_log(print_r($context, true), 3, __DIR__.'/../../logs/login_debug.log');
 
-    return json_out([
+    $resp = [
         'ok' => true,
         'role' => $role,
         'message' => 'Login successful',
-    ]);
+    ];
+    if ($debugLogin) {
+        $resp['username_ok'] = true;
+        $resp['password_ok'] = true;
+    }
+    return json_out($resp);
 
 } catch (Throwable $e) {
     $context['error'] = 'exception: ' . $e->getMessage();
