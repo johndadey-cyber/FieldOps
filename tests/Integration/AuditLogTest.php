@@ -16,6 +16,9 @@ final class AuditLogTest extends TestCase
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $this->pdo->beginTransaction();
 
+        $this->pdo->exec("INSERT INTO persons (first_name,last_name,created_at,updated_at) VALUES ('Aud','Emp',NOW(),NOW())");
+        $personId = (int)$this->pdo->lastInsertId();
+
         $need = 1 - (int)$this->pdo->query("SELECT COUNT(*) FROM employees WHERE is_active = 1")->fetchColumn();
         if ($need > 0) {
             $driver = $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
@@ -27,11 +30,18 @@ final class AuditLogTest extends TestCase
 
             $ins = $this->pdo->prepare(
                 "INSERT INTO employees (person_id, hire_date, status, is_active, role_id, created_at, updated_at)
-                 VALUES (0, :hire_date, 'active', 1, NULL, :created_at, :updated_at)"
+                 VALUES (:person_id, :hire_date, 'active', 1, NULL, :created_at, :updated_at)"
             );
             $today = date('Y-m-d');
             $now   = date('Y-m-d H:i:s');
-            for ($i = 0; $i < $need; $i++) { $ins->execute([':hire_date'=>$today, ':created_at'=>$now, ':updated_at'=>$now]); }
+            for ($i = 0; $i < $need; $i++) {
+                $ins->execute([
+                    ':person_id' => $personId,
+                    ':hire_date' => $today,
+                    ':created_at' => $now,
+                    ':updated_at' => $now,
+                ]);
+            }
 
             if ($driver === 'sqlite') {
                 $this->pdo->exec('PRAGMA foreign_keys = ON');
